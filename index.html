@@ -91,8 +91,8 @@
         const popupImg = document.getElementById('popup-img');
 
         downloadFiles.forEach(file => {
-            const fileName = file.replace('.zip', '').toLowerCase();
-            const picture = pictureFiles.find(p => p.toLowerCase().startsWith(fileName));
+			const fileName = file.replace('.zip', ''); // Entferne .zip, aber ändere nichts an der Groß-/Kleinschreibung
+			const picture = pictureFiles.find(p => p.startsWith(fileName));
 
             const item = document.createElement('div');
             item.className = 'download-item';
