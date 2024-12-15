@@ -1,0 +1,35 @@
+<?php
+$filePath = 'download_counts.json';
+
+// Initialisiere oder lade die Datei
+if (!file_exists($filePath)) {
+    file_put_contents($filePath, json_encode([]));
+}
+$counts = json_decode(file_get_contents($filePath), true);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (isset($input['file'])) {
+        $file = $input['file'];
+        if (!isset($counts[$file])) {
+            $counts[$file] = 0;
+        }
+        $counts[$file]++;
+        file_put_contents($filePath, json_encode($counts));
+        echo json_encode(['message' => 'Zähler aktualisiert']);
+    } else {
+        http_response_code(400);
+        echo json_encode(['message' => 'Ungültige Anfrage']);
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $file = $_GET['file'] ?? null;
+    if ($file && isset($counts[$file])) {
+        echo json_encode(['count' => $counts[$file]]);
+    } else {
+        echo json_encode(['count' => 0]);
+    }
+} else {
+    http_response_code(405);
+    echo json_encode(['message' => 'Methode nicht erlaubt']);
+}
+?>
