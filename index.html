@@ -88,10 +88,10 @@ const downloadFiles = [
     'ForceSplitter.zip',
     'TrigoBro.zip',
     'StatiCulator.zip',
-    'Bodenberechnungen.zip',
-    'Durchlaufträger_Rechner.zip',
-    'Knicken_Holzstützen.zip',
-    'Trägheitsmomentflächen.zip'
+    'Bodenberechnungen.xlsm',
+    'Durchlaufträger_Rechner.xlsm',
+    'Knicken_Holzstützen.xlsm',
+    'Trägheitsmomentflächen.xlsm'
 ];
 
 const pictureFiles = [
@@ -109,8 +109,9 @@ const downloadList = document.getElementById('download-list');
 const popupImg = document.getElementById('popup-img');
 
 downloadFiles.forEach(file => {
-    const fileName = file.replace('.zip', ''); // Entferne die .zip-Endung
-    const picture = pictureFiles.find(p => p.startsWith(fileName)); // Suche das passende Bild
+    // Entferne die Dateiendungen (.zip oder .xlsm) für den Bildvergleich
+    const fileName = file.replace(/\.(zip|xlsm)$/, ''); 
+    const picture = pictureFiles.find(p => p.startsWith(fileName));
 
     const item = document.createElement('div');
     item.className = 'download-item';
