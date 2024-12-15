@@ -126,73 +126,78 @@
             processCSV(data);
         }
 
-        function processCSV(data) {
-            const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
-            rows.forEach(row => {
-                const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum] = row.split(';'); // Semikolon als Trennzeichen
+function processCSV(data) {
+    const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
+    rows.forEach(row => {
+        const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum] = row.split(';'); // Semikolon als Trennzeichen
 
-                if (!titel) return; // Leere Zeilen ignorieren
+        if (!titel) return; // Leere Zeilen ignorieren
 
-                const item = document.createElement('div');
-                item.className = 'download-item';
+        const item = document.createElement('div');
+        item.className = 'download-item';
 
-                // Bild hinzufügen (immer vorhanden)
-                if (picturepfad) {
-                    const img = document.createElement('img');
-                    img.src = picturepfad;
-                    img.alt = titel;
-                    img.addEventListener('click', () => {
-                        popupImg.src = picturepfad;
-                        window.location.hash = 'popup';
-                    });
-                    item.appendChild(img);
-                }
-
-                // Titel hinzufügen
-                const title = document.createElement('h2');
-                title.textContent = titel;
-                item.appendChild(title);
-
-                // Beschreibung hinzufügen (wenn vorhanden)
-                if (beschreibung) {
-                    const desc = document.createElement('p');
-                    desc.textContent = beschreibung;
-                    item.appendChild(desc);
-                }
-
-                // Version und europäisches Datum hinzufügen
-                if (version || datum) {
-                    const versionInfo = document.createElement('p');
-                    versionInfo.textContent = `Version: ${version || "N/A"} | Datum: ${formatEuropeanDate(datum)}`;
-                    item.appendChild(versionInfo);
-                }
-
-                // Download-Link für Windows (wenn vorhanden)
-                if (downloadpfad_windows) {
-                    const winLink = document.createElement('a');
-                    winLink.href = downloadpfad_windows;
-                    winLink.textContent = 'Download für Windows';
-                    item.appendChild(winLink);
-                }
-
-                // Download-Link für Mac (wenn vorhanden)
-                if (downloadpfad_mac) {
-                    const macLink = document.createElement('a');
-                    macLink.href = downloadpfad_mac;
-                    macLink.textContent = 'Download für Mac';
-                    item.appendChild(macLink);
-                }
-
-                // YouTube-Video einbetten (wenn vorhanden)
-                if (youtubevideopfad) {
-                    const video = document.createElement('iframe');
-                    video.src = youtubevideopfad.replace('watch?v=', 'embed/');
-                    item.appendChild(video);
-                }
-
-                downloadList.appendChild(item);
+        // Bild hinzufügen (immer vorhanden)
+        if (picturepfad) {
+            const img = document.createElement('img');
+            img.src = picturepfad;
+            img.alt = titel;
+            img.addEventListener('click', () => {
+                popupImg.src = picturepfad;
+                window.location.hash = 'popup';
             });
+            item.appendChild(img);
         }
+
+        // Titel hinzufügen
+        const title = document.createElement('h2');
+        title.textContent = titel;
+        item.appendChild(title);
+
+        // Beschreibung hinzufügen (wenn vorhanden)
+        if (beschreibung) {
+            const desc = document.createElement('p');
+            desc.textContent = beschreibung;
+            item.appendChild(desc);
+        }
+
+        // Version und europäisches Datum hinzufügen
+        if (version || datum) {
+            const versionInfo = document.createElement('p');
+            versionInfo.textContent = `Version: ${version || "N/A"} | Datum: ${formatEuropeanDate(datum)}`;
+            item.appendChild(versionInfo);
+        }
+
+        // Download-Links anzeigen
+        if (downloadpfad_windows && downloadpfad_mac) {
+            // Beide Links vorhanden
+            const winLink = document.createElement('a');
+            winLink.href = downloadpfad_windows;
+            winLink.textContent = 'Download für Windows';
+            item.appendChild(winLink);
+
+            const macLink = document.createElement('a');
+            macLink.href = downloadpfad_mac;
+            macLink.textContent = 'Download für Mac';
+            item.appendChild(macLink);
+        } else if (downloadpfad_windows || downloadpfad_mac) {
+            // Nur ein Link vorhanden (egal ob Windows oder Mac)
+            const singleLink = document.createElement('a');
+            singleLink.href = downloadpfad_windows || downloadpfad_mac;
+            singleLink.textContent = 'Download';
+            item.appendChild(singleLink);
+        }
+
+        // YouTube-Video einbetten (wenn vorhanden)
+        if (youtubevideopfad) {
+            const video = document.createElement('iframe');
+            video.src = youtubevideopfad.replace('watch?v=', 'embed/');
+            item.appendChild(video);
+        }
+
+        downloadList.appendChild(item);
+    });
+}
+
 
         fetchCSV();
     </script>
