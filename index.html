@@ -84,7 +84,16 @@
 
     <script>
         // Liste der Dateien aus dem Downloads- und Pictures-Ordner
-        const downloadFiles = ['BlockBro.zip','ForceSplitter.zip','TrigoBro.zip','StatiCulator.zip','Bodenberechnungen.xlsm','Durchlaufträger_Rechner.xlsm','Knicken_Holzstützen.xlsm','Trägheitsmomentflächen.xlsm']; // Dateien im Downloads-Ordner
+const downloadFiles = [
+    'BlockBro.zip',
+    'Bodenberechnungen.zip',
+    'Durchlaufträger_Rechner.zip',
+    'ForceSplitter.zip',
+    'Knicken_Holzstützen.zip',
+    'StatiCulator.zip',
+    'Trägheitsmomentflächen.zip'
+];
+
 const pictureFiles = [
     'BlockBro.PNG',
     'Bodenberechnungen.PNG',
@@ -95,34 +104,30 @@ const pictureFiles = [
     'Trägheitsmomentflächen.PNG'
 ];
 
-        const downloadList = document.getElementById('download-list');
-        const popupImg = document.getElementById('popup-img');
+const downloadList = document.getElementById('download-list');
+const popupImg = document.getElementById('popup-img');
 
-        downloadFiles.forEach(file => {
-			const fileName = file.replace('.zip', ''); // Entferne .zip, aber ändere nichts an der Groß-/Kleinschreibung
-			const picture = pictureFiles.find(p => p.startsWith(fileName));
+downloadFiles.forEach(file => {
+    const fileName = file.replace('.zip', ''); // Entferne .zip
+    const picture = pictureFiles.find(p => p.startsWith(fileName));
 
-            const item = document.createElement('div');
-            item.className = 'download-item';
+    const item = document.createElement('div');
+    item.className = 'download-item';
 
-            const img = document.createElement('img');
-            img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80';
-            img.alt = fileName;
+    const img = document.createElement('img');
+    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80';
+    img.alt = fileName;
 
-            // Klick-Event für Originalgröße
-            img.addEventListener('click', () => {
-                popupImg.src = img.src;
-                window.location.hash = 'popup';
-            });
+    img.addEventListener('click', () => {
+        popupImg.src = img.src;
+        window.location.hash = 'popup';
+    });
 
-            const link = document.createElement('a');
-            link.href = `../Downloads/${file}`;
-            link.textContent = file;
+    const link = document.createElement('a');
+    link.href = `../Downloads/${file}`;
+    link.textContent = file;
 
-            item.appendChild(img);
-            item.appendChild(link);
-            downloadList.appendChild(item);
-        });
-    </script>
-</body>
-</html>
+    item.appendChild(img);
+    item.appendChild(link);
+    downloadList.appendChild(item);
+});
