@@ -112,6 +112,14 @@
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
 
+        // Funktion zum Formatieren des Datums im europäischen Stil
+        function formatEuropeanDate(isoDate) {
+            if (!isoDate) return "N/A"; // Wenn kein Datum vorhanden, zeige N/A
+            const date = new Date(isoDate);
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('de-DE', options); // Datum im deutschen Format
+        }
+
         async function fetchCSV() {
             const response = await fetch(csvFilePath);
             const data = await response.text();
@@ -152,10 +160,10 @@
                     item.appendChild(desc);
                 }
 
-                // Version und Datum hinzufügen (wenn vorhanden)
+                // Version und europäisches Datum hinzufügen
                 if (version || datum) {
                     const versionInfo = document.createElement('p');
-                    versionInfo.textContent = `Version: ${version || "N/A"} | Datum: ${datum || "N/A"}`;
+                    versionInfo.textContent = `Version: ${version || "N/A"} | Datum: ${formatEuropeanDate(datum)}`;
                     item.appendChild(versionInfo);
                 }
 
