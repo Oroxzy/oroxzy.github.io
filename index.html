@@ -86,12 +86,6 @@
             color: #90caf9;
             margin-top: 5px;
         }
-        iframe {
-            margin-top: 10px;
-            width: 100%;
-            height: 150px;
-            border: none;
-        }
     </style>
 </head>
 <body>
@@ -141,7 +135,6 @@
             rows.forEach(async row => {
                 const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum] = row.split(';');
                 if (!titel) return;
-
                 const item = document.createElement('div');
                 item.className = 'download-item';
 
@@ -172,7 +165,7 @@
                     const winLink = document.createElement('a');
                     winLink.href = `download.php?file=${downloadpfad_windows}`;
                     winLink.textContent = 'Download für Windows';
-                    winLink.addEventListener('click', () => updateCounter(downloadpfad_windows));
+                    winLink.addEventListener('click', () => updateCounter(titel));
                     item.appendChild(winLink);
                 }
 
@@ -180,14 +173,8 @@
                     const macLink = document.createElement('a');
                     macLink.href = `download.php?file=${downloadpfad_mac}`;
                     macLink.textContent = 'Download für Mac';
-                    macLink.addEventListener('click', () => updateCounter(downloadpfad_mac));
+                    macLink.addEventListener('click', () => updateCounter(titel));
                     item.appendChild(macLink);
-                }
-
-                if (youtubevideopfad) {
-                    const video = document.createElement('iframe');
-                    video.src = youtubevideopfad.replace('watch?v=', 'embed/');
-                    item.appendChild(video);
                 }
 
                 const counter = document.createElement('p');
@@ -198,6 +185,7 @@
 
                 downloadList.appendChild(item);
 
+                // Lade den aktuellen Zählerstand
                 const count = await fetchCounter(titel);
                 counter.textContent = `Downloads: ${count}`;
             });
