@@ -86,21 +86,23 @@
         // Liste der Dateien aus dem Downloads- und Pictures-Ordner
 const downloadFiles = [
     'BlockBro.zip',
+    'ForceSplitter.zip',
+    'TrigoBro.zip',
+    'StatiCulator.zip',
     'Bodenberechnungen.zip',
     'Durchlaufträger_Rechner.zip',
-    'ForceSplitter.zip',
     'Knicken_Holzstützen.zip',
-    'StatiCulator.zip',
     'Trägheitsmomentflächen.zip'
 ];
 
 const pictureFiles = [
     'BlockBro.PNG',
+    'ForceSplitter.PNG',
+    'TrigoBro.PNG',
+    'StatiCulator.PNG',
     'Bodenberechnungen.PNG',
     'Durchlaufträger_Rechner.PNG',
-    'ForceSplitter.PNG',
     'Knicken_Holzstützen.PNG',
-    'StatiCulator.PNG',
     'Trägheitsmomentflächen.PNG'
 ];
 
@@ -108,16 +110,17 @@ const downloadList = document.getElementById('download-list');
 const popupImg = document.getElementById('popup-img');
 
 downloadFiles.forEach(file => {
-    const fileName = file.replace('.zip', ''); // Entferne .zip
-    const picture = pictureFiles.find(p => p.startsWith(fileName));
+    const fileName = file.replace('.zip', ''); // Entferne die .zip-Endung
+    const picture = pictureFiles.find(p => p.startsWith(fileName)); // Suche das passende Bild
 
     const item = document.createElement('div');
     item.className = 'download-item';
 
     const img = document.createElement('img');
-    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80';
+    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80'; // Lade das Bild oder Platzhalter
     img.alt = fileName;
 
+    // Klick-Event für Originalgröße-Popup
     img.addEventListener('click', () => {
         popupImg.src = img.src;
         window.location.hash = 'popup';
