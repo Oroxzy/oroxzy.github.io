@@ -139,23 +139,27 @@
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
         const header = document.getElementById('header');
-        const githubUsername = 'DeinGitHubBenutzername'; // GitHub-Benutzername hier einfügen
+        const githubUsername = 'Oroxzy'; // Der GitHub-Benutzername
 
         // Funktion zum Abrufen des GitHub-Profilbilds
         async function fetchGitHubProfile() {
             const response = await fetch(`https://api.github.com/users/${githubUsername}`);
-            const data = await response.json();
+            if (response.ok) {
+                const data = await response.json();
 
-            // Profilbild und Name dynamisch hinzufügen
-            const profileImg = document.createElement('img');
-            profileImg.src = data.avatar_url;
-            profileImg.alt = `${githubUsername}'s Profilbild`;
+                // Profilbild und Name dynamisch hinzufügen
+                const profileImg = document.createElement('img');
+                profileImg.src = data.avatar_url;
+                profileImg.alt = `${githubUsername}'s Profilbild`;
 
-            const profileName = document.createElement('h1');
-            profileName.textContent = `GitHub: ${data.name || githubUsername}`;
+                const profileName = document.createElement('h1');
+                profileName.textContent = `GitHub: ${data.name || githubUsername}`;
 
-            header.appendChild(profileImg);
-            header.appendChild(profileName);
+                header.appendChild(profileImg);
+                header.appendChild(profileName);
+            } else {
+                console.error('Fehler beim Abrufen des GitHub-Profils');
+            }
         }
 
         // Funktion zum Formatieren des Datums im europäischen Stil
