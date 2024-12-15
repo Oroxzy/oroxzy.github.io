@@ -48,31 +48,32 @@
     </div>
 
     <script>
-        // Liste der Dateien aus dem Downloads- und Pictures-Ordner (als Beispiel)
-        const downloadFiles = ['BlockBro.zip', 'TestFile.zip']; // Dateien im Downloads-Ordner
-        const pictureFiles = ['BlockBro.png', 'TestFile.png'];  // Dateien im Pictures-Ordner
+// Liste der Dateien aus dem Downloads- und Pictures-Ordner (als Beispiel)
+const downloadFiles = ['BlockBro.zip']; // Dateien im Downloads-Ordner
+const pictureFiles = ['BlockBro.PNG'];  // Dateien im Pictures-Ordner
 
-        const downloadList = document.getElementById('download-list');
+const downloadList = document.getElementById('download-list');
 
-        downloadFiles.forEach(file => {
-            const fileName = file.replace('.zip', ''); // Name ohne .zip-Erweiterung
-            const picture = pictureFiles.find(p => p.startsWith(fileName)); // Suche Bild mit gleichem Namen
+downloadFiles.forEach(file => {
+    const fileName = file.replace('.zip', '').toLowerCase(); // Name ohne .zip-Erweiterung und in Kleinbuchstaben
+    const picture = pictureFiles.find(p => p.toLowerCase().startsWith(fileName)); // Ignoriere Groß-/Kleinschreibung
 
-            const item = document.createElement('div');
-            item.className = 'download-item';
+    const item = document.createElement('div');
+    item.className = 'download-item';
 
-            const img = document.createElement('img');
-            img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80'; // Pfad zu Pictures oder Platzhalter
-            img.alt = fileName;
+    const img = document.createElement('img');
+    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80'; // Pfad zu Pictures oder Platzhalter
+    img.alt = fileName;
 
-            const link = document.createElement('a');
-            link.href = `../Downloads/${file}`;
-            link.textContent = file;
+    const link = document.createElement('a');
+    link.href = `../Downloads/${file}`;
+    link.textContent = file;
 
-            item.appendChild(img);
-            item.appendChild(link);
-            downloadList.appendChild(item);
-        });
+    item.appendChild(img);
+    item.appendChild(link);
+    downloadList.appendChild(item);
+});
+
     </script>
 </body>
 </html>
