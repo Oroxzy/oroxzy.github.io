@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meine Downloads</title>
 <style>
+    /* Hier bleibt dein vorheriges CSS */
     body {
         font-family: Arial, sans-serif;
         background-color: #121212;
@@ -18,8 +19,8 @@
     }
     #download-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Flexible Spalten */
-        gap: 20px; /* Abstand zwischen Blöcken */
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
         margin-top: 20px;
     }
     .download-item {
@@ -33,7 +34,7 @@
         transition: transform 0.2s ease-in-out;
     }
     .download-item:hover {
-        transform: scale(1.05); /* Leichter Zoom beim Hover */
+        transform: scale(1.05);
     }
     .download-item img {
         width: 80px;
@@ -41,6 +42,7 @@
         object-fit: cover;
         border-radius: 8px;
         margin-bottom: 10px;
+        cursor: pointer; /* Zeiger zeigen, dass das Bild klickbar ist */
     }
     .download-item h2 {
         margin: 5px 0;
@@ -67,7 +69,107 @@
         height: 150px;
         border: none;
     }
+
+    /* Popup-Styling */
+    #popup {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    #popup img {
+        max-width: 90%;
+        max-height: 90%;
+    }
+    #popup:target {
+        display: flex;
+    }
+    #popup a {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: #fff;
+        font-size: 2em;
+        text-decoration: none;
+    }
 </style>
+
+<!-- Popup-Container -->
+<div id="popup">
+    <a href="#">×</a>
+    <img id="popup-img" src="" alt="Bild in Originalgröße">
+</div>
+
+<script>
+    const csvFilePath = 'downloads.csv';
+    const downloadList = document.getElementById('download-list');
+    const popupImg = document.getElementById('popup-img');
+
+    async function fetchCSV() {
+        const response = await fetch(csvFilePath);
+        const data = await response.text();
+        processCSV(data);
+    }
+
+    function processCSV(data) {
+        const rows = data.split('\n').slice(1);
+        rows.forEach(row => {
+            const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum] = row.split(',');
+
+            if (!titel) return;
+
+            const item = document.createElement('div');
+            item.className = 'download-item';
+
+            const img = document.createElement('img');
+            img.src = picturepfad;
+            img.alt = titel;
+            img.addEventListener('click', () => {
+                popupImg.src = picturepfad;
+                window.location.hash = 'popup';
+            });
+
+            const title = document.createElement('h2');
+            title.textContent = titel;
+
+            const desc = document.createElement('p');
+            desc.textContent = beschreibung;
+
+            const versionInfo = document.createElement('p');
+            versionInfo.textContent = `Version: ${version} | Datum: ${datum}`;
+
+            const winLink = document.createElement('a');
+            winLink.href = downloadpfad_windows;
+            winLink.textContent = 'Download für Windows';
+
+            const macLink = document.createElement('a');
+            macLink.href = downloadpfad_mac;
+            macLink.textContent = 'Download für Mac';
+
+            const video = document.createElement('iframe');
+            video.src = youtubevideopfad.replace('watch?v=', 'embed/');
+
+            // Elemente zusammenbauen
+            item.appendChild(img);
+            item.appendChild(title);
+            item.appendChild(desc);
+            item.appendChild(versionInfo);
+            item.appendChild(winLink);
+            item.appendChild(macLink);
+            item.appendChild(video);
+
+            downloadList.appendChild(item);
+        });
+    }
+
+    fetchCSV();
+</script>
 
 </head>
 <body>
