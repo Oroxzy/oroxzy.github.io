@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Downloads</title>
+    <title>Meine Downloads</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,8 +20,8 @@
             color: #fff;
         }
         header img {
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             margin-right: 10px;
             border-radius: 50%; /* Runde das Bild */
         }
@@ -118,9 +118,8 @@
 </head>
 <body>
     <!-- Header -->
-    <header>
-        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
-        <h1>GitHub: Oroxzy</h1>
+    <header id="header">
+        <!-- Profilbild und Name werden dynamisch eingefügt -->
     </header>
 
     <!-- Seitenüberschrift -->
@@ -139,6 +138,25 @@
         const csvFilePath = 'downloads.csv';
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
+        const header = document.getElementById('header');
+        const githubUsername = 'DeinGitHubBenutzername'; // GitHub-Benutzername hier einfügen
+
+        // Funktion zum Abrufen des GitHub-Profilbilds
+        async function fetchGitHubProfile() {
+            const response = await fetch(`https://api.github.com/users/${githubUsername}`);
+            const data = await response.json();
+
+            // Profilbild und Name dynamisch hinzufügen
+            const profileImg = document.createElement('img');
+            profileImg.src = data.avatar_url;
+            profileImg.alt = `${githubUsername}'s Profilbild`;
+
+            const profileName = document.createElement('h1');
+            profileName.textContent = `GitHub: ${data.name || githubUsername}`;
+
+            header.appendChild(profileImg);
+            header.appendChild(profileName);
+        }
 
         // Funktion zum Formatieren des Datums im europäischen Stil
         function formatEuropeanDate(isoDate) {
@@ -226,6 +244,7 @@
             });
         }
 
+        fetchGitHubProfile();
         fetchCSV();
     </script>
 </body>
