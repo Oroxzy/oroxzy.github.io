@@ -18,123 +18,104 @@
         }
         .download-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            margin: 10px 0;
-            padding: 10px;
+            margin: 15px 0;
+            padding: 15px;
             background-color: #2b2b2b;
             border-radius: 8px;
+            text-align: center;
         }
         .download-item img {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             object-fit: cover;
-            margin-right: 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
-            cursor: pointer;
         }
         .download-item a {
             color: #90caf9;
             text-decoration: none;
-            font-size: 1.2em;
+            font-size: 1.1em;
+            margin: 5px 0;
         }
         .download-item a:hover {
             text-decoration: underline;
         }
-
-        /* Pop-up Styling */
-        .popup {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
+        iframe {
+            margin-top: 10px;
+            width: 300px;
+            height: 180px;
+            border: none;
         }
-        .popup img {
-            max-width: 90%;
-            max-height: 90%;
-        }
-        .popup:target {
-            display: flex;
-        }
-        .popup a {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #fff;
-            font-size: 2em;
-            text-decoration: none;
+        p {
+            margin: 5px 0;
+            color: #aaa;
         }
     </style>
 </head>
 <body>
     <h1>Downloads</h1>
-    <div id="download-list">
-        <!-- Dynamisch erzeugte Downloads erscheinen hier -->
-    </div>
-
-    <!-- Popup Container -->
-    <div id="popup" class="popup">
-        <a href="#">×</a>
-        <img id="popup-img" src="" alt="Bild in Originalgröße">
-    </div>
+    <div id="download-list"></div>
 
     <script>
-const downloadFiles = [
-    'BlockBro.zip',
-    'ForceSplitter.zip',
-    'TrigoBro.zip',
-    'StatiCulator.zip',
-    'Bodenberechnungen.xlsm',
-    'Durchlaufträger_Rechner.xlsm',
-    'Knicken_Holzstützen.xlsm',
-    'Trägheitsmomentflächen.xlsm'
-];
+        const csvFilePath = 'downloads.csv';
+        const downloadList = document.getElementById('download-list');
 
-const pictureFiles = [
-    'BlockBro.PNG',
-    'ForceSplitter.PNG',
-    'TrigoBro.PNG',
-    'StatiCulator.PNG',
-    'Bodenberechnungen.PNG',
-    'Durchlaufträger_Rechner.PNG',
-    'Knicken_Holzstützen.PNG',
-    'Trägheitsmomentflächen.PNG'
-];
+        async function fetchCSV() {
+            const response = await fetch(csvFilePath);
+            const data = await response.text();
+            processCSV(data);
+        }
 
-const downloadList = document.getElementById('download-list');
-const popupImg = document.getElementById('popup-img');
+        function processCSV(data) {
+            const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
+            rows.forEach(row => {
+                const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum] = row.split(',');
 
-downloadFiles.forEach(file => {
-    // Entferne die Dateiendungen (.zip oder .xlsm) für den Bildvergleich
-    const fileName = file.replace(/\.(zip|xlsm)$/, ''); 
-    const picture = pictureFiles.find(p => p.startsWith(fileName));
+                if (!titel) return; // Leere Zeilen ignorieren
 
-    const item = document.createElement('div');
-    item.className = 'download-item';
+                const item = document.createElement('div');
+                item.className = 'download-item';
 
-    const img = document.createElement('img');
-    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80'; // Lade das Bild oder Platzhalter
-    img.alt = fileName;
+                const img = document.createElement('img');
+                img.src = picturepfad;
+                img.alt = titel;
 
-    // Klick-Event für Originalgröße-Popup
-    img.addEventListener('click', () => {
-        popupImg.src = img.src;
-        window.location.hash = 'popup';
-    });
+                const title = document.createElement('h2');
+                title.textContent = titel;
 
-    const link = document.createElement('a');
-    link.href = `../Downloads/${file}`;
-    link.textContent = file;
+                const desc = document.createElement('p');
+                desc.textContent = beschreibung;
 
-    item.appendChild(img);
-    item.appendChild(link);
-    downloadList.appendChild(item);
-});
+                const versionInfo = document.createElement('p');
+                versionInfo.textContent = `Version: ${version} | Datum: ${datum}`;
 
+                const winLink = document.createElement('a');
+                winLink.href = downloadpfad_windows;
+                winLink.textContent = 'Download für Windows';
+
+                const macLink = document.createElement('a');
+                macLink.href = downloadpfad_mac;
+                macLink.textContent = 'Download für Mac';
+
+                const video = document.createElement('iframe');
+                video.src = youtubevideopfad.replace('watch?v=', 'embed/');
+
+                // Elemente zusammenbauen
+                item.appendChild(img);
+                item.appendChild(title);
+                item.appendChild(desc);
+                item.appendChild(versionInfo);
+                item.appendChild(winLink);
+                item.appendChild(macLink);
+                item.appendChild(video);
+
+                downloadList.appendChild(item);
+            });
+        }
+
+        fetchCSV();
     </script>
 </body>
 </html>
