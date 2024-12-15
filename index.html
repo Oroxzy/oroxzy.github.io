@@ -25,11 +25,12 @@
             border-radius: 8px;
         }
         .download-item img {
-            width: 200px;
-            height: 200px;
+            width: 80px;
+            height: 80px;
             object-fit: cover;
             margin-right: 15px;
             border-radius: 8px;
+            cursor: pointer;
         }
         .download-item a {
             color: #90caf9;
@@ -39,6 +40,34 @@
         .download-item a:hover {
             text-decoration: underline;
         }
+
+        /* Pop-up Styling */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .popup img {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .popup:target {
+            display: flex;
+        }
+        .popup a {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 2em;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -47,33 +76,45 @@
         <!-- Dynamisch erzeugte Downloads erscheinen hier -->
     </div>
 
+    <!-- Popup Container -->
+    <div id="popup" class="popup">
+        <a href="#">×</a>
+        <img id="popup-img" src="" alt="Bild in Originalgröße">
+    </div>
+
     <script>
-// Liste der Dateien aus dem Downloads- und Pictures-Ordner (als Beispiel)
-const downloadFiles = ['BlockBro.zip']; // Dateien im Downloads-Ordner
-const pictureFiles = ['BlockBro.PNG'];  // Dateien im Pictures-Ordner
+        // Liste der Dateien aus dem Downloads- und Pictures-Ordner
+        const downloadFiles = ['BlockBro.zip']; // Dateien im Downloads-Ordner
+        const pictureFiles = ['BlockBro.PNG'];  // Dateien im Pictures-Ordner
 
-const downloadList = document.getElementById('download-list');
+        const downloadList = document.getElementById('download-list');
+        const popupImg = document.getElementById('popup-img');
 
-downloadFiles.forEach(file => {
-    const fileName = file.replace('.zip', '').toLowerCase(); // Name ohne .zip-Erweiterung und in Kleinbuchstaben
-    const picture = pictureFiles.find(p => p.toLowerCase().startsWith(fileName)); // Ignoriere Groß-/Kleinschreibung
+        downloadFiles.forEach(file => {
+            const fileName = file.replace('.zip', '').toLowerCase();
+            const picture = pictureFiles.find(p => p.toLowerCase().startsWith(fileName));
 
-    const item = document.createElement('div');
-    item.className = 'download-item';
+            const item = document.createElement('div');
+            item.className = 'download-item';
 
-    const img = document.createElement('img');
-    img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80'; // Pfad zu Pictures oder Platzhalter
-    img.alt = fileName;
+            const img = document.createElement('img');
+            img.src = picture ? `../Pictures/${picture}` : 'https://via.placeholder.com/80';
+            img.alt = fileName;
 
-    const link = document.createElement('a');
-    link.href = `../Downloads/${file}`;
-    link.textContent = file;
+            // Klick-Event für Originalgröße
+            img.addEventListener('click', () => {
+                popupImg.src = img.src;
+                window.location.hash = 'popup';
+            });
 
-    item.appendChild(img);
-    item.appendChild(link);
-    downloadList.appendChild(item);
-});
+            const link = document.createElement('a');
+            link.href = `../Downloads/${file}`;
+            link.textContent = file;
 
+            item.appendChild(img);
+            item.appendChild(link);
+            downloadList.appendChild(item);
+        });
     </script>
 </body>
 </html>
