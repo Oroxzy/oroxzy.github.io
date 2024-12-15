@@ -1,9 +1,9 @@
 titel;picturepfad;downloadpfad_windows;downloadpfad_mac;beschreibung;youtubevideopfad;version;datum
-BlockBro;../Pictures/BlockBro.PNG;../Downloads/BlockBro_Windows.zip;../Downloads/BlockBro_Mac.zip;Ein tolles Tool zum Block berechnen;https://www.youtube.com/watch?v=ETlS_cI9UOA;7.6.9;2024-12-15
-ForceSplitter;../Pictures/ForceSplitter.PNG;../Downloads/ForceSplitter_Windows.zip;../Downloads/ForceSplitter_Mac.zip;Tool zur Aufteilung von Kräften;https://www.youtube.com/watch?v=jymSPGS5npc;16.2.58;2024-11-20
-TrigoBro;../Pictures/TrigoBro.PNG;../Downloads/TrigoBro_Windows.zip;../Downloads/TrigoBro_Mac.zip;Trigonometrie-Berechnungen leicht gemacht;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;2024-10-01
-StatiCulator;../Pictures/StatiCulator.PNG;../Downloads/Staticulator_Windows.zip;../Downloads/Staticulator_Mac.zip;"Statische Berechnungen für Träger, Momentenverläufe, Querkraftverläufe, Lösungswege";;2.5.71;2024-09-15
-Bodenberechnungen;../Pictures/Bodenberechnungen.PNG;../Downloads/Bodenberechnungen.xlsm;../Downloads/Bodenberechnungen.xlsm;GB Grundbau - Bodenproben Berechnen;;1.0;2024-08-10
-Durchlaufträger_Rechner;../Pictures/Durchlaufträger_Rechner.PNG;../Downloads/Durchlaufträger_Rechner.xlsm;../Downloads/Durchlaufträger_Rechner.xlsm;"GS Gerüstung - Mehrfeldträger, Querkraft, Momente und Durchbiegung";;1.0;2024-07-25
-Knicken_Holzstützen;../Pictures/Knicken_Holzstützen.PNG;../Downloads/Knicken_Holzstützen.xlsm;../Downloads/Knicken_Holzstützen.xlsm;"BS Baustatik - Berechnung für Holzstützen, Knicken usw.";;1.0;2024-06-30
-Trägheitsmomentflächen;../Pictures/Trägheitsmomentflächen.PNG;../Downloads/Trägheitsmomentflächen.xlsm;../Downloads/Trägheitsmomentflächen.xlsm;BS Baustatik - Flächenmomentberechnungen;;1.0;2024-06-15
+BlockBro;../Pictures/BlockBro.PNG;../Downloads/BlockBro_Windows.zip;../Downloads/BlockBro_Mac.zip;Resultierende Kraft ausfindig machen;https://www.youtube.com/watch?v=ETlS_cI9UOA;7.6.9;2024-12-15
+ForceSplitter;../Pictures/ForceSplitter.PNG;../Downloads/ForceSplitter_Windows.zip;../Downloads/ForceSplitter_Mac.zip;Resultierende Kraft- und Position berechnen;https://www.youtube.com/watch?v=jymSPGS5npc;16.2.58;2024-12-15
+TrigoBro;../Pictures/TrigoBro.PNG;../Downloads/TrigoBro_Windows.zip;../Downloads/TrigoBro_Mac.zip;Trigonometrie-Berechnungen leicht gemacht;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;2024-12-15
+StatiCulator;../Pictures/StatiCulator.PNG;../Downloads/Staticulator_Windows.zip;../Downloads/Staticulator_Mac.zip;Statische Berechnungen für Träger, Momentenverläufe, Querkraftverläufe, Lösungswege;;2.5.71;2024-12-15
+Excel - Bodenberechnungen;../Pictures/Bodenberechnungen.PNG;../Downloads/Bodenberechnungen.xlsm;../Downloads/Bodenberechnungen.xlsm;GB Grundbau - Bodenproben Berechnen;;1.0;2024-12-15
+Excel - Mehrfeldträgerrechner;../Pictures/Durchlaufträger_Rechner.PNG;../Downloads/Durchlaufträger_Rechner.xlsm;../Downloads/Durchlaufträger_Rechner.xlsm;GS Gerüstung - Mehrfeldträger, Querkraft, Momente und Durchbiegung;;1.0;2024-12-15
+Excel - Holzstützen- Knickrechner;../Pictures/Knicken_Holzstützen.PNG;../Downloads/Knicken_Holzstützen.xlsm;../Downloads/Knicken_Holzstützen.xlsm;BS Baustatik - Berechnung für Holzstützen, Knicken usw.;;1.0;2024-12-15
+Excel - Trägheitsmoment- Flächenrechner;../Pictures/Trägheitsmomentflächen.PNG;../Downloads/Trägheitsmomentflächen.xlsm;../Downloads/Trägheitsmomentflächen.xlsm;BS Baustatik - Flächenmomentberechnungen;;1.0;2024-12-15
