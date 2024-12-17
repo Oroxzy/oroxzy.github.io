@@ -161,38 +161,61 @@
 		const canvas = document.getElementById('background');
 		const ctx = canvas.getContext('2d');
 		
-		// Blockgröße festlegen
-		const blockSize = 25;
+		const blockSize = 50; // Blockgröße
+		const baseHue = 270; // Farbton für #17151A
+		const baseSaturation = 10; // Geringe Sättigung
+		const baseLightness = 10; // Grundhelligkeit
 		
-		// Canvas-Größe an die Fenstergröße anpassen (aber angepasst an Blockgröße)
 		function resizeCanvas() {
 			canvas.width = Math.ceil(window.innerWidth / blockSize) * blockSize;
 			canvas.height = Math.ceil(window.innerHeight / blockSize) * blockSize;
 			drawBackground();
 		}
 		
-		// Basisfarbe: HSL für Nuancen
-		const baseHue = 270; // Farbton für #27232C
-		const baseSaturation = 10; // Geringe Sättigung
-		const baseLightness = 10; // Grundhelligkeit
-
-		// Funktion zur Helligkeitsvariation
-		function randomizeLightness(baseLightness, variation = 6) {
-			return Math.max(7, Math.min(10, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
+		function randomizeLightness(baseLightness, variation = 2) {
+			// Variiert die Helligkeit minimal um den Basiswert
+			return Math.max(8, Math.min(12, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
 		}
 		
-		// Hintergrund zeichnen
+		function adjustLightness(lightness, amount) {
+			// Helligkeit leicht erhöhen oder verringern
+			return Math.max(0, Math.min(100, lightness + amount));
+		}
+		
 		function drawBackground() {
 			for (let y = 0; y < canvas.height; y += blockSize) {
 				for (let x = 0; x < canvas.width; x += blockSize) {
-					const lightness = randomizeLightness(baseLightness);
-					ctx.fillStyle = `hsl(${baseHue}, ${baseSaturation}%, ${lightness}%)`;
+					// Hauptblockfarbe berechnen
+					const lightness = randomizeLightness(baseLightness, 2);
+					const blockColor = `hsl(${baseHue}, ${baseSaturation}%, ${lightness}%)`;
+		
+					// Block zeichnen
+					ctx.fillStyle = blockColor;
 					ctx.fillRect(x, y, blockSize, blockSize);
+		
+					// Ränder berechnen (heller und dunkler)
+					const lighterColor = `hsl(${baseHue}, ${baseSaturation}%, ${adjustLightness(lightness, 5)}%)`;
+					const darkerColor = `hsl(${baseHue}, ${baseSaturation}%, ${adjustLightness(lightness, -5)}%)`;
+		
+					// Ränder zeichnen
+					ctx.strokeStyle = darkerColor; // Linke und obere Seite dunkel
+					ctx.lineWidth = 2;
+					ctx.beginPath();
+					ctx.moveTo(x, y); // Obere linke Ecke
+					ctx.lineTo(x + blockSize, y); // Obere Kante
+					ctx.lineTo(x, y + blockSize); // Linke Kante
+					ctx.stroke();
+		
+					ctx.strokeStyle = lighterColor; // Rechte und untere Seite hell
+					ctx.beginPath();
+					ctx.moveTo(x + blockSize, y); // Obere rechte Ecke
+					ctx.lineTo(x + blockSize, y + blockSize); // Rechte Kante
+					ctx.lineTo(x, y + blockSize); // Untere Kante
+					ctx.stroke();
 				}
 			}
 		}
 		
-		// Canvas bei Fenstergöße anpassen
 		window.addEventListener('resize', resizeCanvas);
 		resizeCanvas();
 
