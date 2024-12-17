@@ -9,7 +9,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #231D2B; /* Grundfarbe */
+            background-color: #27232C; /* Grundfarbe */
             position: relative;
             z-index: 1;
         }
@@ -162,7 +162,7 @@
 		const ctx = canvas.getContext('2d');
 		
 		// Blockgröße festlegen
-		const blockSize = 50;
+		const blockSize = 25;
 		
 		// Canvas-Größe an die Fenstergröße anpassen (aber angepasst an Blockgröße)
 		function resizeCanvas() {
@@ -172,10 +172,10 @@
 		}
 		
 		// Basisfarbe: HSL für Nuancen
-		const baseHue = 280; // Farbton für #231D2B
-		const baseSaturation = 20;
-		const baseLightness = 15;
-		
+		const baseHue = 270; // Farbton für #27232C
+		const baseSaturation = 12; // Geringe Sättigung
+		const baseLightness = 15; // Grundhelligkeit
+
 		// Funktion zur Helligkeitsvariation
 		function randomizeLightness(baseLightness, variation = 2) {
 			return Math.max(10, Math.min(30, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
