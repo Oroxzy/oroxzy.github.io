@@ -163,23 +163,28 @@
 		const canvas = document.getElementById('background');
 		const ctx = canvas.getContext('2d');
 		
-		// Canvas-Größe an die Fenstergröße anpassen
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
+		// Blockgröße festlegen
+		const blockSize = 50;
 		
-		// Basisfarbe: HSL (Hue: Farbton, Saturation: Sättigung, Lightness: Helligkeit)
-		const baseHue = 280; // Farbton entspricht #231D2B
-		const baseSaturation = 20; // Sättigung in %
-		const baseLightness = 15; // Grundhelligkeit in %
+		// Canvas-Größe an die Fenstergröße anpassen (aber angepasst an Blockgröße)
+		function resizeCanvas() {
+			canvas.width = Math.ceil(window.innerWidth / blockSize) * blockSize;
+			canvas.height = Math.ceil(window.innerHeight / blockSize) * blockSize;
+			drawBackground();
+		}
 		
-		function randomizeLightness(baseLightness, variation = 3) {
-			// Erzeuge minimale Helligkeitsvariation um die Basishelligkeit herum
+		// Basisfarbe: HSL für Nuancen
+		const baseHue = 280; // Farbton für #231D2B
+		const baseSaturation = 20;
+		const baseLightness = 15;
+		
+		// Funktion zur Helligkeitsvariation
+		function randomizeLightness(baseLightness, variation = 5) {
 			return Math.max(5, Math.min(30, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
 		}
 		
+		// Hintergrund zeichnen
 		function drawBackground() {
-			const blockSize = 20; // Größe der Blöcke
-		
 			for (let y = 0; y < canvas.height; y += blockSize) {
 				for (let x = 0; x < canvas.width; x += blockSize) {
 					const lightness = randomizeLightness(baseLightness);
@@ -189,8 +194,10 @@
 			}
 		}
 		
-		drawBackground();
-		
+		// Canvas bei Fenstergöße anpassen
+		window.addEventListener('resize', resizeCanvas);
+		resizeCanvas();
+
         const csvFilePath = 'downloads.csv';
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
