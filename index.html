@@ -141,22 +141,21 @@
 <body>
     <!-- Hintergrundraster -->
     <script>
-        const body = document.body;
-        const baseColor = [30, 30, 30]; // RGB für #1e1e1e
+        const background = document.getElementById('background');
+        const baseColor = 30; // Basiswert für RGB (dunkelgrau)
 
-        function randomizeColor(base, variation = 10) {
-            return `rgb(
-                ${base[0] + Math.floor(Math.random() * variation - variation / 2)},
-                ${base[1] + Math.floor(Math.random() * variation - variation / 2)},
-                ${base[2] + Math.floor(Math.random() * variation - variation / 2)}
-            )`;
+        function randomizeBrightness(base, variation = 3) {
+            // Minimal sichtbare Variation der Helligkeit
+            const adjusted = base + Math.floor(Math.random() * variation - variation / 2);
+            return `rgb(${adjusted}, ${adjusted}, ${adjusted})`;
         }
 
-        for (let i = 0; i < 1000; i++) { // Rasterquadrate hinzufügen
+        // Raster erstellen
+        for (let i = 0; i < 1000; i++) { 
             const div = document.createElement('div');
             div.className = 'raster';
-            div.style.setProperty('--bg-color', randomizeColor(baseColor, 20));
-            body.appendChild(div);
+            div.style.setProperty('--bg-color', randomizeBrightness(baseColor));
+            background.appendChild(div);
         }
     </script>
 
