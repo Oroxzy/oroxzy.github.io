@@ -161,7 +161,7 @@
         const background = document.getElementById('background');
         const baseColor = 30; // Basiswert für RGB (dunkelgrau)
 
-        function randomizeBrightness(base, variation = 20) {
+        function randomizeBrightness(base, variation = 8) {
             // Minimal sichtbare Variation der Helligkeit
             const adjusted = base + Math.floor(Math.random() * variation - variation / 2);
             return `rgb(${adjusted}, ${adjusted}, ${adjusted})`;
