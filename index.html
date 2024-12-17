@@ -63,19 +63,21 @@
             grid-column: 1 / -1;
             z-index: 2;
         }
-        .download-item {
-            background-color: #383340;
-            border-radius: 8px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            transition: transform 0.2s ease-in-out;
-        }
-        .download-item:hover {
-            transform: scale(1.05);
-        }
+		.download-item {
+			background-color: #2b2b2b;
+			border: 2px solid #524E56; /* Neuer Rand: 2px in der Farbe #524E56 */
+			border-radius: 8px; /* Runde Ecken beibehalten */
+			padding: 15px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			transition: transform 0.2s ease-in-out;
+		}
+		.download-item:hover {
+			border-color: #6A6670; /* Leichter Farbwechsel beim Hovern */
+			transform: scale(1.05);
+		}
         .download-item img {
             width: 80px;
             height: 80px;
@@ -170,7 +172,7 @@
 		const baseSaturation = 20; // Sättigung in %
 		const baseLightness = 15; // Grundhelligkeit in %
 		
-		function randomizeLightness(baseLightness, variation = 5) {
+		function randomizeLightness(baseLightness, variation = 3) {
 			// Erzeuge minimale Helligkeitsvariation um die Basishelligkeit herum
 			return Math.max(5, Math.min(30, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
 		}
