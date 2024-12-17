@@ -139,8 +139,8 @@
     </style>
 </head>
 <body>
-    <!-- Hintergrund-Raster -->
-    <div id="background"></div>
+    <!-- Hintergrund Canvas -->
+    <canvas id="background"></canvas>
 
     <!-- Header -->
     <header id="header"></header>
@@ -158,23 +158,37 @@
     </div>
 
     <script>
-        const background = document.getElementById('background');
-		const baseColor = { r: 35, g: 29, b: 43 }; // Basisfarbe: #231D2B
-
-        function randomizeBrightness(base, variation = 8) {
-            // Minimal sichtbare Variation der Helligkeit
-            const adjusted = base + Math.floor(Math.random() * variation - variation / 2);
-            return `rgb(${adjusted}, ${adjusted}, ${adjusted})`;
-        }
-
-        // Raster erstellen
-        for (let i = 0; i < 1000; i++) { 
-            const div = document.createElement('div');
-            div.className = 'raster';
-            div.style.setProperty('--bg-color', randomizeBrightness(baseColor));
-            background.appendChild(div);
-        }
+		const canvas = document.getElementById('background');
+		const ctx = canvas.getContext('2d');
 		
+		// Canvas-Größe an die Fenstergröße anpassen
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		
+		const baseColor = { r: 35, g: 29, b: 43 }; // Basisfarbe: #231D2B
+		
+		function randomizeColor(base, variation = 10) {
+			// Funktion zur Anpassung eines Farbwerts mit minimaler Variation
+			const adjust = (value) => {
+				return Math.min(255, Math.max(0, value + Math.floor(Math.random() * variation - variation / 2)));
+			};
+		
+			return `rgb(${adjust(base.r)}, ${adjust(base.g)}, ${adjust(base.b)})`;
+		}
+		
+		function drawBackground() {
+			const blockSize = 20; // Größe der Blöcke
+		
+			for (let y = 0; y < canvas.height; y += blockSize) {
+				for (let x = 0; x < canvas.width; x += blockSize) {
+					ctx.fillStyle = randomizeColor(baseColor, 10); // Leichte Farbabweichung
+					ctx.fillRect(x, y, blockSize, blockSize);
+				}
+			}
+		}
+		
+		drawBackground();
+
         const csvFilePath = 'downloads.csv';
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
