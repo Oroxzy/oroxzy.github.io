@@ -177,7 +177,7 @@
 		const baseLightness = 10; // Grundhelligkeit
 
 		// Funktion zur Helligkeitsvariation
-		function randomizeLightness(baseLightness, variation = 2) {
+		function randomizeLightness(baseLightness, variation = 6) {
 			return Math.max(8, Math.min(12, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
 		}
 		
