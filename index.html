@@ -151,6 +151,12 @@
     <!-- Download-Liste -->
     <div id="download-list"></div>
 
+    <!-- Popup-Container -->
+    <div id="popup">
+        <a href="#">×</a>
+        <img id="popup-img" src="" alt="Bild in Originalgröße">
+    </div>
+
     <script>
         const background = document.getElementById('background');
         const baseColor = 30; // Basiswert für RGB (dunkelgrau)
@@ -168,15 +174,7 @@
             div.style.setProperty('--bg-color', randomizeBrightness(baseColor));
             background.appendChild(div);
         }
-    </script>
-
-    <!-- Popup-Container -->
-    <div id="popup">
-        <a href="#">×</a>
-        <img id="popup-img" src="" alt="Bild in Originalgröße">
-    </div>
-
-    <script>
+		
         const csvFilePath = 'downloads.csv';
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
