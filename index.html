@@ -70,12 +70,12 @@
 	
 	.category-container {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Flexible Spalten */
-		gap: 40px; /* Fester Abstand zwischen den Blöcken */
-		justify-content: center; /* Zentrierte Anordnung */
-		max-width: 1200px; /* Maximale Breite der Website */
-		margin: 0 auto; /* Zentrierung des Containers */
+		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Flexible Spalten */
+		gap: 20px; /* Mindestabstand zwischen den Blöcken */
+		justify-content: center; /* Zentriert die Blöcke */
 		margin-bottom: 40px;
+		max-width: 1200px; /* Optional: Container-Breite begrenzen */
+		margin: 0 auto; /* Zentriert den Container horizontal */
 	}
 	
 	.download-item {
@@ -85,10 +85,10 @@
 		padding: 20px;
 		text-align: center;
 		transition: transform 0.2s ease-in-out;
-		max-width: 350px; /* Maximale Breite der Blöcke */
-		width: 100%; /* Flexible Anpassung */
+		width: 100%; /* Flexible Breite */
+		max-width: 350px; /* Maximalbreite der Blöcke */
 	}
-	
+
 	.download-item:hover {
 		border-color: #6A6670;
 		transform: scale(1.05);
