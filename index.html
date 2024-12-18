@@ -364,6 +364,17 @@
 						downloadItem.appendChild(singleLink);
 					}
 					
+					// YouTube-Video hinzufügen (falls vorhanden)
+					if (item.youtubevideopfad) {
+						const video = document.createElement('iframe');
+						video.src = item.youtubevideopfad.replace('watch?v=', 'embed/'); // "watch?v=" in "embed/" umwandeln
+						video.allowFullscreen = true;
+						video.width = "100%";
+						video.height = "150";
+						video.frameBorder = "0";
+						downloadItem.appendChild(video);
+					}
+
 					categoryContainer.appendChild(downloadItem);
 				});
 		
