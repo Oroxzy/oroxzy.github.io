@@ -87,6 +87,13 @@
         transform: scale(1.05);
     }
 
+	.download-title {
+		text-align: center;
+		font-size: 1.4em;
+		color: #f5f5f5;
+		margin: 15px 0;
+	}
+
     .download-item img {
         width: 100px;
         height: 100px;
@@ -305,10 +312,10 @@
 		
 				// Downloads der Kategorie hinzufügen
 				categories[category].forEach(item => {
+					// Titel hinzufügen
 					const title = document.createElement('h2');
 					title.textContent = item.titel;
 					title.className = 'download-title'; // Zusätzliche Klasse für Titel
-					title.style.textAlign = 'center'; // Titel zentriert
 					downloadList.appendChild(title);
 		
 					const downloadItem = document.createElement('div');
@@ -371,6 +378,7 @@
 				});
 			});
 		}
+
 
         fetchGitHubProfile();
         fetchCSV();
