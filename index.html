@@ -70,11 +70,12 @@
 	
 	.category-container {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Spalten flexibel anordnen */
-		gap: 20px; /* Abstand zwischen den Blöcken */
+		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+		gap: 20px;
+		justify-content: center; /* Blöcke horizontal zentrieren */
 		margin-bottom: 40px;
 	}
-	
+
 	.download-item {
 		background-color: #383340;
 		border: 2px solid #524E56;
