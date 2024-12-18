@@ -272,107 +272,104 @@
             processCSV(data);
         }
 
-function processCSV(data) {
-    const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
-    const categories = {}; // Objekt zur Gruppierung nach Kategorien
-
-    // Gruppiere die Einträge nach Kategorie
-    rows.forEach(row => {
-        const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum, kategorie] = row.split(';');
-
-        if (!titel || !kategorie) return; // Leere Zeilen ignorieren
-
-        if (!categories[kategorie]) {
-            categories[kategorie] = [];
-        }
-
-        categories[kategorie].push({
-            titel,
-            picturepfad,
-            downloadpfad_windows,
-            downloadpfad_mac,
-            beschreibung,
-            youtubevideopfad,
-            version,
-            datum
-        });
-    });
-
-    // HTML für jede Kategorie und deren Blöcke erstellen
-    Object.keys(categories).forEach(category => {
-        // Kategorie-Titel hinzufügen
-        const categoryTitle = document.createElement('h2');
-        categoryTitle.textContent = category;
-        categoryTitle.className = 'category-title';
-        downloadList.appendChild(categoryTitle);
-
-        // Container für die Download-Blöcke der Kategorie
-        const categoryContainer = document.createElement('div');
-        categoryContainer.className = 'category-container';
-
-        // Download-Blöcke der Kategorie hinzufügen
-        categories[category].forEach(item => {
-            const downloadItem = document.createElement('div');
-            downloadItem.className = 'download-item';
-
-            // Titel innerhalb des Download-Blocks
-            const title = document.createElement('h2');
-            title.textContent = item.titel;
-            downloadItem.appendChild(title);
-
-            // Bild hinzufügen
-            if (item.picturepfad) {
-                const img = document.createElement('img');
-                img.src = item.picturepfad;
-                img.alt = item.titel;
-                img.addEventListener('click', () => {
-                    popupImg.src = item.picturepfad;
-                    window.location.hash = 'popup';
-                });
-                downloadItem.appendChild(img);
-            }
-
-            // Beschreibung hinzufügen
-            if (item.beschreibung) {
-                const desc = document.createElement('p');
-                desc.textContent = item.beschreibung;
-                downloadItem.appendChild(desc);
-            }
-
-            // Version und Datum hinzufügen
-            const versionInfo = document.createElement('p');
-            versionInfo.textContent = `Version: ${item.version || 'N/A'} | Datum: ${formatEuropeanDate(item.datum)}`;
-            downloadItem.appendChild(versionInfo);
-
-            // Download-Links hinzufügen
-            if (item.downloadpfad_windows) {
-                const winLink = document.createElement('a');
-                winLink.href = item.downloadpfad_windows;
-                winLink.textContent = 'Download für Windows';
-                downloadItem.appendChild(winLink);
-            }
-
-            if (item.downloadpfad_mac) {
-                const macLink = document.createElement('a');
-                macLink.href = item.downloadpfad_mac;
-                macLink.textContent = 'Download für Mac';
-                downloadItem.appendChild(macLink);
-            }
-
-            // YouTube-Video hinzufügen (falls vorhanden)
-            if (item.youtubevideopfad) {
-                const video = document.createElement('iframe');
-                video.src = item.youtubevideopfad.replace('watch?v=', 'embed/');
-                video.allowFullscreen = true;
-                downloadItem.appendChild(video);
-            }
-
-            categoryContainer.appendChild(downloadItem);
-        });
-
-        downloadList.appendChild(categoryContainer);
-    });
-}
+		function processCSV(data) {
+			const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
+			const categories = {}; // Objekt zur Gruppierung nach Kategorien
+		
+			// Gruppiere die Einträge nach Kategorie
+			rows.forEach(row => {
+				const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum, kategorie] = row.split(';');
+		
+				if (!titel || !kategorie) return; // Leere Zeilen ignorieren
+		
+				if (!categories[kategorie]) {
+					categories[kategorie] = [];
+				}
+		
+				categories[kategorie].push({
+					titel,
+					picturepfad,
+					downloadpfad_windows,
+					downloadpfad_mac,
+					beschreibung,
+					youtubevideopfad,
+					version,
+					datum
+				});
+			});
+		
+			// HTML für jede Kategorie und deren Blöcke erstellen
+			Object.keys(categories).forEach(category => {
+				// Kategorie-Titel hinzufügen
+				const categoryTitle = document.createElement('h2');
+				categoryTitle.textContent = category;
+				categoryTitle.className = 'category-title';
+				downloadList.appendChild(categoryTitle);
+		
+				// Container für die Download-Blöcke der Kategorie
+				const categoryContainer = document.createElement('div');
+				categoryContainer.className = 'category-container';
+		
+				// Download-Blöcke der Kategorie hinzufügen
+				categories[category].forEach(item => {
+					const downloadItem = document.createElement('div');
+					downloadItem.className = 'download-item';
+		
+					// Titel innerhalb des Download-Blocks
+					const title = document.createElement('h2');
+					title.textContent = item.titel;
+					downloadItem.appendChild(title);
+		
+					// Bild hinzufügen
+					if (item.picturepfad) {
+						const img = document.createElement('img');
+						img.src = item.picturepfad;
+						img.alt = item.titel;
+						img.addEventListener('click', () => {
+							popupImg.src = item.picturepfad;
+							window.location.hash = 'popup';
+						});
+						downloadItem.appendChild(img);
+					}
+		
+					// Beschreibung hinzufügen
+					if (item.beschreibung) {
+						const desc = document.createElement('p');
+						desc.textContent = item.beschreibung;
+						downloadItem.appendChild(desc);
+					}
+		
+					// Version und Datum hinzufügen
+					const versionInfo = document.createElement('p');
+					versionInfo.textContent = `Version: ${item.version || 'N/A'} | Datum: ${formatEuropeanDate(item.datum)}`;
+					downloadItem.appendChild(versionInfo);
+		
+					// Download-Links hinzufügen
+					if (item.downloadpfad_windows && item.downloadpfad_mac) {
+						// Beide Links vorhanden
+						const winLink = document.createElement('a');
+						winLink.href = item.downloadpfad_windows;
+						winLink.textContent = 'Download für Windows';
+						downloadItem.appendChild(winLink);
+					
+						const macLink = document.createElement('a');
+						macLink.href = item.downloadpfad_mac;
+						macLink.textContent = 'Download für Mac';
+						downloadItem.appendChild(macLink);
+					} else if (item.downloadpfad_windows || item.downloadpfad_mac) {
+						// Nur ein Link vorhanden (neutraler Download)
+						const singleLink = document.createElement('a');
+						singleLink.href = item.downloadpfad_windows || item.downloadpfad_mac; // Der vorhandene Link
+						singleLink.textContent = 'Download';
+						downloadItem.appendChild(singleLink);
+					}
+					
+					categoryContainer.appendChild(downloadItem);
+				});
+		
+				downloadList.appendChild(categoryContainer);
+			});
+		}
 
         fetchGitHubProfile();
         fetchCSV();
