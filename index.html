@@ -110,7 +110,17 @@
 		border-radius: 5px;
 		transition: background-color 0.3s ease;
 	}
-	
+
+	.download-item img {
+		width: 100px; /* Breite fix auf 100px */
+		height: 100px; /* Höhe fix auf 100px */
+		object-fit: contain; /* Behält das Seitenverhältnis bei und passt das Bild in den Rahmen */
+		background-color: #383340; /* Optionaler Hintergrund für sauberen Look */
+		border-radius: 10px;
+		margin-bottom: 15px;
+		cursor: pointer;
+	}
+
 	.download-item a:hover {
 		background-color: #7A727A; /* Button-Farbe beim Hovern */
 		color: #fff; /* Textfarbe bleibt weiß */
