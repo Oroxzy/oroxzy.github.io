@@ -9,29 +9,17 @@
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #17151A; /* Grundfarbe */
-        color: #fff;
-        position: relative;
-        z-index: 1;
-    }
-
-    /* Hintergrund-Canvas */
-    canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
+        background-color: #1C1A29; /* Dunkles Violettgrau */
+        color: #E6E1F0; /* Helles Violettgrau für Text */
     }
 
     header {
         display: flex;
         align-items: center;
         padding: 15px 20px;
-        background-color: #383340;
-        color: #fff;
-        border-bottom: 2px solid #524E56;
+        background-color: #2A2737; /* Dunkleres Violett */
+        color: #E6E1F0;
+        border-bottom: 2px solid #413F54; /* Sanfter Kontrast */
     }
 
     header img {
@@ -50,89 +38,89 @@
         text-align: center;
         font-size: 1.8em;
         margin: 20px 0;
-        color: #f5f5f5;
+        color: #C7C1D9;
     }
 
-	#download-list {
-		display: block; /* Flexbox entfernen */
-		margin-top: 20px;
-		padding: 0 20px;
-	}
+    #download-list {
+        display: block;
+        margin-top: 20px;
+        padding: 0 20px;
+    }
 
-	.category-title {
-		text-align: center;
-		font-size: 1.8em;
-		margin: 40px 0 20px;
-		border-bottom: 2px solid #524E56;
-		padding-bottom: 10px;
-		color: #f5f5f5;
-	}
-	
-	.category-container {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* Flexible Spalten */
-		gap: 20px; /* Mindestabstand zwischen den Blöcken */
-		justify-content: center; /* Zentriert die Blöcke */
-		margin-bottom: 40px;
-		max-width: 2000px; /* Optional: Container-Breite begrenzen */
-		margin: 0 auto; /* Zentriert den Container horizontal */
-	}
-	
-	.download-item {
-		background-color: #524E56; /* Ändere die Blockfarbe */
-		border: 2px solid #6A6670; /* Etwas hellerer Rand */
-		border-radius: 10px;
-		padding: 20px;
-		text-align: center;
-		transition: transform 0.2s ease-in-out;
-		width: 100%;
-		max-width: 350px;
-	}
-	
-	.download-item:hover {
-		border-color: #7A727A; /* Randfarbe beim Hovern */
-		transform: scale(1.05);
-	}
-	
-	.download-item h2, 
-	.download-item p {
-		color: #ddd; /* Helle Schriftfarbe */
-	}
-	
-	.download-item a {
-		display: inline-block;
-		margin: 10px 5px;
-		padding: 8px 15px;
-		background-color: #6A6670; /* Button-Farbe an den Block angepasst */
-		color: #f5f5f5; /* Helle Schriftfarbe für Kontrast */
-		text-decoration: none;
-		font-size: 1em;
-		border-radius: 5px;
-		transition: background-color 0.3s ease;
-	}
+    .category-title {
+        text-align: center;
+        font-size: 1.8em;
+        margin: 40px 0 20px;
+        border-bottom: 2px solid #413F54;
+        padding-bottom: 10px;
+        color: #D0CBDD;
+    }
 
-	.download-item img {
-		width: 100px; /* Breite fix auf 100px */
-		height: 100px; /* Höhe fix auf 100px */
-		object-fit: contain; /* Behält das Seitenverhältnis bei und passt das Bild in den Rahmen */
-		background-color: #383340; /* Optionaler Hintergrund für sauberen Look */
-		border-radius: 10px;
-		margin-bottom: 15px;
-		cursor: pointer;
-	}
+    .category-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        justify-content: center;
+        margin-bottom: 40px;
+        max-width: 2000px;
+        margin: 0 auto;
+    }
 
-	.download-item a:hover {
-		background-color: #7A727A; /* Button-Farbe beim Hovern */
-		color: #fff; /* Textfarbe bleibt weiß */
-	}
-		
-	iframe {
-		margin-top: 15px;
-		width: 100%;
-		height: 150px;
-		border: none;
-		border-radius: 10px;
-	}
+    .download-item {
+        background-color: #2F2B3D; /* Elegantes Dunkelviolett */
+        border: 2px solid #494659; /* Dezenter Rand */
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        transition: transform 0.2s ease-in-out;
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .download-item:hover {
+        border-color: #615E72;
+        transform: scale(1.05);
+    }
+
+    .download-item h2, 
+    .download-item p {
+        color: #DAD6E8; /* Sanftes Violettgrau */
+    }
+
+    .download-item a {
+        display: inline-block;
+        margin: 10px 5px;
+        padding: 8px 15px;
+        background-color: #494659; /* Button-Farbe an den Block angepasst */
+        color: #E6E1F0;
+        text-decoration: none;
+        font-size: 1em;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    .download-item img {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+        background-color: #2A2737;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        cursor: pointer;
+    }
+
+    .download-item a:hover {
+        background-color: #615E72;
+        color: #fff;
+    }
+
+    iframe {
+        margin-top: 15px;
+        width: 100%;
+        height: 150px;
+        border: none;
+        border-radius: 10px;
+    }
 
     #popup {
         display: none;
@@ -169,8 +157,6 @@
 
 </head>
 <body>
-    <!-- Hintergrund Canvas -->
-    <canvas id="background"></canvas>
 
     <!-- Header -->
     <header id="header"></header>
@@ -185,44 +171,6 @@
     </div>
 
     <script>
-		const canvas = document.getElementById('background');
-		const ctx = canvas.getContext('2d');
-		
-		// Blockgröße festlegen
-		const blockSize = 25;
-		
-		// Canvas-Größe an die Fenstergröße anpassen (aber angepasst an Blockgröße)
-		function resizeCanvas() {
-			canvas.width = Math.ceil(window.innerWidth / blockSize) * blockSize;
-			canvas.height = Math.ceil(window.innerHeight / blockSize) * blockSize;
-			drawBackground();
-		}
-		
-		// Basisfarbe: HSL für Nuancen
-		const baseHue = 270; // Farbton für #27232C
-		const baseSaturation = 10; // Geringe Sättigung
-		const baseLightness = 10; // Grundhelligkeit
-
-		// Funktion zur Helligkeitsvariation
-		function randomizeLightness(baseLightness, variation = 5) {
-			return Math.max(9, Math.min(12, baseLightness + Math.floor(Math.random() * variation - variation / 2)));
-		}
-		
-		// Hintergrund zeichnen
-		function drawBackground() {
-			for (let y = 0; y < canvas.height; y += blockSize) {
-				for (let x = 0; x < canvas.width; x += blockSize) {
-					const lightness = randomizeLightness(baseLightness);
-					ctx.fillStyle = `hsl(${baseHue}, ${baseSaturation}%, ${lightness}%)`;
-					ctx.fillRect(x, y, blockSize, blockSize);
-				}
-			}
-		}
-		
-		// Canvas bei Fenstergöße anpassen
-		window.addEventListener('resize', resizeCanvas);
-		resizeCanvas();
-
         const csvFilePath = 'downloads.csv';
         const downloadList = document.getElementById('download-list');
         const popupImg = document.getElementById('popup-img');
@@ -264,115 +212,96 @@
             processCSV(data);
         }
 
-		function processCSV(data) {
-			const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
-			const categories = {}; // Objekt zur Gruppierung nach Kategorien
-		
-			// Gruppiere die Einträge nach Kategorie
-			rows.forEach(row => {
-				const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum, kategorie] = row.split(';');
-		
-				if (!titel || !kategorie) return; // Leere Zeilen ignorieren
-		
-				if (!categories[kategorie]) {
-					categories[kategorie] = [];
-				}
-		
-				categories[kategorie].push({
-					titel,
-					picturepfad,
-					downloadpfad_windows,
-					downloadpfad_mac,
-					beschreibung,
-					youtubevideopfad,
-					version,
-					datum
-				});
-			});
-		
-			// HTML für jede Kategorie und deren Blöcke erstellen
-			Object.keys(categories).forEach(category => {
-				// Kategorie-Titel hinzufügen
-				const categoryTitle = document.createElement('h2');
-				categoryTitle.textContent = category;
-				categoryTitle.className = 'category-title';
-				downloadList.appendChild(categoryTitle);
-		
-				// Container für die Download-Blöcke der Kategorie
-				const categoryContainer = document.createElement('div');
-				categoryContainer.className = 'category-container';
-		
-				// Download-Blöcke der Kategorie hinzufügen
-				categories[category].forEach(item => {
-					const downloadItem = document.createElement('div');
-					downloadItem.className = 'download-item';
-		
-					// Titel innerhalb des Download-Blocks
-					const title = document.createElement('h2');
-					title.textContent = item.titel;
-					downloadItem.appendChild(title);
-		
-					// Bild hinzufügen
-					if (item.picturepfad) {
-						const img = document.createElement('img');
-						img.src = item.picturepfad;
-						img.alt = item.titel;
-						img.addEventListener('click', () => {
-							popupImg.src = item.picturepfad;
-							window.location.hash = 'popup';
-						});
-						downloadItem.appendChild(img);
-					}
-		
-					// Beschreibung hinzufügen
-					if (item.beschreibung) {
-						const desc = document.createElement('p');
-						desc.textContent = item.beschreibung;
-						downloadItem.appendChild(desc);
-					}
-		
-					// Version und Datum hinzufügen
-					const versionInfo = document.createElement('p');
-					versionInfo.textContent = `Version: ${item.version || 'N/A'} | Datum: ${formatEuropeanDate(item.datum)}`;
-					downloadItem.appendChild(versionInfo);
-		
-					// Download-Links hinzufügen
-					if (item.downloadpfad_windows && item.downloadpfad_mac) {
-						// Beide Links vorhanden
-						const winLink = document.createElement('a');
-						winLink.href = item.downloadpfad_windows;
-						winLink.textContent = 'Download für Windows';
-						downloadItem.appendChild(winLink);
-					
-						const macLink = document.createElement('a');
-						macLink.href = item.downloadpfad_mac;
-						macLink.textContent = 'Download für Mac';
-						downloadItem.appendChild(macLink);
-					} else if (item.downloadpfad_windows || item.downloadpfad_mac) {
-						// Nur ein Link vorhanden (neutraler Download)
-						const singleLink = document.createElement('a');
-						singleLink.href = item.downloadpfad_windows || item.downloadpfad_mac; // Der vorhandene Link
-						singleLink.textContent = 'Download';
-						downloadItem.appendChild(singleLink);
-					}
-					
-					// YouTube-Video hinzufügen (falls vorhanden)
-					if (item.youtubevideopfad) {
-						const video = document.createElement('iframe');
-						video.src = item.youtubevideopfad.replace('watch?v=', 'embed/'); // "watch?v=" in "embed/" umwandeln
-						video.allowFullscreen = true;
-						video.width = "100%";
-						video.height = "150";
-						video.frameBorder = "0";
-						downloadItem.appendChild(video);
-					}
+        function processCSV(data) {
+            const rows = data.split('\n').slice(1); // Entferne die Kopfzeile
+            const categories = {}; // Objekt zur Gruppierung nach Kategorien
 
-					categoryContainer.appendChild(downloadItem);
-				});
-		
-				downloadList.appendChild(categoryContainer);
-			});
-		}
+            rows.forEach(row => {
+                const [titel, picturepfad, downloadpfad_windows, downloadpfad_mac, beschreibung, youtubevideopfad, version, datum, kategorie] = row.split(';');
+
+                if (!titel || !kategorie) return; // Leere Zeilen ignorieren
+
+                if (!categories[kategorie]) {
+                    categories[kategorie] = [];
+                }
+
+                categories[kategorie].push({
+                    titel,
+                    picturepfad,
+                    downloadpfad_windows,
+                    downloadpfad_mac,
+                    beschreibung,
+                    youtubevideopfad,
+                    version,
+                    datum
+                });
+            });
+
+            Object.keys(categories).forEach(category => {
+                const categoryTitle = document.createElement('h2');
+                categoryTitle.textContent = category;
+                categoryTitle.className = 'category-title';
+                downloadList.appendChild(categoryTitle);
+
+                const categoryContainer = document.createElement('div');
+                categoryContainer.className = 'category-container';
+
+                categories[category].forEach(item => {
+                    const downloadItem = document.createElement('div');
+                    downloadItem.className = 'download-item';
+
+                    const title = document.createElement('h2');
+                    title.textContent = item.titel;
+                    downloadItem.appendChild(title);
+
+                    if (item.picturepfad) {
+                        const img = document.createElement('img');
+                        img.src = item.picturepfad;
+                        img.alt = item.titel;
+                        img.addEventListener('click', () => {
+                            popupImg.src = item.picturepfad;
+                            window.location.hash = 'popup';
+                        });
+                        downloadItem.appendChild(img);
+                    }
+
+                    if (item.beschreibung) {
+                        const desc = document.createElement('p');
+                        desc.textContent = item.beschreibung;
+                        downloadItem.appendChild(desc);
+                    }
+
+                    const versionInfo = document.createElement('p');
+                    versionInfo.textContent = `Version: ${item.version || 'N/A'} | Datum: ${formatEuropeanDate(item.datum)}`;
+                    downloadItem.appendChild(versionInfo);
+
+                    if (item.downloadpfad_windows) {
+                        const winLink = document.createElement('a');
+                        winLink.href = item.downloadpfad_windows;
+                        winLink.textContent = 'Download für Windows';
+                        downloadItem.appendChild(winLink);
+                    }
+
+                    if (item.downloadpfad_mac) {
+                        const macLink = document.createElement('a');
+                        macLink.href = item.downloadpfad_mac;
+                        macLink.textContent = 'Download für Mac';
+                        downloadItem.appendChild(macLink);
+                    }
+
+                    if (item.youtubevideopfad) {
+                        const video = document.createElement('iframe');
+                        video.src = item.youtubevideopfad.replace('watch?v=', 'embed/');
+                        video.allowFullscreen = true;
+                        downloadItem.appendChild(video);
+                    }
+
+                    categoryContainer.appendChild(downloadItem);
+                });
+
+                downloadList.appendChild(categoryContainer);
+            });
+        }
 
         fetchGitHubProfile();
         fetchCSV();
