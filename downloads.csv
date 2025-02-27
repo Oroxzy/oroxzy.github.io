@@ -1,10 +1,10 @@
 titel;picturepfad;downloadpfad_windows;downloadpfad_mac;beschreibung;youtubevideopfad;version;datum;kategorie
-BlockBro;../Pictures/BlockBro.PNG;../Downloads/BlockBro_Windows.zip;../Downloads/BlockBro_Mac.zip;Resultierende Kraft ausfindig machen;https://www.youtube.com/watch?v=ETlS_cI9UOA;7.6.8;2024-12-15;Applikationen
-ForceSplitter;../Pictures/ForceSplitter.PNG;../Downloads/ForceSplitter_Windows.zip;../Downloads/ForceSplitter_Mac.zip;Resultierende Kraft- und Position berechnen;https://www.youtube.com/watch?v=jymSPGS5npc;16.2.58;2024-12-15;Applikationen
-TrigoBro;../Pictures/TrigoBro.PNG;../Downloads/TrigoBro_Windows.zip;../Downloads/TrigoBro_Mac.zip;Trigonometrie-Berechnungen leicht gemacht;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;2024-12-15;Applikationen
-StatiCulator;../Pictures/StatiCulator.PNG;../Downloads/StatiCulator_Windows.zip;../Downloads/StatiCulator_Mac.zip;Statische Berechnungen für Träger, Momentenverläufe, Querkraftverläufe, Lösungswege;;2.5.72;2025-01-06;Applikationen
-Bodenberechnungen;../Pictures/Bodenberechnungen.PNG;../Downloads/Bodenberechnungen.xlsm;;GB Grundbau - Bodenproben Berechnen;;1.0;2024-12-18;Excel-Tabellen
-Mehrfeldträgerrechner;../Pictures/Durchlaufträger_Rechner.PNG;../Downloads/Durchlaufträger_Rechner.xlsm;;GS Gerüstung - Mehrfeldträger, Querkraft, Momente und Durchbiegung;;1.0;2024-12-15;Excel-Tabellen
-Holzstützen- Knickrechner;../Pictures/Knicken_Holzstützen.PNG;../Downloads/Knicken_Holzstützen.xlsm;;BS Baustatik - Berechnung für Holzstützen, Knicken usw.;;1.0;2024-12-15;Excel-Tabellen
-Trägheitsmoment- Flächenrechner;../Pictures/Trägheitsmomentflächen.PNG;../Downloads/Trägheitsmomentflächen.xlsm;;BS Baustatik - Flächenmomentberechnungen;;1.0;2024-12-15;Excel-Tabellen
-"Klassifikation der Lockergestein (USCS) ";../Pictures/Klassi.png;../Downloads/Klassifikation_Lockergestein.xlsm;;GB Grundbau - Klassifikation der Lockergestein (USCS), Vollautomatische Klassifizierung;;1.0;2025-02-27;Excel-Tabellen
+BlockBro;../Pictures/BlockBro.PNG;../Downloads/BlockBro_Windows.zip;../Downloads/BlockBro_Mac.zip;Resultierende Kraft ausfindig machen;https://www.youtube.com/watch?v=ETlS_cI9UOA;07.06.2008;15.12.2024;Applikationen
+ForceSplitter;../Pictures/ForceSplitter.PNG;../Downloads/ForceSplitter_Windows.zip;../Downloads/ForceSplitter_Mac.zip;Resultierende Kraft- und Position berechnen;https://www.youtube.com/watch?v=jymSPGS5npc;16.02.1958;15.12.2024;Applikationen
+TrigoBro;../Pictures/TrigoBro.PNG;../Downloads/TrigoBro_Windows.zip;../Downloads/TrigoBro_Mac.zip;Trigonometrie-Berechnungen leicht gemacht;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;15.12.2024;Applikationen
+StatiCulator;../Pictures/StatiCulator.PNG;../Downloads/StatiCulator_Windows.zip;../Downloads/StatiCulator_Mac.zip;Statische Berechnungen für Träger, Momentenverläufe, Querkraftverläufe, Lösungswege;;02.05.1972;06.01.2025;Applikationen
+Bodenberechnungen;../Pictures/Bodenberechnungen.PNG;../Downloads/Bodenberechnungen.xlsm;;GB Grundbau - Bodenproben Berechnen;;1;18.12.2024;Excel-Tabellen
+Mehrfeldträgerrechner;../Pictures/Durchlaufträger_Rechner.PNG;../Downloads/Durchlaufträger_Rechner.xlsm;;GS Gerüstung - Mehrfeldträger, Querkraft, Momente und Durchbiegung;;1;15.12.2024;Excel-Tabellen
+Holzstützen- Knickrechner;../Pictures/Knicken_Holzstützen.PNG;../Downloads/Knicken_Holzstützen.xlsm;;BS Baustatik - Berechnung für Holzstützen, Knicken usw.;;1;15.12.2024;Excel-Tabellen
+Trägheitsmoment- Flächenrechner;../Pictures/Trägheitsmomentflächen.PNG;../Downloads/Trägheitsmomentflächen.xlsm;;BS Baustatik - Flächenmomentberechnungen;;1;15.12.2024;Excel-Tabellen
+Klassifikation der Lockergesteine (USCS) ;../Pictures/Klassi.png;../Downloads/Klassifikation_Lockergestein.xlsm;;GB Grundbau - Klassifikation der Lockergesteine (USCS), Vollautomatische Klassifizierung;;1;27.02.2025;Excel-Tabellen
