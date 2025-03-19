@@ -58,15 +58,13 @@
         color: #D0CBDD;
     }
 
-    .category-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 20px;
-        justify-content: center;
-        margin-bottom: 40px;
-        max-width: 2000px;
-        margin: 0 auto;
-    }
+	.category-container {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 40px; /* Gleicher Abstand zwischen den Items */
+		padding: 20px;
+	}
 
     .download-item {
         background: linear-gradient(145deg, #2F2B3D, #3B3648);
