@@ -101,15 +101,16 @@
         transition: background 0.3s ease, transform 0.2s ease;
     }
 
-    .download-item img {
-        width: 100px;
-        height: 100px;
-        object-fit: contain;
-        background: linear-gradient(135deg, #2A2737, #3E3B52);
-        border-radius: 10px;
-        margin-bottom: 15px;
-        cursor: pointer;
-    }
+	.download-item img {
+	    width: 100%;               /* Füllt die gesamte Breite des Containers */
+	    height: 200px;             /* Oder z. B. 250px je nach Wunsch */
+	    object-fit: cover;         /* Schneidet ggf. das Bild zu, um es perfekt einzupassen */
+	    background: linear-gradient(135deg, #2A2737, #3E3B52);
+	    border-radius: 10px;
+	    margin-bottom: 15px;
+	    cursor: pointer;
+	    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Optional: mehr visuelle Tiefe */
+	}
 
     .download-item a:hover {
         background: linear-gradient(135deg, #615E72, #8A86A0);
