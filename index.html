@@ -298,7 +298,7 @@ body {
 
 					if (item.downloadpfad_windows) {
 					    const winLink = document.createElement('a');
-					    const winKey = encodeURIComponent(`oroxzy.github.io-${item.titel}-win`);
+						const winKey = `oroxzy.github.io-${item.titel.trim().replaceAll(' ', '_')}-win`;
 
 					    winLink.href = item.downloadpfad_windows;
 					    winLink.textContent = 'Download für Windows (0)';
@@ -318,7 +318,7 @@ body {
 
 					if (item.downloadpfad_mac) {
 					    const macLink = document.createElement('a');
-					    const macKey = encodeURIComponent(`oroxzy.github.io-${item.titel}-mac`);
+						const macKey = `oroxzy.github.io-${item.titel.trim().replaceAll(' ', '_')}-mac`;
 
 					    macLink.href = item.downloadpfad_mac;
 					    macLink.textContent = 'Download für Mac (0)';
