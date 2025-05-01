@@ -353,10 +353,26 @@ body {
 
 		async function updateCounter(key, element, label) {
 		    try {
+		        let value;
+
+		        // Zählerwert abfragen
 		        const res = await fetch(`https://countapi.maayanlab.cloud/rpc/get?key=${key}`);
-		        const value = await res.json();
+		        value = await res.json();
+
+		        // Wenn Wert null ist, initialisiere mit hit()
+		        if (value === null) {
+		            const initRes = await fetch("https://countapi.maayanlab.cloud/rpc/hit", {
+		                method: "POST",
+		                headers: { "Content-Type": "application/json" },
+		                body: JSON.stringify({ key })
+		            });
+		            const data = await initRes.json();
+		            value = data.count;
+		        }
+
 		        element.textContent = `${label} (${value})`;
-		    } catch {
+		    } catch (err) {
+		        console.error("Fehler beim Abrufen des Zählers:", err);
 		        element.textContent = `${label} (?)`;
 		    }
 		}
