@@ -303,10 +303,14 @@ body {
 					    winLink.href = item.downloadpfad_windows;
 					    winLink.textContent = 'Download für Windows (0)';
 
-					    winLink.addEventListener('click', async () => {
-					        await fetch(`https://api.countapi.xyz/hit/${winKey}`);
-					        updateCounter(winKey, winLink, 'Download für Windows');
-					    });
+						winLink.addEventListener('click', async () => {
+						    await fetch("https://countapi.maayanlab.cloud/rpc/hit", {
+						        method: "POST",
+						        headers: { "Content-Type": "application/json" },
+						        body: JSON.stringify({ key: winKey })
+						    });
+						    updateCounter(winKey, winLink, 'Download für Windows');
+						});
 
 					    updateCounter(winKey, winLink, 'Download für Windows');
 					    downloadItem.appendChild(winLink);
@@ -319,10 +323,14 @@ body {
 					    macLink.href = item.downloadpfad_mac;
 					    macLink.textContent = 'Download für Mac (0)';
 
-					    macLink.addEventListener('click', async () => {
-					        await fetch(`https://api.countapi.xyz/hit/${macKey}`);
-					        updateCounter(macKey, macLink, 'Download für Mac');
-					    });
+						macLink.addEventListener('click', async () => {
+						    await fetch("https://countapi.maayanlab.cloud/rpc/hit", {
+						        method: "POST",
+						        headers: { "Content-Type": "application/json" },
+						        body: JSON.stringify({ key: macKey })
+						    });
+						    updateCounter(macKey, macLink, 'Download für Mac');
+						});
 
 					    updateCounter(macKey, macLink, 'Download für Mac');
 					    downloadItem.appendChild(macLink);
@@ -345,9 +353,9 @@ body {
 
 		async function updateCounter(key, element, label) {
 		    try {
-		        const res = await fetch(`https://api.countapi.xyz/hit/${key}`);
-		        const data = await res.json();
-		        element.textContent = `${label} (${data.value})`;
+		        const res = await fetch(`https://countapi.maayanlab.cloud/rpc/get?key=${key}`);
+		        const value = await res.json();
+		        element.textContent = `${label} (${value})`;
 		    } catch {
 		        element.textContent = `${label} (?)`;
 		    }
