@@ -343,15 +343,15 @@ body {
             });
         }
 
-	    async function updateCounter(key, element, label) {
-	        try {
-	            const res = await fetch(`https://api.countapi.xyz/get/${key}`);
-	            const data = await res.json();
-	            element.textContent = `${label} (${data.value})`;
-	        } catch {
-	            element.textContent = `${label} (?)`;
-	        }
-	    }
+		async function updateCounter(key, element, label) {
+		    try {
+		        const res = await fetch(`https://api.countapi.xyz/hit/${key}`);
+		        const data = await res.json();
+		        element.textContent = `${label} (${data.value})`;
+		    } catch {
+		        element.textContent = `${label} (?)`;
+		    }
+		}
 		
         fetchGitHubProfile();
         fetchCSV();
