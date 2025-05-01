@@ -296,19 +296,38 @@ body {
                     versionInfo.textContent = `Version: ${item.version || 'N/A'} | Datum: ${formatEuropeanDate(item.datum)}`;
                     downloadItem.appendChild(versionInfo);
 
-                    if (item.downloadpfad_windows) {
-                        const winLink = document.createElement('a');
-                        winLink.href = item.downloadpfad_windows;
-                        winLink.textContent = 'Download für Windows';
-                        downloadItem.appendChild(winLink);
-                    }
+					if (item.downloadpfad_windows) {
+					    const winLink = document.createElement('a');
+					    const winKey = encodeURIComponent(`oroxzy.github.io-${item.titel}-win`);
 
-                    if (item.downloadpfad_mac) {
-                        const macLink = document.createElement('a');
-                        macLink.href = item.downloadpfad_mac;
-                        macLink.textContent = 'Download für Mac';
-                        downloadItem.appendChild(macLink);
-                    }
+					    winLink.href = item.downloadpfad_windows;
+					    winLink.textContent = 'Download für Windows (0)';
+
+					    winLink.addEventListener('click', async () => {
+					        await fetch(`https://api.countapi.xyz/hit/${winKey}`);
+					        updateCounter(winKey, winLink, 'Download für Windows');
+					    });
+
+					    updateCounter(winKey, winLink, 'Download für Windows');
+					    downloadItem.appendChild(winLink);
+					}
+
+					if (item.downloadpfad_mac) {
+					    const macLink = document.createElement('a');
+					    const macKey = encodeURIComponent(`oroxzy.github.io-${item.titel}-mac`);
+
+					    macLink.href = item.downloadpfad_mac;
+					    macLink.textContent = 'Download für Mac (0)';
+
+					    macLink.addEventListener('click', async () => {
+					        await fetch(`https://api.countapi.xyz/hit/${macKey}`);
+					        updateCounter(macKey, macLink, 'Download für Mac');
+					    });
+
+					    updateCounter(macKey, macLink, 'Download für Mac');
+					    downloadItem.appendChild(macLink);
+					}
+
 
                     if (item.youtubevideopfad) {
                         const video = document.createElement('iframe');
@@ -324,6 +343,16 @@ body {
             });
         }
 
+	    async function updateCounter(key, element, label) {
+	        try {
+	            const res = await fetch(`https://api.countapi.xyz/get/${key}`);
+	            const data = await res.json();
+	            element.textContent = `${label} (${data.value})`;
+	        } catch {
+	            element.textContent = `${label} (?)`;
+	        }
+	    }
+		
         fetchGitHubProfile();
         fetchCSV();
     </script>
