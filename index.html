@@ -583,10 +583,10 @@
                 </div>
                 <aside class="hero-aside" aria-label="Übersicht">
                     <div class="featured-preview">
-                        <img id="featured-image" src="Pictures/BeamBro2D.PNG" alt="Vorschau eines Tools">
+                        <img id="featured-image" src="Pictures/TrigoBro.PNG" alt="Vorschau von TrigoBro">
                         <div class="featured-caption">
-                            <strong id="featured-title">BeamBro2D</strong>
-                            <span id="featured-meta">Neueste Aktualisierung</span>
+                            <strong id="featured-title">TrigoBro</strong>
+                            <span id="featured-meta">Interaktiver Dreiecksrechner</span>
                         </div>
                     </div>
                     <div class="stats" aria-label="Statistiken">
@@ -682,8 +682,7 @@
         }
 
         function updateHero(items) {
-            const sorted = [...items].sort((a, b) => new Date(b.datum || 0) - new Date(a.datum || 0));
-            const featured = sorted[0];
+            const featured = items.find(item => item.titel === 'TrigoBro') || items[0];
 
             toolCount.textContent = items.length;
             appCount.textContent = items.filter(item => item.kategorie === 'Applikationen').length;
