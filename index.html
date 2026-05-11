@@ -622,7 +622,7 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv';
+        const csvFilePath = 'downloads.csv?v=2026-05-11-trigobro';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -929,7 +929,7 @@
 
         async function init() {
             try {
-                const response = await fetch(csvFilePath);
+                const response = await fetch(csvFilePath, { cache: 'no-store' });
                 const data = await response.text();
                 allItems = parseCSV(data);
 
