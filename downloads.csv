@@ -1,4 +1,5 @@
 titel;picturepfad;downloadpfad_windows;downloadpfad_mac;beschreibung;youtubevideopfad;version;datum;kategorie
+TrigoBro;Pictures/TrigoBro.PNG;Downloads/TrigoBro_Windows.zip;;TrigoBro ist ein interaktiver Dreiecksrechner, der aus wenigen bekannten Werten ein vollständiges Dreieck berechnet. Die App unterstützt Seiten, Winkel, Höhen, Fläche, Umfang sowie In- und Umkreiswerte und zeigt die Lösung mit nachvollziehbaren Rechenschritten und einer passenden Grafik. Ob klassische Schulformeln oder komplexere gemischte Eingaben: TrigoBro erkennt passende Lösungswege, markiert unklare oder widersprüchliche Angaben und macht sichtbar, wie das Dreieck entsteht.;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;2024-12-15;Applikationen
 Kahlenator;Pictures/Kahlenator.PNG;;;Bewehrungsbemessung für Beton- und Stahlträger.;;4.3.12;2025-09-10;Applikationen
 Kornelius;Pictures/Kornelius.PNG;;;Digitale Stahlbautabellen blitzschnell durchsuchen und multifiltern.;;1.2.14;2025-09-10;Applikationen
 Erdinator;Pictures/Erdinator.PNG;;;Bemessungstool zur visuellen und rechnerischen Ermittlung von Erd- und Wasserdruckkräften auf Baugrubenwände mit automatischer Lastverteilung und normgerechter Spundwandbemessung.;;1.2;2025-06-22;Applikationen
@@ -7,7 +8,6 @@ Beamax Extended;Pictures/Beamax.PNG;Downloads/Beamax_Windows.zip;;Zum Erstellen,
 StatiCulator;Pictures/StatiCulator.PNG;Downloads/StatiCulator_Windows.zip;;Statische Berechnungen für Träger, Momentenverläufe, Querkraftverläufe und Lösungswege.;;2.5.78;2025-09-03;Applikationen
 BlockBro;Pictures/BlockBro.PNG;Downloads/BlockBro_Windows.zip;Downloads/BlockBro_Mac.zip;Resultierende Kraft ausfindig machen.;https://www.youtube.com/watch?v=ETlS_cI9UOA;7.6.8;2024-12-15;Applikationen
 ForceSplitter;Pictures/ForceSplitter.PNG;Downloads/ForceSplitter_Windows.zip;Downloads/ForceSplitter_Mac.zip;Resultierende Kraft und Position berechnen.;https://www.youtube.com/watch?v=jymSPGS5npc;16.2.58;2024-12-15;Applikationen
-TrigoBro;Pictures/TrigoBro.PNG;Downloads/TrigoBro_Windows.zip;;Trigonometrie-Berechnungen leicht gemacht.;https://www.youtube.com/watch?v=4t-sEALrFL0;13.0.34;2024-12-15;Applikationen
 Bodenberechnungen;Pictures/Bodenberechnungen.PNG;Downloads/Bodenberechnungen.xlsm;;GB Grundbau - Bodenproben berechnen.;;1.0;2024-12-18;Excel-Tabellen
 Mehrfeldträgerrechner;Pictures/Durchlaufträger_Rechner.PNG;Downloads/Durchlaufträger_Rechner.xlsm;;GS Gerüstung - Mehrfeldträger, Querkraft, Momente und Durchbiegung.;;1.0;2024-12-15;Excel-Tabellen
 Holzstützen-Knickrechner;Pictures/Knicken_Holzstützen.PNG;Downloads/Knicken_Holzstützen.xlsm;;BS Baustatik - Berechnung für Holzstützen und Knicken.;;1.0;2024-12-15;Excel-Tabellen
