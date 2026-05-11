@@ -6,16 +6,16 @@
     <title>Oroxzy Downloads</title>
     <style>
         :root {
-            --bg: #101419;
-            --panel: #161d24;
-            --panel-strong: #1f2933;
-            --text: #edf2f7;
-            --muted: #9fb0bf;
-            --line: rgba(255, 255, 255, 0.11);
-            --accent: #56c2a3;
-            --accent-strong: #35a987;
-            --warn: #f5b84b;
-            --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+            --bg: #f5f6f8;
+            --panel: #ffffff;
+            --panel-strong: #eef3f6;
+            --text: #1f2933;
+            --muted: #687782;
+            --line: #dce2e7;
+            --accent: #00a6d6;
+            --accent-strong: #008fbd;
+            --warn: #f4a51c;
+            --shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
             --radius: 8px;
         }
 
@@ -28,8 +28,7 @@
             min-height: 100vh;
             font-family: Arial, Helvetica, sans-serif;
             background:
-                linear-gradient(135deg, rgba(86, 194, 163, 0.14), transparent 34%),
-                linear-gradient(315deg, rgba(245, 184, 75, 0.12), transparent 30%),
+                linear-gradient(180deg, #ffffff 0, #f5f6f8 260px),
                 var(--bg);
             color: var(--text);
         }
@@ -39,11 +38,11 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            opacity: 0.18;
+            opacity: 0.35;
             background-image:
-                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-            background-size: 42px 42px;
+                linear-gradient(rgba(31, 41, 51, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(31, 41, 51, 0.04) 1px, transparent 1px);
+            background-size: 36px 36px;
             mask-image: linear-gradient(to bottom, black, transparent 72%);
         }
 
@@ -80,10 +79,11 @@
             height: 42px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: linear-gradient(145deg, #22313b, #121920);
-            color: var(--accent);
+            background: #ffffff;
+            color: var(--accent-strong);
             font-weight: 800;
             letter-spacing: 0;
+            box-shadow: 0 2px 8px rgba(31, 41, 51, 0.08);
         }
 
         .brand h1 {
@@ -106,7 +106,7 @@
         }
 
         .contact-link:hover {
-            color: var(--text);
+            color: var(--accent-strong);
         }
 
         .hero {
@@ -126,14 +126,14 @@
             border: 1px solid var(--line);
             border-radius: var(--radius);
             background:
-                linear-gradient(135deg, rgba(86, 194, 163, 0.18), rgba(31, 41, 51, 0.5)),
-                rgba(22, 29, 36, 0.88);
+                linear-gradient(135deg, rgba(0, 166, 214, 0.12), rgba(244, 165, 28, 0.08)),
+                var(--panel);
             box-shadow: var(--shadow);
         }
 
         .eyebrow {
             margin: 0 0 14px;
-            color: var(--accent);
+            color: var(--accent-strong);
             font-size: 0.82rem;
             font-weight: 700;
             letter-spacing: 0;
@@ -151,7 +151,7 @@
         .hero p {
             max-width: 680px;
             margin: 20px 0 0;
-            color: #c8d3dc;
+            color: #53616d;
             font-size: 1.08rem;
             line-height: 1.7;
         }
@@ -168,7 +168,8 @@
             min-height: 230px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: #0b0f13;
+            background: #eef3f6;
+            box-shadow: var(--shadow);
         }
 
         .featured-preview img {
@@ -176,14 +177,14 @@
             height: 100%;
             min-height: 230px;
             object-fit: cover;
-            filter: saturate(1.08) contrast(1.03);
+            filter: saturate(1.02) contrast(1.01);
         }
 
         .featured-preview::after {
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(to top, rgba(8, 12, 16, 0.86), transparent 58%);
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.08) 64%);
         }
 
         .featured-caption {
@@ -197,12 +198,13 @@
         .featured-caption strong {
             display: block;
             font-size: 1.1rem;
+            color: var(--text);
         }
 
         .featured-caption span {
             display: block;
             margin-top: 5px;
-            color: #d3dde6;
+            color: var(--muted);
             font-size: 0.9rem;
         }
 
@@ -217,7 +219,8 @@
             padding: 14px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: rgba(22, 29, 36, 0.82);
+            background: var(--panel);
+            box-shadow: 0 2px 10px rgba(31, 41, 51, 0.05);
         }
 
         .stat strong {
@@ -244,8 +247,9 @@
             padding: 12px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: rgba(16, 20, 25, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(18px);
+            box-shadow: 0 8px 22px rgba(31, 41, 51, 0.08);
         }
 
         .search {
@@ -255,14 +259,14 @@
             border: 1px solid var(--line);
             border-radius: var(--radius);
             outline: none;
-            background: #0d1217;
+            background: #ffffff;
             color: var(--text);
             font-size: 1rem;
         }
 
         .search:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(86, 194, 163, 0.16);
+            box-shadow: 0 0 0 3px rgba(0, 166, 214, 0.16);
         }
 
         .category-tabs {
@@ -277,7 +281,7 @@
             padding: 0 14px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: #121920;
+            background: #ffffff;
             color: var(--muted);
             cursor: pointer;
             font: inherit;
@@ -285,9 +289,9 @@
 
         .category-tab:hover,
         .category-tab.is-active {
-            border-color: rgba(86, 194, 163, 0.7);
-            background: rgba(86, 194, 163, 0.14);
-            color: var(--text);
+            border-color: rgba(0, 166, 214, 0.55);
+            background: rgba(0, 166, 214, 0.1);
+            color: var(--accent-strong);
         }
 
         #download-list {
@@ -331,14 +335,14 @@
             min-height: 100%;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: rgba(22, 29, 36, 0.92);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+            background: var(--panel);
+            box-shadow: 0 4px 16px rgba(31, 41, 51, 0.07);
             transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
         }
 
         .download-item:hover {
             transform: translateY(-4px);
-            border-color: rgba(86, 194, 163, 0.55);
+            border-color: rgba(0, 166, 214, 0.5);
             box-shadow: var(--shadow);
         }
 
@@ -352,7 +356,7 @@
             width: 100%;
             padding: 0;
             border: 0;
-            background: #0b0f13;
+            background: #eef3f6;
             cursor: zoom-in;
         }
 
@@ -386,12 +390,13 @@
             border-radius: 999px;
             color: var(--muted);
             font-size: 0.78rem;
+            background: #f8fafb;
         }
 
         .badge.latest {
-            border-color: rgba(245, 184, 75, 0.55);
-            color: #ffd890;
-            background: rgba(245, 184, 75, 0.11);
+            border-color: rgba(244, 165, 28, 0.45);
+            color: #8a5a00;
+            background: rgba(244, 165, 28, 0.13);
         }
 
         .download-item h4 {
@@ -403,7 +408,7 @@
         .description {
             flex: 1;
             margin: 12px 0 18px;
-            color: #c7d2dc;
+            color: #53616d;
             font-size: 0.96rem;
             line-height: 1.58;
         }
@@ -433,7 +438,7 @@
             border: 1px solid transparent;
             border-radius: var(--radius);
             background: var(--accent);
-            color: #06110e;
+            color: #ffffff;
             font-weight: 700;
             text-decoration: none;
             transition: transform 0.16s ease, background 0.16s ease;
@@ -442,19 +447,21 @@
         .download-link:hover,
         .video-link:hover {
             transform: translateY(-1px);
-            background: #79d9bd;
+            background: var(--accent-strong);
         }
 
         .download-link.secondary,
         .video-link {
             border-color: var(--line);
-            background: #111820;
+            background: #ffffff;
             color: var(--text);
         }
 
         .download-link.secondary:hover,
         .video-link:hover {
-            background: #1d2a34;
+            background: #eef7fb;
+            border-color: rgba(0, 166, 214, 0.45);
+            color: var(--accent-strong);
         }
 
         .empty-state {
@@ -462,7 +469,7 @@
             padding: 28px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: rgba(22, 29, 36, 0.86);
+            background: var(--panel);
             color: var(--muted);
             text-align: center;
         }
@@ -498,7 +505,7 @@
             height: 42px;
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: #111820;
+            background: #ffffff;
             color: var(--text);
             cursor: pointer;
             font-size: 1.5rem;
@@ -561,7 +568,7 @@
                 <span class="brand-mark">OX</span>
                 <span class="brand-text">
                     <h1>Oroxzy Downloads</h1>
-                    <span>Tools, Rechner und Tabellen</span>
+                    <span>Schulprojekte, Rechner und Tabellen</span>
                 </span>
             </a>
             <a class="contact-link" href="mailto:jeremymeile@gmail.com">jeremymeile@gmail.com</a>
@@ -570,9 +577,9 @@
         <main>
             <section class="hero" aria-labelledby="page-title">
                 <div class="hero-main">
-                    <p class="eyebrow">Baustatik, Grundbau und kleine Helfer</p>
-                    <h2 id="page-title">Downloads, die direkt arbeiten.</h2>
-                    <p>Eine kompakte Sammlung von Applikationen und Excel-Tabellen für Berechnung, Bemessung und schnelle Kontrollen im Baualltag.</p>
+                    <p class="eyebrow">Schule, Baustatik und kleine Experimente</p>
+                    <h2 id="page-title">Kleine Tools aus dem Unterricht.</h2>
+                    <p>Eine lockere Sammlung von selbstgebauten Rechnern, Excel-Tabellen und Hobbyprojekten rund um Formeln, Baustatik und Ausprobieren.</p>
                 </div>
                 <aside class="hero-aside" aria-label="Übersicht">
                     <div class="featured-preview">
