@@ -329,8 +329,10 @@
         }
 
         .download-item {
+            position: relative;
             display: flex;
             flex-direction: column;
+            isolation: isolate;
             overflow: hidden;
             min-height: 100%;
             border: 1px solid var(--line);
@@ -338,6 +340,16 @@
             background: var(--panel);
             box-shadow: 0 4px 16px rgba(31, 41, 51, 0.07);
             transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .download-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            z-index: 1;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--warn));
+            opacity: 0.88;
         }
 
         .download-item:hover {
@@ -352,6 +364,7 @@
         }
 
         .image-button {
+            position: relative;
             display: block;
             width: 100%;
             padding: 0;
@@ -365,12 +378,14 @@
             width: 100%;
             aspect-ratio: 16 / 9;
             object-fit: cover;
+            object-position: top center;
         }
 
         .card-body {
             display: flex;
             flex: 1;
             flex-direction: column;
+            gap: 13px;
             padding: 18px;
         }
 
@@ -378,7 +393,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 0;
         }
 
         .badge {
@@ -407,19 +422,53 @@
 
         .description {
             flex: 1;
-            margin: 12px 0 18px;
+            margin: 0;
             color: #53616d;
             font-size: 0.96rem;
             line-height: 1.58;
         }
 
-        .meta {
+        .card-footer {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px 14px;
-            margin-bottom: 14px;
-            color: var(--muted);
-            font-size: 0.86rem;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            overflow: hidden;
+            border: 1px solid #e7edf2;
+            border-radius: var(--radius);
+            background: #f8fafb;
+        }
+
+        .meta-item {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 3px;
+            padding: 10px 12px;
+        }
+
+        .meta-item + .meta-item {
+            border-left: 1px solid #e7edf2;
+        }
+
+        .meta-label {
+            color: #7a8791;
+            font-size: 0.66rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            color: var(--text);
+            font-size: 0.92rem;
+            font-weight: 800;
+            line-height: 1.2;
         }
 
         .actions {
@@ -622,7 +671,7 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-05-12-beambro2d-order';
+        const csvFilePath = 'downloads.csv?v=2026-05-12-beambro2d-mac-panels';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -866,7 +915,16 @@
 
                     const meta = document.createElement('div');
                     meta.className = 'meta';
-                    meta.innerHTML = `<span>Version ${item.version || 'N/A'}</span><span>${formatEuropeanDate(item.datum)}</span>`;
+                    meta.innerHTML = `
+                        <span class="meta-item">
+                            <span class="meta-label">Version</span>
+                            <span class="meta-value">${item.version || 'N/A'}</span>
+                        </span>
+                        <span class="meta-item">
+                            <span class="meta-label">Aktualisiert</span>
+                            <span class="meta-value">${formatEuropeanDate(item.datum)}</span>
+                        </span>
+                    `;
 
                     const actions = document.createElement('div');
                     actions.className = 'actions';
@@ -891,7 +949,11 @@
                         actions.appendChild(video);
                     }
 
-                    body.append(topLine, title, desc, meta, actions);
+                    const footer = document.createElement('div');
+                    footer.className = 'card-footer';
+                    footer.append(meta, actions);
+
+                    body.append(topLine, title, desc, footer);
                     card.appendChild(body);
                     container.appendChild(card);
                 });
