@@ -622,7 +622,7 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-05-12-beambro2d';
+        const csvFilePath = 'downloads.csv?v=2026-05-12-beambro2d-order';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -757,7 +757,32 @@
                 return 'oroxzy.github.io3-TrigoBro-win';
             }
 
+            if (item.titel === 'BeamBro2D' && platform === 'win') {
+                return 'oroxzy.github.io3-BeamBro2D-win';
+            }
+
             return `oroxzy.github.io2-${item.titel.trim().replaceAll(' ', '_')}-${platform}`;
+        }
+
+        function sortDownloadItems(items) {
+            const priority = {
+                BeamBro2D: 0,
+                TrigoBro: 1
+            };
+
+            return [...items].sort((a, b) => {
+                const aPriority = priority[a.titel] ?? 10;
+                const bPriority = priority[b.titel] ?? 10;
+
+                if (aPriority !== bPriority) return aPriority - bPriority;
+
+                const aHasDownload = Boolean(a.downloadpfad_windows || a.downloadpfad_mac);
+                const bHasDownload = Boolean(b.downloadpfad_windows || b.downloadpfad_mac);
+
+                if (aHasDownload !== bHasDownload) return aHasDownload ? -1 : 1;
+
+                return 0;
+            });
         }
 
         function renderDownloads(items) {
@@ -775,6 +800,7 @@
             downloadList.innerHTML = '';
 
             Object.entries(grouped).forEach(([category, categoryItems]) => {
+                const sortedCategoryItems = sortDownloadItems(categoryItems);
                 const section = document.createElement('section');
                 section.className = 'category-section';
                 section.dataset.category = category;
@@ -786,7 +812,7 @@
                 heading.textContent = category;
 
                 const count = document.createElement('span');
-                count.textContent = `${categoryItems.length} Einträge`;
+                count.textContent = `${sortedCategoryItems.length} Einträge`;
 
                 title.append(heading, count);
                 section.appendChild(title);
@@ -794,7 +820,7 @@
                 const container = document.createElement('div');
                 container.className = 'category-container';
 
-                categoryItems.forEach(item => {
+                sortedCategoryItems.forEach(item => {
                     const card = document.createElement('article');
                     card.className = 'download-item';
                     card.dataset.category = item.kategorie;
