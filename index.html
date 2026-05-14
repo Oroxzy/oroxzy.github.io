@@ -671,7 +671,9 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-05-12-beambro2d-mac-panels';
+        const csvFilePath = 'downloads.csv?v=2026-05-14-button-download-counts';
+        const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
+        const countApiPrefix = 'oroxzy.github.io-2026-05-14-button-reset';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -778,23 +780,50 @@
             return badge;
         }
 
+        function formatDownloadCount(value) {
+            const number = Number(value) || 0;
+            return `${number.toLocaleString('de-DE')} ${number === 1 ? 'Download' : 'Downloads'}`;
+        }
+
+        function setDownloadLabel(element, label, count) {
+            element.textContent = `${label} · ${formatDownloadCount(count)}`;
+            element.title = 'Downloadzähler';
+        }
+
+        async function getLocalDownloadCount(key) {
+            const res = await fetch(`${countApiEndpoint}/get?key=${encodeURIComponent(key)}`);
+            const value = await res.json();
+            return value === null ? 0 : value;
+        }
+
+        function recordLocalDownload(key) {
+            const body = JSON.stringify({ key });
+
+            if (navigator.sendBeacon) {
+                const payload = new Blob([body], { type: 'application/json' });
+                if (navigator.sendBeacon(`${countApiEndpoint}/hit`, payload)) return;
+            }
+
+            fetch(`${countApiEndpoint}/hit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+                keepalive: true
+            }).catch(err => console.error('Fehler beim Aktualisieren des Zählers:', err));
+        }
+
         function createDownloadLink(href, label, key, secondary = false) {
             const link = document.createElement('a');
             link.className = `download-link ${secondary ? 'secondary' : ''}`.trim();
             link.href = href;
-            link.textContent = `${label} (...)`;
+            link.textContent = `${label} (lädt...)`;
 
-            link.addEventListener('click', async () => {
-                try {
-                    await fetch('https://countapi.maayanlab.cloud/rpc/hit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ key })
-                    });
-                    updateCounter(key, link, label);
-                } catch (err) {
-                    console.error('Fehler beim Aktualisieren des Zählers:', err);
-                }
+            link.addEventListener('click', () => {
+                const currentValue = Number(link.dataset.downloadCount || 0);
+                const nextValue = currentValue + 1;
+                link.dataset.downloadCount = nextValue;
+                setDownloadLabel(link, label, nextValue);
+                recordLocalDownload(key);
             });
 
             updateCounter(key, link, label);
@@ -802,15 +831,9 @@
         }
 
         function getDownloadKey(item, platform) {
-            if (item.titel === 'TrigoBro' && platform === 'win') {
-                return 'oroxzy.github.io3-TrigoBro-win';
-            }
-
-            if (item.titel === 'BeamBro2D' && platform === 'win') {
-                return 'oroxzy.github.io3-BeamBro2D-win';
-            }
-
-            return `oroxzy.github.io2-${item.titel.trim().replaceAll(' ', '_')}-${platform}`;
+            const title = item.titel.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
+            const version = (item.version || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
+            return `${countApiPrefix}-${title}-${version}-${platform}`;
         }
 
         function sortDownloadItems(items) {
@@ -1002,16 +1025,13 @@
 
         async function updateCounter(key, element, label) {
             try {
-                let value;
-                const res = await fetch(`https://countapi.maayanlab.cloud/rpc/get?key=${encodeURIComponent(key)}`);
-                value = await res.json();
+                const value = await getLocalDownloadCount(key);
 
-                if (value === null) value = 0;
-
-                element.textContent = `${label} (${value})`;
+                element.dataset.downloadCount = value;
+                setDownloadLabel(element, label, value);
             } catch (err) {
                 console.error('Fehler beim Abrufen des Zählers:', err);
-                element.textContent = `${label}`;
+                element.textContent = `${label} (Zähler nicht verfügbar)`;
             }
         }
 
