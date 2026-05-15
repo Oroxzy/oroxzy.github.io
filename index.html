@@ -796,20 +796,24 @@
             return value === null ? 0 : value;
         }
 
-        function recordLocalDownload(key) {
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function recordLocalDownload(key) {
             const body = JSON.stringify({ key });
 
-            if (navigator.sendBeacon) {
-                const payload = new Blob([body], { type: 'application/json' });
-                if (navigator.sendBeacon(`${countApiEndpoint}/hit`, payload)) return;
-            }
-
-            fetch(`${countApiEndpoint}/hit`, {
+            const res = await fetch(`${countApiEndpoint}/hit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body,
                 keepalive: true
-            }).catch(err => console.error('Fehler beim Aktualisieren des Zählers:', err));
+            });
+
+            if (!res.ok) throw new Error(`Count API returned ${res.status}`);
+
+            const text = await res.text();
+            return text ? JSON.parse(text) : null;
         }
 
         function createDownloadLink(href, label, key, secondary = false) {
@@ -818,12 +822,31 @@
             link.href = href;
             link.textContent = `${label} (lädt...)`;
 
-            link.addEventListener('click', () => {
+            link.addEventListener('click', async event => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+                event.preventDefault();
+
                 const currentValue = Number(link.dataset.downloadCount || 0);
                 const nextValue = currentValue + 1;
                 link.dataset.downloadCount = nextValue;
                 setDownloadLabel(link, label, nextValue);
-                recordLocalDownload(key);
+
+                try {
+                    const savedValue = await Promise.race([
+                        recordLocalDownload(key),
+                        wait(1200).then(() => nextValue)
+                    ]);
+
+                    if (typeof savedValue === 'number') {
+                        link.dataset.downloadCount = savedValue;
+                        setDownloadLabel(link, label, savedValue);
+                    }
+                } catch (err) {
+                    console.error('Fehler beim Aktualisieren des Zählers:', err);
+                } finally {
+                    window.location.href = href;
+                }
             });
 
             updateCounter(key, link, label);
