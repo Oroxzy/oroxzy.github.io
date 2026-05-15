@@ -475,6 +475,14 @@
             display: flex;
             flex-wrap: wrap;
             gap: 9px;
+            align-items: flex-start;
+        }
+
+        .download-action {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
         }
 
         .download-link,
@@ -511,6 +519,14 @@
             background: #eef7fb;
             border-color: rgba(0, 166, 214, 0.45);
             color: var(--accent-strong);
+        }
+
+        .download-count {
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1.2;
+            padding: 0 2px;
         }
 
         .empty-state {
@@ -674,7 +690,6 @@
         const csvFilePath = 'downloads.csv?v=2026-05-14-button-download-counts';
         const counterApiEndpoint = 'https://api.counterapi.dev/v1';
         const counterApiNamespace = 'oroxzy-downloads-2026-05-15';
-        const githubReleaseCache = new Map();
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -786,57 +801,8 @@
             return `${number.toLocaleString('de-DE')} ${number === 1 ? 'Download' : 'Downloads'}`;
         }
 
-        function setDownloadLabel(element, label, count) {
-            element.textContent = `${label} · ${formatDownloadCount(count)}`;
-            element.title = 'Downloadzähler';
-        }
-
-        function parseGithubReleaseAssetUrl(href) {
-            let url;
-
-            try {
-                url = new URL(href, window.location.href);
-            } catch (err) {
-                return null;
-            }
-
-            if (url.hostname !== 'github.com') return null;
-
-            const parts = url.pathname.split('/').filter(Boolean);
-            const releaseIndex = parts.indexOf('releases');
-
-            if (releaseIndex < 2 || parts[releaseIndex + 1] !== 'download') return null;
-
-            return {
-                owner: parts[releaseIndex - 2],
-                repo: parts[releaseIndex - 1],
-                tag: decodeURIComponent(parts[releaseIndex + 2] || ''),
-                assetName: decodeURIComponent(parts.slice(releaseIndex + 3).join('/'))
-            };
-        }
-
-        async function getGithubReleaseAssetCount(info) {
-            const cacheKey = `${info.owner}/${info.repo}/${info.tag}`;
-
-            if (!githubReleaseCache.has(cacheKey)) {
-                githubReleaseCache.set(cacheKey, fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/releases/tags/${encodeURIComponent(info.tag)}`, {
-                    cache: 'no-store'
-                })
-                    .then(res => {
-                        if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-                        return res.json();
-                    })
-                    .then(release => {
-                        const counts = new Map();
-                        (release.assets || []).forEach(asset => {
-                            counts.set(asset.name, asset.download_count || 0);
-                        });
-                        return counts;
-                    }));
-            }
-
-            const counts = await githubReleaseCache.get(cacheKey);
-            return counts.get(info.assetName) || 0;
+        function setDownloadCount(element, count) {
+            element.textContent = formatDownloadCount(count);
         }
 
         async function getLocalDownloadCount(key) {
@@ -867,15 +833,20 @@
         }
 
         function createDownloadLink(href, label, key, secondary = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'download-action';
+
             const link = document.createElement('a');
             link.className = `download-link ${secondary ? 'secondary' : ''}`.trim();
             link.href = href;
-            link.textContent = `${label} (lädt...)`;
+            link.textContent = label;
+            link.title = `${label} herunterladen`;
 
-            const githubAsset = parseGithubReleaseAssetUrl(href);
+            const count = document.createElement('span');
+            count.className = 'download-count';
+            count.textContent = 'lädt...';
 
             link.addEventListener('click', async event => {
-                if (githubAsset) return;
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
                 event.preventDefault();
@@ -883,7 +854,7 @@
                 const currentValue = Number(link.dataset.downloadCount || 0);
                 const nextValue = currentValue + 1;
                 link.dataset.downloadCount = nextValue;
-                setDownloadLabel(link, label, nextValue);
+                setDownloadCount(count, nextValue);
 
                 try {
                     const savedValue = await Promise.race([
@@ -893,7 +864,7 @@
 
                     if (typeof savedValue === 'number') {
                         link.dataset.downloadCount = savedValue;
-                        setDownloadLabel(link, label, savedValue);
+                        setDownloadCount(count, savedValue);
                     }
                 } catch (err) {
                     console.error('Fehler beim Aktualisieren des Zählers:', err);
@@ -902,8 +873,9 @@
                 }
             });
 
-            updateCounter({ key, element: link, label, githubAsset });
-            return link;
+            updateCounter({ key, link, count });
+            wrapper.append(link, count);
+            return wrapper;
         }
 
         function getDownloadKey(item, platform) {
@@ -1099,18 +1071,16 @@
             popupImg.alt = '';
         }
 
-        async function updateCounter({ key, element, label, githubAsset }) {
+        async function updateCounter({ key, link, count }) {
             try {
-                const value = githubAsset
-                    ? await getGithubReleaseAssetCount(githubAsset)
-                    : await getLocalDownloadCount(key);
+                const value = await getLocalDownloadCount(key);
 
-                element.dataset.downloadCount = value;
-                setDownloadLabel(element, label, value);
+                link.dataset.downloadCount = value;
+                setDownloadCount(count, value);
             } catch (err) {
                 console.error('Fehler beim Abrufen des Zählers:', err);
-                element.dataset.downloadCount = 0;
-                setDownloadLabel(element, label, 0);
+                link.dataset.downloadCount = 0;
+                setDownloadCount(count, 0);
             }
         }
 
