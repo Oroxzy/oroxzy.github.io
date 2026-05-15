@@ -674,6 +674,7 @@
         const csvFilePath = 'downloads.csv?v=2026-05-14-button-download-counts';
         const counterApiEndpoint = 'https://api.counterapi.dev/v1';
         const counterApiNamespace = 'oroxzy-downloads-2026-05-15';
+        const githubReleaseCache = new Map();
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -790,6 +791,54 @@
             element.title = 'Downloadzähler';
         }
 
+        function parseGithubReleaseAssetUrl(href) {
+            let url;
+
+            try {
+                url = new URL(href, window.location.href);
+            } catch (err) {
+                return null;
+            }
+
+            if (url.hostname !== 'github.com') return null;
+
+            const parts = url.pathname.split('/').filter(Boolean);
+            const releaseIndex = parts.indexOf('releases');
+
+            if (releaseIndex < 2 || parts[releaseIndex + 1] !== 'download') return null;
+
+            return {
+                owner: parts[releaseIndex - 2],
+                repo: parts[releaseIndex - 1],
+                tag: decodeURIComponent(parts[releaseIndex + 2] || ''),
+                assetName: decodeURIComponent(parts.slice(releaseIndex + 3).join('/'))
+            };
+        }
+
+        async function getGithubReleaseAssetCount(info) {
+            const cacheKey = `${info.owner}/${info.repo}/${info.tag}`;
+
+            if (!githubReleaseCache.has(cacheKey)) {
+                githubReleaseCache.set(cacheKey, fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/releases/tags/${encodeURIComponent(info.tag)}`, {
+                    cache: 'no-store'
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+                        return res.json();
+                    })
+                    .then(release => {
+                        const counts = new Map();
+                        (release.assets || []).forEach(asset => {
+                            counts.set(asset.name, asset.download_count || 0);
+                        });
+                        return counts;
+                    }));
+            }
+
+            const counts = await githubReleaseCache.get(cacheKey);
+            return counts.get(info.assetName) || 0;
+        }
+
         async function getLocalDownloadCount(key) {
             const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/?t=${Date.now()}`, {
                 cache: 'no-store'
@@ -823,7 +872,10 @@
             link.href = href;
             link.textContent = `${label} (lädt...)`;
 
+            const githubAsset = parseGithubReleaseAssetUrl(href);
+
             link.addEventListener('click', async event => {
+                if (githubAsset) return;
                 if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
                 event.preventDefault();
@@ -850,7 +902,7 @@
                 }
             });
 
-            updateCounter(key, link, label);
+            updateCounter({ key, element: link, label, githubAsset });
             return link;
         }
 
@@ -1047,15 +1099,18 @@
             popupImg.alt = '';
         }
 
-        async function updateCounter(key, element, label) {
+        async function updateCounter({ key, element, label, githubAsset }) {
             try {
-                const value = await getLocalDownloadCount(key);
+                const value = githubAsset
+                    ? await getGithubReleaseAssetCount(githubAsset)
+                    : await getLocalDownloadCount(key);
 
                 element.dataset.downloadCount = value;
                 setDownloadLabel(element, label, value);
             } catch (err) {
                 console.error('Fehler beim Abrufen des Zählers:', err);
-                element.textContent = `${label} (Zähler nicht verfügbar)`;
+                element.dataset.downloadCount = 0;
+                setDownloadLabel(element, label, 0);
             }
         }
 
