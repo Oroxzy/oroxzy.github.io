@@ -688,8 +688,8 @@
 
     <script>
         const csvFilePath = 'downloads.csv?v=2026-05-14-button-download-counts';
-        const counterApiEndpoint = 'https://api.counterapi.dev/v1';
-        const counterApiNamespace = 'oroxzy-downloads-2026-05-15';
+        const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
+        const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -806,27 +806,28 @@
         }
 
         async function getLocalDownloadCount(key) {
-            const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/?t=${Date.now()}`, {
+            const res = await fetch(`${countApiEndpoint}/get?key=${encodeURIComponent(key)}`, {
                 cache: 'no-store'
             });
 
-            if (res.status === 400 || res.status === 404) return 0;
-            if (!res.ok) throw new Error(`Counter API returned ${res.status}`);
+            if (!res.ok) throw new Error(`Count API returned ${res.status}`);
 
-            const data = await res.json();
-            return data.count || 0;
+            const value = await res.json();
+            return value === null ? 0 : value;
         }
 
         async function recordLocalDownload(key) {
-            const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/up?t=${Date.now()}`, {
+            const res = await fetch(`${countApiEndpoint}/hit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key }),
                 cache: 'no-store',
                 keepalive: true
             });
 
-            if (!res.ok) throw new Error(`Counter API returned ${res.status}`);
+            if (!res.ok) throw new Error(`Count API returned ${res.status}`);
 
-            const data = await res.json();
-            return data.count || 0;
+            return getLocalDownloadCount(key);
         }
 
         function createDownloadLink(href, label, key, secondary = false) {
@@ -872,7 +873,7 @@
         function getDownloadKey(item, platform) {
             const title = item.titel.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
             const version = (item.version || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
-            return `${title}-${version}-${platform}`;
+            return `${countApiPrefix}-${title}-${version}-${platform}`;
         }
 
         function sortDownloadItems(items) {
