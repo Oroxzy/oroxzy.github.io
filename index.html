@@ -817,13 +817,10 @@
             return data.count || 0;
         }
 
-        function wait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
         async function recordLocalDownload(key) {
             const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/up?t=${Date.now()}`, {
-                cache: 'no-store'
+                cache: 'no-store',
+                keepalive: true
             });
 
             if (!res.ok) throw new Error(`Counter API returned ${res.status}`);
@@ -857,15 +854,9 @@
                 setDownloadCount(count, nextValue);
 
                 try {
-                    const savedValue = await Promise.race([
-                        recordLocalDownload(key),
-                        wait(1200).then(() => nextValue)
-                    ]);
-
-                    if (typeof savedValue === 'number') {
-                        link.dataset.downloadCount = savedValue;
-                        setDownloadCount(count, savedValue);
-                    }
+                    const savedValue = await recordLocalDownload(key);
+                    link.dataset.downloadCount = savedValue;
+                    setDownloadCount(count, savedValue);
                 } catch (err) {
                     console.error('Fehler beim Aktualisieren des Zählers:', err);
                 } finally {
