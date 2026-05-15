@@ -672,8 +672,8 @@
 
     <script>
         const csvFilePath = 'downloads.csv?v=2026-05-14-button-download-counts';
-        const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
-        const countApiPrefix = 'oroxzy.github.io-2026-05-14-button-reset';
+        const counterApiEndpoint = 'https://api.counterapi.dev/v1';
+        const counterApiNamespace = 'oroxzy-downloads-2026-05-15';
         const downloadList = document.getElementById('download-list');
         const categoryTabs = document.getElementById('category-tabs');
         const searchInput = document.getElementById('search');
@@ -791,9 +791,15 @@
         }
 
         async function getLocalDownloadCount(key) {
-            const res = await fetch(`${countApiEndpoint}/get?key=${encodeURIComponent(key)}`);
-            const value = await res.json();
-            return value === null ? 0 : value;
+            const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/?t=${Date.now()}`, {
+                cache: 'no-store'
+            });
+
+            if (res.status === 400 || res.status === 404) return 0;
+            if (!res.ok) throw new Error(`Counter API returned ${res.status}`);
+
+            const data = await res.json();
+            return data.count || 0;
         }
 
         function wait(ms) {
@@ -801,19 +807,14 @@
         }
 
         async function recordLocalDownload(key) {
-            const body = JSON.stringify({ key });
-
-            const res = await fetch(`${countApiEndpoint}/hit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body,
-                keepalive: true
+            const res = await fetch(`${counterApiEndpoint}/${counterApiNamespace}/${encodeURIComponent(key)}/up?t=${Date.now()}`, {
+                cache: 'no-store'
             });
 
-            if (!res.ok) throw new Error(`Count API returned ${res.status}`);
+            if (!res.ok) throw new Error(`Counter API returned ${res.status}`);
 
-            const text = await res.text();
-            return text ? JSON.parse(text) : null;
+            const data = await res.json();
+            return data.count || 0;
         }
 
         function createDownloadLink(href, label, key, secondary = false) {
@@ -856,7 +857,7 @@
         function getDownloadKey(item, platform) {
             const title = item.titel.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
             const version = (item.version || 'unknown').trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '');
-            return `${countApiPrefix}-${title}-${version}-${platform}`;
+            return `${title}-${version}-${platform}`;
         }
 
         function sortDownloadItems(items) {
