@@ -1,0 +1,253 @@
+{
+  "BeamSmith": {
+    "tagline": "Träger berechnen, Profile auswählen und Nachweise als PDF dokumentieren.",
+    "features": [
+      "Balken und Durchlaufträger mit mehreren Auflagern modellieren",
+      "Festlager, Gelenklager, Rollenlager und Einspannungen setzen",
+      "Punktlasten sowie konstante oder linear veränderliche Linienlasten eingeben",
+      "Auflagerreaktionen, Querkraft, Moment und Verformung anzeigen",
+      "Diagramme mit Zahlenwerten, hervorgehobenen Maximalwerten und glatter Darstellung prüfen",
+      "Stahl-, Holz- und Spundwandprofile aus einer integrierten Profilbibliothek auswählen",
+      "Profile nach Kategorie, Familie, Güte, Suchtext und Ausnutzung filtern",
+      "Eigengewicht eines gewählten Profils automatisch als Last berücksichtigen",
+      "Momentennachweise und Stützennachweise nachvollziehbar darstellen",
+      "Nachweise mit Modell, Diagrammen, Profilwerten und Rechenweg als PDF exportieren",
+      "Projekte speichern, laden und klassische Beamax-Dateien importieren"
+    ],
+    "inputs": [
+      "Trägerlänge, Materialwerte, Querschnittswerte und optional manuelle Modellwerte",
+      "Auflagerpositionen und Lagertypen",
+      "Punktlasten, Linienlasten, Trapezlasten und Eigengewicht",
+      "Profilwahl, Stahlgüte, Holzparameter, Knicklänge und Nachweisoptionen"
+    ],
+    "outputs": [
+      "Auflagerreaktionen",
+      "Querkraft-, Momenten- und Verformungsdiagramme",
+      "Profil- und Ausnutzungslisten",
+      "Träger- und Stützennachweise",
+      "A4-PDF-Nachweisblätter"
+    ],
+    "useCases": [
+      "Trägerideen schnell plausibilisieren",
+      "Profile für Unterrichts- und Übungsaufgaben vergleichen",
+      "Momenten- und Verformungsverläufe sichtbar machen",
+      "Nachweise nachvollziehbar dokumentieren"
+    ],
+    "notes": "BeamSmith ist als Lern-, Schul- und Auswahlhilfe gedacht und ersetzt keine fachkundige Prüfung."
+  },
+  "BeamBro2D": {
+    "tagline": "2D-Fachwerke zeichnen, berechnen und den Lösungsweg nachvollziehen.",
+    "features": [
+      "Knoten, Stäbe, Lager und Kräfte für ebene Fachwerke erfassen",
+      "Auflagerreaktionen und Stabkräfte berechnen",
+      "Zug- und Druckkräfte farblich unterscheiden",
+      "Kräftepolygon und Kräfteplan zur grafischen Kontrolle anzeigen",
+      "Berechnungsprotokolle für Knoten, Stäbe und Gleichgewichte erzeugen",
+      "Ritter-Schnitt und ausgewählte Schnittbereiche auswerten",
+      "Nullstäbe und besondere Stabfälle nachvollziehbar erkennen",
+      "Projekte speichern und wieder öffnen",
+      "Darstellung, Farben und Beschriftungen für Unterricht und Erklärung anpassen"
+    ],
+    "inputs": [
+      "Knotenpositionen und Stabverbindungen",
+      "Lagerbedingungen",
+      "Einzellasten und Kraftrichtungen",
+      "Auswahl von Knoten oder Schnittbereichen"
+    ],
+    "outputs": [
+      "Auflagerreaktionen",
+      "Stabkräfte mit Zug/Druck-Kennzeichnung",
+      "Kräfteplan",
+      "Schrittweise Berechnungs- und Gleichgewichtsprotokolle"
+    ],
+    "useCases": [
+      "Fachwerkaufgaben im Unterricht kontrollieren",
+      "Knotenverfahren und Ritter-Schnitt verstehen",
+      "Rechenwege visuell erklären",
+      "Stabkräfte schnell plausibilisieren"
+    ],
+    "notes": "BeamBro2D ist auf ebene Fachwerke und nachvollziehbare Schulstatik ausgelegt."
+  },
+  "TrigoBro": {
+    "tagline": "Dreiecke lösen, fehlende Werte ergänzen und Rechenschritte verstehen.",
+    "features": [
+      "Seiten, Winkel, Höhen und Flächen eines Dreiecks berechnen",
+      "Fehlende Werte aus vorhandenen Angaben automatisch ergänzen",
+      "Mehrdeutige oder widersprüchliche Eingaben erkennen",
+      "Rechenweg und Zwischenschritte übersichtlich anzeigen",
+      "Dreiecksskizze mit aktuellen Werten darstellen",
+      "Pythagoras, Sinus, Kosinus, Tangens und Flächenformeln anwenden",
+      "Winkel umrechnen und typische Trigonometrie-Aufgaben prüfen",
+      "Eingaben schnell löschen, suchen oder neu berechnen"
+    ],
+    "inputs": [
+      "Seitenlängen",
+      "Winkel",
+      "Höhen und Flächenwerte",
+      "Bekannte Teilinformationen aus Aufgabenstellungen"
+    ],
+    "outputs": [
+      "Vollständige Dreieckswerte",
+      "Rechenschritte",
+      "Hinweise zu unklaren oder unmöglichen Eingaben",
+      "Grafische Dreiecksdarstellung"
+    ],
+    "useCases": [
+      "Trigonometrie-Hausaufgaben kontrollieren",
+      "Fehlende Dreieckswerte finden",
+      "Rechenwege für den Unterricht nachvollziehen",
+      "Formeln schneller vergleichen"
+    ],
+    "notes": "TrigoBro ist als Lernhilfe gedacht und legt Wert auf verständliche Rechenwege."
+  },
+  "StatiCulator": {
+    "tagline": "Statische Berechnungen für Träger mit Diagrammen und Lösungswegen.",
+    "features": [
+      "Trägeraufgaben erfassen und automatisch auswerten",
+      "Auflagerreaktionen bestimmen",
+      "Querkraft- und Momentenverläufe darstellen",
+      "Rechenschritte und Zwischenergebnisse nachvollziehen",
+      "Diagramme und Resultate für die Kontrolle von Aufgaben nutzen"
+    ],
+    "inputs": [
+      "Trägerdaten",
+      "Auflager",
+      "Lasten und Positionen"
+    ],
+    "outputs": [
+      "Auflagerreaktionen",
+      "Momentenverläufe",
+      "Querkraftverläufe",
+      "Lösungswege"
+    ],
+    "useCases": [
+      "Baustatik-Aufgaben prüfen",
+      "Diagramme schneller skizzieren",
+      "Eigene Rechenschritte kontrollieren"
+    ]
+  },
+  "BlockBro": {
+    "tagline": "Resultierende Kraft aus mehreren Kräften bestimmen.",
+    "features": [
+      "Mehrere Kräfte erfassen",
+      "Resultierende Kraft berechnen",
+      "Richtung und Lage der Resultierenden nachvollziehen",
+      "Kraftsysteme grafisch überprüfen",
+      "Eingaben schnell anpassen und erneut berechnen"
+    ],
+    "inputs": [
+      "Kräfte",
+      "Richtungen",
+      "Positionen oder Hebelarme"
+    ],
+    "outputs": [
+      "Resultierende Kraft",
+      "Richtung der Resultierenden",
+      "Berechnete Lage"
+    ],
+    "useCases": [
+      "Kräftezusammensetzung üben",
+      "Resultierende in Statikaufgaben kontrollieren",
+      "Kraftsysteme schneller verstehen"
+    ]
+  },
+  "ForceSplitter": {
+    "tagline": "Kräfte zerlegen, Resultierende finden und Positionen berechnen.",
+    "features": [
+      "Kräfte in Komponenten zerlegen",
+      "Resultierende Kraft aus Einzelkräften bestimmen",
+      "Position der Resultierenden berechnen",
+      "Kraftsysteme zeichnerisch und rechnerisch kontrollieren",
+      "Berechnungen speichern oder für spätere Kontrolle wiederverwenden"
+    ],
+    "inputs": [
+      "Kräfte",
+      "Winkel oder Richtungen",
+      "Angriffspunkte"
+    ],
+    "outputs": [
+      "Kraftkomponenten",
+      "Resultierende Kraft",
+      "Lage der Resultierenden"
+    ],
+    "useCases": [
+      "Kräftezerlegung trainieren",
+      "Resultierende bei Statikaufgaben prüfen",
+      "Schiefe Kräfte in verständliche Komponenten aufteilen"
+    ]
+  },
+  "Kornelius": {
+    "tagline": "Stahlbautabellen schnell durchsuchen und filtern.",
+    "features": [
+      "Profil- und Tabellenwerte digital durchsuchen",
+      "Einträge nach mehreren Kriterien filtern",
+      "Passende Profile schneller finden",
+      "Tabellenwerte für Unterricht und Nachweisvorbereitung nachschlagen"
+    ],
+    "inputs": [
+      "Suchbegriffe",
+      "Filterkriterien",
+      "Profil- oder Tabellenangaben"
+    ],
+    "outputs": [
+      "Gefilterte Tabellenwerte",
+      "Passende Profile",
+      "Schnelle Vergleichsübersicht"
+    ],
+    "useCases": [
+      "Stahlprofile schneller nachschlagen",
+      "Tabellenarbeit im Unterricht vereinfachen",
+      "Profilwerte vergleichen"
+    ]
+  },
+  "Kahlenator": {
+    "tagline": "Bewehrungsbemessung für Beton- und Stahlträger unterstützen.",
+    "features": [
+      "Bemessungswerte für Träger erfassen",
+      "Bewehrung rechnerisch abschätzen",
+      "Ergebnisse für Schulaufgaben kontrollieren",
+      "Eingaben schnell variieren und vergleichen"
+    ],
+    "inputs": [
+      "Träger- und Materialwerte",
+      "Bemessungskräfte",
+      "Geometrie- und Bewehrungsangaben"
+    ],
+    "outputs": [
+      "Bemessungsergebnisse",
+      "Kontrollwerte",
+      "Vergleich verschiedener Eingaben"
+    ],
+    "useCases": [
+      "Bewehrungsaufgaben üben",
+      "Rechenwerte vergleichen",
+      "Plausibilitätskontrollen durchführen"
+    ]
+  },
+  "Erdinator": {
+    "tagline": "Erd- und Wasserdruckkräfte an Baugrubenwänden berechnen.",
+    "features": [
+      "Erd- und Wasserdruck rechnerisch erfassen",
+      "Lastverteilungen an Baugrubenwänden visualisieren",
+      "Spundwandbemessung vorbereiten",
+      "Normnahe Lastansätze nachvollziehen",
+      "Ergebnisse grafisch und rechnerisch kontrollieren"
+    ],
+    "inputs": [
+      "Bodenkennwerte",
+      "Wasserstände",
+      "Geometrie der Baugrube",
+      "Last- und Bemessungsparameter"
+    ],
+    "outputs": [
+      "Erd- und Wasserdruckverteilungen",
+      "Resultierende Kräfte",
+      "Bemessungs- und Kontrollwerte"
+    ],
+    "useCases": [
+      "Grundbau-Aufgaben bearbeiten",
+      "Baugrubenwände plausibilisieren",
+      "Lastverteilungen besser verstehen"
+    ]
+  }
+}
