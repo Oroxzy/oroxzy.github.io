@@ -593,12 +593,14 @@
             display: flex;
         }
 
-        #popup img {
+        #popup img,
+        #popup video {
             max-width: min(1180px, 94vw);
             max-height: 88vh;
             border: 1px solid var(--line);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
+            background: #000000;
         }
 
         .popup-close {
@@ -860,7 +862,7 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-05-26-beamsmith-mac-dmg';
+        const csvFilePath = 'downloads.csv?v=2026-05-26-beamsmith-preview-video';
         const detailsFilePath = 'details.json?v=2026-05-26-app-details';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
@@ -871,6 +873,7 @@
         const popup = document.getElementById('popup');
         const popupImg = document.getElementById('popup-img');
         const popupClose = document.getElementById('popup-close');
+        let popupVideo = null;
         const detailsModal = document.getElementById('details-modal');
         const detailsClose = document.getElementById('details-close');
         const detailsTitle = document.getElementById('details-title');
@@ -900,7 +903,8 @@
                     youtubevideopfad,
                     version,
                     datum,
-                    kategorie
+                    kategorie,
+                    previewvideopfad
                 ] = row.split(';');
 
                 return {
@@ -912,7 +916,8 @@
                     youtubevideopfad: youtubevideopfad?.trim(),
                     version: version?.trim(),
                     datum: datum?.trim(),
-                    kategorie: kategorie?.trim()
+                    kategorie: kategorie?.trim(),
+                    previewvideopfad: previewvideopfad?.trim()
                 };
             }).filter(item => item.titel && item.kategorie);
         }
@@ -1144,7 +1149,13 @@
                         img.alt = item.titel;
 
                         imageButton.appendChild(img);
-                        imageButton.addEventListener('click', () => openPopup(item.picturepfad, item.titel));
+                        imageButton.addEventListener('click', () => {
+                            if (item.previewvideopfad) {
+                                openVideoPopup(item.previewvideopfad, `${item.titel} Vorschau`);
+                            } else {
+                                openPopup(item.picturepfad, item.titel);
+                            }
+                        });
                         card.appendChild(imageButton);
                     }
 
@@ -1246,15 +1257,46 @@
         }
 
         function openPopup(src, alt) {
+            closeVideoPopup();
             popupImg.src = src;
             popupImg.alt = alt;
+            popupImg.hidden = false;
             popup.classList.add('is-open');
+        }
+
+        function openVideoPopup(src, label) {
+            popupImg.hidden = true;
+            popupImg.src = '';
+            popupImg.alt = '';
+            closeVideoPopup();
+
+            popupVideo = document.createElement('video');
+            popupVideo.src = src;
+            popupVideo.setAttribute('aria-label', label);
+            popupVideo.autoplay = true;
+            popupVideo.controls = true;
+            popupVideo.loop = true;
+            popupVideo.muted = true;
+            popupVideo.playsInline = true;
+
+            popup.appendChild(popupVideo);
+            popup.classList.add('is-open');
+            popupVideo.play().catch(() => {});
+        }
+
+        function closeVideoPopup() {
+            if (!popupVideo) return;
+            popupVideo.pause();
+            popupVideo.remove();
+            popupVideo = null;
         }
 
         function closePopup() {
             popup.classList.remove('is-open');
             popupImg.src = '';
             popupImg.alt = '';
+            popupImg.hidden = false;
+            closeVideoPopup();
         }
 
         function createDetailsSection(title, entries) {
