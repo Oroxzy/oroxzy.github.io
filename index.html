@@ -690,10 +690,10 @@
                 </div>
                 <aside class="hero-aside" aria-label="Übersicht">
                     <div class="featured-preview">
-                        <img id="featured-image" src="Pictures/TrigoBro.PNG" alt="Vorschau von TrigoBro">
+                        <img id="featured-image" src="Pictures/Beamsmith.PNG" alt="Vorschau von BeamSmith">
                         <div class="featured-caption">
-                            <strong id="featured-title">TrigoBro</strong>
-                            <span id="featured-meta">Interaktiver Dreiecksrechner</span>
+                            <strong id="featured-title">BeamSmith</strong>
+                            <span id="featured-meta">Balken, Träger und Profile</span>
                         </div>
                     </div>
                     <div class="stats" aria-label="Statistiken">
@@ -729,7 +729,7 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-05-26-beamsmith';
+        const csvFilePath = 'downloads.csv?v=2026-05-26-beamsmith-featured';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
@@ -791,7 +791,7 @@
         }
 
         function updateHero(items) {
-            const featured = items.find(item => item.titel === 'TrigoBro') || items[0];
+            const featured = items.find(item => item.titel === 'BeamSmith') || items[0];
 
             toolCount.textContent = items.length;
             appCount.textContent = items.filter(item => item.kategorie === 'Applikationen').length;
@@ -920,8 +920,9 @@
 
         function sortDownloadItems(items) {
             const priority = {
-                BeamBro2D: 0,
-                TrigoBro: 1
+                BeamSmith: 0,
+                BeamBro2D: 1,
+                TrigoBro: 2
             };
 
             return [...items].sort((a, b) => {
