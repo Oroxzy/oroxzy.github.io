@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools & Downloads</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <style>
         :root {
             --bg: #f5f6f8;
@@ -70,6 +71,11 @@
             align-items: center;
             gap: 12px;
             min-width: 0;
+            text-decoration: none;
+        }
+
+        .brand:hover h1 {
+            color: var(--accent-strong);
         }
 
         .brand-mark {
@@ -173,7 +179,7 @@
         .hero h2 {
             max-width: 740px;
             margin: 0;
-            font-size: clamp(2.25rem, 5.2vw, 4.1rem);
+            font-size: 3.75rem;
             line-height: 1;
             letter-spacing: 0;
         }
@@ -444,6 +450,12 @@
             background: rgba(244, 165, 28, 0.13);
         }
 
+        .badge.unavailable {
+            border-color: #cfd7dd;
+            color: #596873;
+            background: #eef2f5;
+        }
+
         .download-item h4 {
             margin: 0;
             font-size: 1.22rem;
@@ -452,10 +464,14 @@
 
         .description {
             flex: 1;
+            display: -webkit-box;
+            overflow: hidden;
             margin: 0;
             color: #53616d;
             font-size: 0.96rem;
             line-height: 1.58;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 4;
         }
 
         .card-footer {
@@ -523,36 +539,45 @@
             justify-content: center;
             min-height: 40px;
             padding: 0 13px;
-            border: 1px solid transparent;
+            border: 1px solid var(--line);
             border-radius: var(--radius);
-            background: var(--accent);
-            color: #ffffff;
+            background: #ffffff;
+            color: var(--text);
+            gap: 7px;
             font-weight: 700;
             text-decoration: none;
-            transition: transform 0.16s ease, background 0.16s ease;
+            transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
         }
 
-        .download-link:hover,
+        .download-link {
+            border-color: rgba(0, 166, 214, 0.42);
+            background: rgba(0, 166, 214, 0.1);
+            color: var(--accent-strong);
+        }
+
+        .download-link:hover {
+            transform: translateY(-1px);
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+            color: #ffffff;
+        }
+
+        .video-link,
+        .detail-button {
+            background: #ffffff;
+        }
+
         .video-link:hover,
         .detail-button:hover {
             transform: translateY(-1px);
-            background: var(--accent-strong);
-        }
-
-        .download-link.secondary,
-        .video-link,
-        .detail-button {
-            border-color: var(--line);
-            background: #ffffff;
-            color: var(--text);
-        }
-
-        .download-link.secondary:hover,
-        .video-link:hover,
-        .detail-button:hover {
             background: #eef7fb;
             border-color: rgba(0, 166, 214, 0.45);
             color: var(--accent-strong);
+        }
+
+        .action-icon {
+            font-size: 1rem;
+            line-height: 1;
         }
 
         .detail-button {
@@ -658,7 +683,7 @@
 
         .details-header h3 {
             margin: 0;
-            font-size: clamp(1.45rem, 3vw, 2.1rem);
+            font-size: 2rem;
             line-height: 1.1;
         }
 
@@ -742,12 +767,34 @@
                 min-height: 220px;
             }
 
+            .hero h2 {
+                font-size: 3rem;
+            }
+
+            .featured-preview,
+            .featured-preview img {
+                min-height: 190px;
+            }
+
             .category-tabs {
                 justify-content: flex-start;
             }
 
             .stats {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .stat {
+                padding: 10px;
+            }
+
+            .stat strong {
+                font-size: 1.25rem;
+            }
+
+            .stat span {
+                font-size: 0.74rem;
+                line-height: 1.2;
             }
 
             .details-body {
@@ -765,12 +812,63 @@
                 justify-content: flex-start;
             }
 
+            .hero {
+                gap: 12px;
+                padding: 8px 0 12px;
+            }
+
+            .hero-main {
+                min-height: 0;
+                padding: 22px;
+            }
+
+            .eyebrow {
+                margin-bottom: 10px;
+            }
+
             .hero h2 {
-                font-size: 2.35rem;
+                font-size: 2.15rem;
+                line-height: 1.05;
+            }
+
+            .hero p {
+                margin-top: 14px;
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+
+            .hero-aside {
+                gap: 10px;
+            }
+
+            .featured-preview,
+            .featured-preview img {
+                min-height: 170px;
+            }
+
+            .stats {
+                gap: 6px;
+            }
+
+            .category-tab {
+                padding: 0 11px;
+                font-size: 0.94rem;
+            }
+
+            .stat {
+                padding: 9px 8px;
+            }
+
+            .stat span {
+                overflow-wrap: anywhere;
             }
 
             .card-body {
                 padding: 15px;
+            }
+
+            .description {
+                -webkit-line-clamp: 3;
             }
 
             .download-link,
@@ -804,13 +902,13 @@
         <main>
             <section class="hero" aria-labelledby="page-title">
                 <div class="hero-main">
-                    <p class="eyebrow">Apps, Rechner und Tabellen</p>
-                    <h2 id="page-title">Toolsammlung</h2>
-                    <p>Eine wachsende Sammlung eigener Apps, Rechner und Tabellen zum Lernen, Prüfen und Ausprobieren.</p>
+                    <p class="eyebrow">Eigenentwickelte Werkzeuge</p>
+                    <h2 id="page-title">Apps, Rechner und Tabellen</h2>
+                    <p>Eine wachsende Sammlung zum Lernen, Prüfen und Ausprobieren.</p>
                 </div>
                 <aside class="hero-aside" aria-label="Übersicht">
                     <div class="featured-preview">
-                        <img id="featured-image" src="Pictures/Beamsmith.PNG" alt="Vorschau von BeamSmith">
+                        <img id="featured-image" src="Pictures/Beamsmith.PNG" alt="Vorschau von BeamSmith" decoding="async" fetchpriority="high">
                         <div class="featured-caption">
                             <strong id="featured-title">BeamSmith</strong>
                             <span id="featured-meta">Balken, Träger und Profile</span>
@@ -1015,15 +1113,23 @@
             return getLocalDownloadCount(key);
         }
 
-        function createDownloadLink(href, label, key, secondary = false) {
+        function createDownloadLink(href, label, key) {
             const wrapper = document.createElement('div');
             wrapper.className = 'download-action';
 
             const link = document.createElement('a');
-            link.className = `download-link ${secondary ? 'secondary' : ''}`.trim();
+            link.className = 'download-link';
             link.href = href;
-            link.textContent = label;
             link.title = `${label} herunterladen`;
+
+            const icon = document.createElement('span');
+            icon.className = 'action-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = '↓';
+
+            const linkLabel = document.createElement('span');
+            linkLabel.textContent = label;
+            link.append(icon, linkLabel);
 
             const count = document.createElement('span');
             count.className = 'download-count';
@@ -1147,6 +1253,8 @@
                         const img = document.createElement('img');
                         img.src = item.picturepfad;
                         img.alt = item.titel;
+                        img.loading = 'lazy';
+                        img.decoding = 'async';
 
                         imageButton.appendChild(img);
                         imageButton.addEventListener('click', () => {
@@ -1168,6 +1276,10 @@
 
                     if (item.datum === newestDate) {
                         topLine.appendChild(createBadge('Aktuell', 'latest'));
+                    }
+
+                    if (!item.downloadpfad_windows && !item.downloadpfad_mac) {
+                        topLine.appendChild(createBadge('Noch nicht verfügbar', 'unavailable'));
                     }
 
                     const title = document.createElement('h4');
@@ -1200,7 +1312,7 @@
 
                     if (item.downloadpfad_mac) {
                         const macKey = getDownloadKey(item, 'mac');
-                        actions.appendChild(createDownloadLink(item.downloadpfad_mac, 'Mac', macKey, true));
+                        actions.appendChild(createDownloadLink(item.downloadpfad_mac, 'Mac', macKey));
                     }
 
                     if (item.youtubevideopfad) {
