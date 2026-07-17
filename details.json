@@ -225,29 +225,33 @@
     ]
   },
   "Erdinator": {
-    "tagline": "Erd- und Wasserdruckkräfte an Baugrubenwänden berechnen.",
+    "tagline": "Geotechnische Lasten, Baugrubenwände und Stützwände berechnen, visualisieren und nachvollziehen.",
     "features": [
-      "Erd- und Wasserdruck rechnerisch erfassen",
-      "Lastverteilungen an Baugrubenwänden visualisieren",
-      "Spundwandbemessung vorbereiten",
-      "Normnahe Lastansätze nachvollziehen",
-      "Ergebnisse grafisch und rechnerisch kontrollieren"
+      "Aktiven, passiven und Ruhe-Erddruck für geschichtete Böden berechnen",
+      "Wasser-, Auflast- und Kohäsionseinflüsse gemeinsam auswerten",
+      "Verankerte und unverankerte Spundwände einschließlich Profilwahl und hydraulischem Grundbruch vordimensionieren",
+      "Stützwände für Kippen, Gleiten, Sohldruck und Setzung untersuchen",
+      "Skizze, Druckflächen, Kräftepolygone und geführten Lösungsweg dynamisch darstellen",
+      "Projekte speichern, als PDF ausgeben und Spundwandlasten an BeamSmith exportieren"
     ],
     "inputs": [
-      "Bodenkennwerte",
-      "Wasserstände",
-      "Geometrie der Baugrube",
-      "Last- und Bemessungsparameter"
+      "Wand-, Gelände-, Baugruben- und Fundamentgeometrie",
+      "Aktive und passive Bodenschichten mit Wichte, Reibungswinkel, Kohäsion und Steifemodul",
+      "Grundwasserstände, Auflasten, Wandreibung und Bemessungsbeiwerte",
+      "Spundwand-, Verankerungs- und Stützwandparameter"
     ],
     "outputs": [
-      "Erd- und Wasserdruckverteilungen",
-      "Resultierende Kräfte",
-      "Bemessungs- und Kontrollwerte"
+      "Aktive, passive und Ruhe-Erddruck- sowie Wasserdruckverteilungen",
+      "Resultierende Kräfte, Angriffspunkte und Kräftepolygone",
+      "Spundwandlänge, Biegemoment, Abstützkraft, Profilvorschlag und Grundbruchnachweis",
+      "Nachweise für Kippen, Gleiten, Sohldruck und Setzung",
+      "Grafische Skizze, schrittweiser Rechenweg und PDF-Ausgabe"
     ],
     "useCases": [
-      "Grundbau-Aufgaben bearbeiten",
-      "Baugrubenwände plausibilisieren",
-      "Lastverteilungen besser verstehen"
+      "Baugrubenabschlüsse und Spundwände vordimensionieren",
+      "Stützwände untersuchen und Varianten vergleichen",
+      "Geotechnische Aufgaben im Unterricht nachvollziehen und kontrollieren",
+      "Berechnungsansätze visualisieren und dokumentieren"
     ]
   }
 }
