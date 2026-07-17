@@ -78,23 +78,27 @@
     "tagline": "Dreiecke lösen, fehlende Werte ergänzen und Rechenschritte verstehen.",
     "features": [
       "Seiten, Winkel, Höhen und Flächen eines Dreiecks berechnen",
+      "Umfang, Halbumfang sowie Inkreis- und Umkreiswerte bestimmen",
       "Fehlende Werte aus vorhandenen Angaben automatisch ergänzen",
-      "Mehrdeutige oder widersprüchliche Eingaben erkennen",
+      "Mehrdeutige Fälle erkennen, beide Lösungen anzeigen und zwischen ihnen wechseln",
+      "Widersprüchliche oder unmögliche Eingaben erkennen",
       "Rechenweg und Zwischenschritte übersichtlich anzeigen",
       "Dreiecksskizze mit aktuellen Werten darstellen",
       "Pythagoras, Sinus, Kosinus, Tangens und Flächenformeln anwenden",
       "Winkel umrechnen und typische Trigonometrie-Aufgaben prüfen",
+      "Oberfläche auf Deutsch oder Englisch verwenden",
       "Eingaben schnell löschen, suchen oder neu berechnen"
     ],
     "inputs": [
       "Seitenlängen",
       "Winkel",
-      "Höhen und Flächenwerte",
+      "Höhen, Flächen-, Umfangs- und Kreiswerte",
       "Bekannte Teilinformationen aus Aufgabenstellungen"
     ],
     "outputs": [
-      "Vollständige Dreieckswerte",
+      "Vollständige Dreieckswerte einschließlich Umfangs- und Kreisgrößen",
       "Rechenschritte",
+      "Alternative Lösung bei mehrdeutigen Aufgaben",
       "Hinweise zu unklaren oder unmöglichen Eingaben",
       "Grafische Dreiecksdarstellung"
     ],
