@@ -1,12 +1,15 @@
 {
   "BeamSmith": {
-    "tagline": "Träger berechnen, Profile auswählen und Nachweise als PDF dokumentieren.",
+    "tagline": "Träger modellieren, Lager optimieren, Profile auswählen und Nachweise als PDF dokumentieren.",
     "features": [
       "Balken und Durchlaufträger mit mehreren Auflagern modellieren",
       "Festlager, Gelenklager, Rollenlager und Einspannungen setzen",
+      "Lager und Lasten direkt in der Trägergrafik ziehen und an relevanten Positionen einrasten lassen",
       "Punktlasten sowie konstante oder linear veränderliche Linienlasten eingeben",
       "Auflagerreaktionen, Querkraft, Moment und Verformung anzeigen",
       "Diagramme mit Zahlenwerten, hervorgehobenen Maximalwerten und glatter Darstellung prüfen",
+      "Lagerpositionen automatisch für kleinere Lagerkräfte, Querkräfte, Biegemomente oder Verformungen optimieren",
+      "Ausgangs- und Optimierungsergebnis vergleichen und die neue Lageranordnung erst nach Prüfung übernehmen",
       "Stahl-, Holz- und Spundwandprofile aus einer integrierten Profilbibliothek auswählen",
       "Profile nach Kategorie, Familie, Güte, Suchtext und Ausnutzung filtern",
       "Eigengewicht eines gewählten Profils automatisch als Last berücksichtigen",
@@ -18,17 +21,20 @@
       "Trägerlänge, Materialwerte, Querschnittswerte und optional manuelle Modellwerte",
       "Auflagerpositionen und Lagertypen",
       "Punktlasten, Linienlasten, Trapezlasten und Eigengewicht",
+      "Optimierungsziel für Lagerkraft, Querkraft, Biegemoment oder Verformung",
       "Profilwahl, Stahlgüte, Holzparameter, Knicklänge und Nachweisoptionen"
     ],
     "outputs": [
       "Auflagerreaktionen",
       "Querkraft-, Momenten- und Verformungsdiagramme",
+      "Vorher-Nachher-Vergleich optimierter Lagerpositionen und maßgebender Maximalwerte",
       "Profil- und Ausnutzungslisten",
       "Träger- und Stützennachweise",
       "A4-PDF-Nachweisblätter"
     ],
     "useCases": [
       "Trägerideen schnell plausibilisieren",
+      "Lagerpositionen für unterschiedliche Bemessungsziele untersuchen und verbessern",
       "Profile für Unterrichts- und Übungsaufgaben vergleichen",
       "Momenten- und Verformungsverläufe sichtbar machen",
       "Nachweise nachvollziehbar dokumentieren"
