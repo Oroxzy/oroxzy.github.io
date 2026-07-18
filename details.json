@@ -49,9 +49,12 @@
       "Zug- und Druckkräfte farblich unterscheiden",
       "Kräftepolygon und Kräfteplan zur grafischen Kontrolle anzeigen",
       "Berechnungsprotokolle für Knoten, Stäbe und Gleichgewichte erzeugen",
+      "Lösungswege und Berechnungsprotokolle als PDF exportieren",
       "Ritter-Schnitt und ausgewählte Schnittbereiche auswerten",
       "Nullstäbe und besondere Stabfälle nachvollziehbar erkennen",
       "Projekte speichern und wieder öffnen",
+      "Mitgelieferte Fachwerk-Vorlagen als Ausgangspunkt verwenden",
+      "Oberfläche und Lösungswege auf Deutsch oder Englisch verwenden",
       "Darstellung, Farben und Beschriftungen für Unterricht und Erklärung anpassen"
     ],
     "inputs": [
@@ -64,12 +67,14 @@
       "Auflagerreaktionen",
       "Stabkräfte mit Zug/Druck-Kennzeichnung",
       "Kräfteplan",
-      "Schrittweise Berechnungs- und Gleichgewichtsprotokolle"
+      "Schrittweise Berechnungs- und Gleichgewichtsprotokolle",
+      "PDF-Ausgabe des Lösungswegs"
     ],
     "useCases": [
       "Fachwerkaufgaben im Unterricht kontrollieren",
       "Knotenverfahren und Ritter-Schnitt verstehen",
       "Rechenwege visuell erklären",
+      "Lösungswege als PDF sichern oder weitergeben",
       "Stabkräfte schnell plausibilisieren"
     ],
     "notes": "BeamBro2D ist auf ebene Fachwerke und nachvollziehbare Schulstatik ausgelegt."
