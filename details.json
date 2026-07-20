@@ -8,6 +8,8 @@
       "Punktlasten sowie konstante oder linear veränderliche Linienlasten eingeben",
       "Auflagerreaktionen, Querkraft, Moment und Verformung anzeigen",
       "Diagramme mit Zahlenwerten, hervorgehobenen Maximalwerten und glatter Darstellung prüfen",
+      "Querkraftflächen per Mausover auswerten und ihren Beitrag zur Momentenänderung nachvollziehen",
+      "Mit gedrückter Umschalttaste Werte und Abstände an beliebigen Trägerpositionen prüfen",
       "Lagerpositionen automatisch für kleinere Lagerkräfte, Querkräfte, Biegemomente oder Verformungen optimieren",
       "Ausgangs- und Optimierungsergebnis vergleichen und die neue Lageranordnung erst nach Prüfung übernehmen",
       "Stahl-, Holz- und Spundwandprofile aus einer integrierten Profilbibliothek auswählen",
@@ -15,6 +17,7 @@
       "Eigengewicht eines gewählten Profils automatisch als Last berücksichtigen",
       "Momentennachweise und Stützennachweise nachvollziehbar darstellen",
       "Nachweise mit Modell, Diagrammen, Profilwerten und Rechenweg als PDF exportieren",
+      "Oberfläche, Rechenwege und Nachweise in sieben Sprachen verwenden",
       "Projekte speichern, laden und klassische Beamax-Dateien importieren"
     ],
     "inputs": [
@@ -27,6 +30,7 @@
     "outputs": [
       "Auflagerreaktionen",
       "Querkraft-, Momenten- und Verformungsdiagramme",
+      "Interaktive Positionswerte und Flächenzusammenhänge in den Diagrammen",
       "Vorher-Nachher-Vergleich optimierter Lagerpositionen und maßgebender Maximalwerte",
       "Profil- und Ausnutzungslisten",
       "Träger- und Stützennachweise",
@@ -34,6 +38,7 @@
     ],
     "useCases": [
       "Trägerideen schnell plausibilisieren",
+      "Zusammenhang zwischen Querkraftfläche und Momentenänderung untersuchen",
       "Lagerpositionen für unterschiedliche Bemessungsziele untersuchen und verbessern",
       "Profile für Unterrichts- und Übungsaufgaben vergleichen",
       "Momenten- und Verformungsverläufe sichtbar machen",
