@@ -960,8 +960,8 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-07-20-beamsmith-6.2.1.15';
-        const detailsFilePath = 'details.json?v=2026-07-20-beamsmith-6.2.1.15';
+        const csvFilePath = 'downloads.csv?v=2026-07-22-beamsmith-6.2.1.16';
+        const detailsFilePath = 'details.json?v=2026-07-22-beamsmith-6.2.1.16';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
@@ -1002,7 +1002,8 @@
                     version,
                     datum,
                     kategorie,
-                    previewvideopfad
+                    previewvideopfad,
+                    downloadpfad_linux
                 ] = row.split(';');
 
                 return {
@@ -1015,7 +1016,8 @@
                     version: version?.trim(),
                     datum: datum?.trim(),
                     kategorie: kategorie?.trim(),
-                    previewvideopfad: previewvideopfad?.trim()
+                    previewvideopfad: previewvideopfad?.trim(),
+                    downloadpfad_linux: downloadpfad_linux?.trim()
                 };
             }).filter(item => item.titel && item.kategorie);
         }
@@ -1313,6 +1315,11 @@
                     if (item.downloadpfad_mac) {
                         const macKey = getDownloadKey(item, 'mac');
                         actions.appendChild(createDownloadLink(item.downloadpfad_mac, 'Mac', macKey));
+                    }
+
+                    if (item.downloadpfad_linux) {
+                        const linuxKey = getDownloadKey(item, 'linux');
+                        actions.appendChild(createDownloadLink(item.downloadpfad_linux, 'Linux', linuxKey));
                     }
 
                     if (item.youtubevideopfad) {
