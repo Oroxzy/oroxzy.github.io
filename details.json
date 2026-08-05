@@ -196,54 +196,6 @@
       "Schiefe Kräfte in verständliche Komponenten aufteilen"
     ]
   },
-  "Kornelius": {
-    "tagline": "Stahlbautabellen schnell durchsuchen und filtern.",
-    "features": [
-      "Profil- und Tabellenwerte digital durchsuchen",
-      "Einträge nach mehreren Kriterien filtern",
-      "Passende Profile schneller finden",
-      "Tabellenwerte für Unterricht und Nachweisvorbereitung nachschlagen"
-    ],
-    "inputs": [
-      "Suchbegriffe",
-      "Filterkriterien",
-      "Profil- oder Tabellenangaben"
-    ],
-    "outputs": [
-      "Gefilterte Tabellenwerte",
-      "Passende Profile",
-      "Schnelle Vergleichsübersicht"
-    ],
-    "useCases": [
-      "Stahlprofile schneller nachschlagen",
-      "Tabellenarbeit im Unterricht vereinfachen",
-      "Profilwerte vergleichen"
-    ]
-  },
-  "Kahlenator": {
-    "tagline": "Bewehrungsbemessung für Beton- und Stahlträger unterstützen.",
-    "features": [
-      "Bemessungswerte für Träger erfassen",
-      "Bewehrung rechnerisch abschätzen",
-      "Ergebnisse für Schulaufgaben kontrollieren",
-      "Eingaben schnell variieren und vergleichen"
-    ],
-    "inputs": [
-      "Träger- und Materialwerte",
-      "Bemessungskräfte",
-      "Geometrie- und Bewehrungsangaben"
-    ],
-    "outputs": [
-      "Bemessungsergebnisse",
-      "Kontrollwerte",
-      "Vergleich verschiedener Eingaben"
-    ],
-    "useCases": [
-      "Bewehrungsaufgaben üben",
-      "Rechenwerte vergleichen",
-      "Plausibilitätskontrollen durchführen"
-    ]
-  },
   "Erdinator": {
     "tagline": "Geotechnische Lasten, Baugrubenwände und Stützwände berechnen, visualisieren und nachvollziehen.",
     "features": [
