@@ -273,5 +273,76 @@
       "Geotechnische Aufgaben im Unterricht nachvollziehen und kontrollieren",
       "Berechnungsansätze visualisieren und dokumentieren"
     ]
+  },
+  "Tourenplaner": {
+    "tagline": "Touren mit Terminen planen, optimieren, auf der Karte prüfen und als PDF mitnehmen.",
+    "features": [
+      "Offene Touren mit festem Endziel oder Rundtouren zurück zur Startadresse planen",
+      "Beliebig viele Ziele mit Adresse, Aufgabe, Aufenthaltszeit und optionalem Fixtermin verwalten",
+      "Ankunft, Abfahrt, Wartezeit und Verspätung für jedes Ziel automatisch berechnen",
+      "Verkehrsprognosen, Sicherheitspuffer und ein optionales spätestes Tourende berücksichtigen",
+      "Zielreihenfolge mit Google-Routenoptimierung oder lokaler Optimierung für große Touren verbessern",
+      "Autobahnen, Mautstraßen, Fähren und alternative Strecken über Routenoptionen steuern",
+      "Route und nummerierte Ziele interaktiv auf Google Maps anzeigen",
+      "Touren nach Kategorien speichern, durchsuchen und filtern sowie Änderungen rückgängig machen",
+      "A4-PDFs mit Kartenübersicht, Zielliste, Aufgaben, QR-Codes und optionalen Detailseiten erstellen",
+      "Längere Berechnungen im Hintergrund verfolgen und bei Bedarf abbrechen"
+    ],
+    "inputs": [
+      "Startadresse, Tourdatum und gewünschte Startzeit",
+      "Zieladressen, Aufgaben, Aufenthaltszeiten und optionale Fixtermine",
+      "Rundtour oder festes Endziel",
+      "Verkehrs-, Puffer- und Routenoptionen",
+      "Optionales spätestes Tourende"
+    ],
+    "outputs": [
+      "Optimierte Reihenfolge der Ziele",
+      "Ankunfts-, Abfahrts-, Warte- und Verspätungszeiten",
+      "Interaktive Kartenansicht der gesamten Route",
+      "Gesamtdauer sowie Aufteilung in Fahr-, Vor-Ort-, Warte- und Verkehrszeit",
+      "Mehrseitiges A4-PDF mit Karte, Zielliste und QR-Codes"
+    ],
+    "useCases": [
+      "Service- und Montageteams für einen Arbeitstag einplanen",
+      "Auslieferungs-, Abhol- oder Besichtigungstouren ordnen",
+      "Fixtermine und Fahrzeiten in einer realistischen Tagesplanung verbinden",
+      "Touren übersichtlich dokumentieren oder ausgedruckt mitnehmen"
+    ],
+    "notes": "Touren werden lokal gespeichert. Für Karten, Fahrzeiten und Google-Routenoptimierung ist ein eigener Google Maps Platform API-Schlüssel erforderlich."
+  },
+  "LiftPodest": {
+    "tagline": "Gerüste und Arbeitsplattformen für Aufzugsschächte planen, prüfen und dokumentieren.",
+    "features": [
+      "Schachtabmessungen, Wandstärke, Gerüstschuhe, Bretter und Kanthölzer erfassen",
+      "Ein Schachtbild importieren und Schienen, Gegengewichte oder andere Sperrflächen berücksichtigen",
+      "Bretter, Kanthölzer und Gerüstschuhe automatisch kollisionsfrei im Schacht anordnen",
+      "Elemente manuell verschieben, skalieren, ergänzen oder entfernen und am Raster einrasten lassen",
+      "Kollisionen und Sicherheitsabstände prüfen und vorhandene Elemente mit „Alles reparieren“ neu anordnen",
+      "Kanthölzer in fünf Querschnitten bemessen und die Auswertung als Diagramm anzeigen",
+      "Materiallisten mit Stückzahl, Abmessungen, Bemerkungen und Gewicht erzeugen",
+      "Gerüstprojekte in einer lokalen Datenbank speichern, suchen und erneut laden",
+      "Bemaßten Gerüstplan und Materialliste als PDF ausgeben"
+    ],
+    "inputs": [
+      "Aufzugsfirma, Aufzugsnummer und Projektadresse",
+      "Schachtbreite, Schachttiefe und Wandstärke",
+      "Anzahl und Lage von Gerüstschuhen, Brettern und tragenden Kanthölzern",
+      "Optionales Schachtbild mit Hindernissen und Sperrflächen",
+      "Raster, Sicherheitsabstände und Kantholzquerschnitte"
+    ],
+    "outputs": [
+      "Bemaßter Schacht- und Gerüstplan",
+      "Kollisions- und Sicherheitsprüfung der Anordnung",
+      "Kantholz-Bemessung mit Diagramm",
+      "Materialliste mit Abmessungen und Gewicht",
+      "PDF-Gerüstplan einschließlich Materialliste"
+    ],
+    "useCases": [
+      "Arbeitsplattformen für Aufzugsschächte vorbereiten",
+      "Gerüstbretter und Kanthölzer um vorhandene Einbauten anordnen",
+      "Materialbedarf vor dem Einsatz zusammenstellen",
+      "Gerüstpläne für Werkstatt und Baustelle dokumentieren"
+    ],
+    "notes": "LiftPodest unterstützt die Planung. Automatisch erzeugte Vorschläge und Dimensionierungen müssen im Plan und vor Ort kontrolliert werden."
   }
 }
