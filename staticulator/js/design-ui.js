@@ -7,6 +7,8 @@ import {
 } from './bemessung.js';
 import { tex, step as baseStep, why } from './solution.js';
 import { renderDeflection } from './diagrams.js';
+import { steelSectionSvg, timberSectionSvg } from './section-svg.js';
+import { termsBox } from './design-terms.js';
 import { fixed, escapeHtml, parseNumber, plain } from './format.js';
 
 const $ = (id) => document.getElementById(id);
@@ -43,7 +45,7 @@ export function defaultDesign() {
     beam: {
       material: 'steel', source: 'system', M: null, V: null, gamma: 1,
       family: 'IPE', grade: 'S235', plastic: true, profile: '',
-      timber: 'GL24h', exposure: 'dry', b: 160, h: null, step: 'auto', lA: 120,
+      timber: 'GL24h', exposure: 'dry', b: 160, h: null, step: 'auto', lA: null,
       limit: 400, sls: false, qSpan: null,
     },
     column: {
@@ -85,7 +87,8 @@ export function sanitizeDesign(raw) {
     b: num(b.b, 20, 2000, 160),
     h: num(b.h, 20, 4000, null),
     step: pick(b.step, steps, 'auto'),
-    lA: num(b.lA, 10, 2000, 120),
+    // früherer Standard 120 mm: jetzt wird die nötige Auflagerlänge gerechnet
+    lA: b.lA === 120 ? null : num(b.lA, 10, 2000, null),
     limit: pick(b.limit, [0, 200, 250, 300, 400, 500], 400),
     sls: b.sls === true,
     qSpan: num(b.qSpan, 0.001, 1e5, null),
@@ -222,7 +225,7 @@ function beamForm(d) {
     rows.push(`<div class="d-row">${selectField('beam.profile', 'Profil', profileOptions(b.family), b.profile)}${limitSelect(b)}${checkField('beam.sls', 'Profil auch nach Durchbiegung wählen', b.sls)}</div>`);
   } else {
     rows.push(`<div class="d-row">${selectField('beam.timber', 'Holzklasse', timberOptions(), b.timber)}${selectField('beam.exposure', 'Feuchte', exposureOptions(), b.exposure)}</div>`);
-    rows.push(`<div class="d-row">${inputField('beam.b', 'Breite b', b.b, { unit: 'mm' })}${inputField('beam.h', 'Höhe h', b.h, { unit: 'mm', placeholder: 'automatisch' })}${selectField('beam.step', 'Höhe aufrunden', stepOptions, b.step)}${inputField('beam.lA', 'Auflagerlänge l<sub>A</sub>', b.lA, { unit: 'mm' })}</div>`);
+    rows.push(`<div class="d-row">${inputField('beam.b', 'Breite b', b.b, { unit: 'mm' })}${inputField('beam.h', 'Höhe h', b.h, { unit: 'mm', placeholder: 'automatisch' })}${selectField('beam.step', 'Höhe aufrunden', stepOptions, b.step)}${inputField('beam.lA', 'Auflagerlänge l<sub>A</sub>', b.lA, { unit: 'mm', placeholder: 'berechnen' })}</div>`);
     rows.push(`<div class="d-row">${limitSelect(b)}${checkField('beam.sls', 'Höhe auch nach Durchbiegung wählen', b.sls)}</div>`);
   }
   rows.push(`<div class="d-row">${inputField('beam.qSpan', 'Grösste Spannweite für q<sub>d</sub> =', b.qSpan, { unit: 'kN/m', placeholder: 'optional' })}<span class="d-hint">Einfeldträger mit Gleichlast: l aus V<sub>Rd</sub> und M<sub>Rd</sub> des gewählten Querschnitts</span></div>`);
@@ -298,9 +301,10 @@ export function renderDesignForm() {
 // die Erklärung; exp enthält die Werte der aktuellen Aufgabe.
 
 let exp = null;
+let termsSeen = new Set(); // im Erklärmodus schon erklärte Formelzeichen (pro Lösungsweg)
 
 function step(number, title, hint, body) {
-  return baseStep(number, title, hint, body + explanation(title));
+  return baseStep(number, title, hint, body + (explainOn ? termsBox(body, termsSeen) : '') + explanation(title));
 }
 
 function explanation(title) {
@@ -478,8 +482,49 @@ function failText(fails) {
   return fails.length ? `<br><b class="d-warn">Nicht erfüllt: ${fails.join(', ')}</b>` : '';
 }
 
-function head(title, eta, good, detail) {
-  return `<div class="d-head ${good ? 'good' : 'bad'}"><div class="d-head-title">${title}</div><div class="d-head-eta">${bar(eta)}<span class="d-verdict">${good ? '✓ Nachweis erfüllt' : '✕ Nachweis nicht erfüllt'}</span></div>${detail ? `<div class="d-head-detail">${detail}</div>` : ''}</div>`;
+// Kopf des Ergebnisses. opts.govern: massgebender Nachweis (neben der Ausnutzung),
+// opts.warn: erfüllt, aber nur teilweise geprüft (gelb statt grün).
+function head(title, eta, good, detail, opts = {}) {
+  const state = !good ? 'bad' : opts.warn ? 'warn' : 'good';
+  const verdict = !good ? '✕ Nachweis nicht erfüllt' : opts.warn ? `⚠ ${opts.warn}` : '✓ Nachweis erfüllt';
+  const govern = opts.govern ? `<span class="d-gov">${opts.govern}</span>` : '';
+  return `<div class="d-head ${state}"><div class="d-head-title">${title}</div><div class="d-head-eta">${bar(eta)}${govern}<span class="d-verdict">${verdict}</span></div>${detail ? `<div class="d-head-detail">${detail}</div>` : ''}</div>`;
+}
+
+// Horizontalkraft am Stützenfuss (aus dem System): oben wirkt das Moment Rx · L. Knicken mit Biegung
+// (Interaktion) rechnet die App nicht; sie zeigt das Moment und vergleicht es mit dem reinen Biegewiderstand.
+function columnBending(input, mRd, how) {
+  const col = input && input.column;
+  if (!col || !(Math.abs(col.Rx) > 1e-6)) return null;
+  const M = Math.abs(col.Rx) * col.L;
+  const enough = M <= mRd + 1e-9;
+  const name = escapeHtml(col.name);
+  return {
+    M,
+    mRd,
+    enough,
+    text: `${name}<sub>x</sub> = ${kn(Math.abs(col.Rx))} kN wirkt quer zur Stütze: oben M = ${name}<sub>x</sub> · L = ${kn(M)} kNm. Knicken mit Biegung ist hier nicht nachgewiesen. `
+      + `Zum Vergleich reine Biegung: M<sub>Rd</sub> = ${kn(mRd)} kNm (${how}) – ${enough ? 'reicht für die Biegung allein' : '<b>reicht schon für die Biegung allein nicht</b>'}.`,
+  };
+}
+
+// Massgebender Nachweis: der mit der grössten Ausnutzung
+function governing(list) {
+  const valid = list.filter(([, eta]) => Number.isFinite(eta));
+  if (!valid.length) return '';
+  const [name] = valid.reduce((a, b) => (b[1] > a[1] ? b : a));
+  return `${name} massgebend`;
+}
+
+// Massgebende Durchbiegung (grösstes Verhältnis w / w_zul, Feld oder Kragarm)
+function governingDeflection(sls) {
+  if (!sls || !sls.checks.length) return null;
+  return sls.checks.reduce((a, c) => (c.w / c.allowed > a.w / a.allowed ? c : a));
+}
+
+function deflectionText(check) {
+  if (!check) return '';
+  return `w = ${f(check.w * 1000, 1)} mm${check.cantilever ? ` (${check.what})` : ''}${check.up ? ' nach oben' : ''}`;
 }
 
 function eq(source) {
@@ -494,6 +539,15 @@ function note(html) {
   return `<p class="sol-note">${html}</p>`;
 }
 
+// Querschnittsskizze neben den Formeln (auf schmalen Bildschirmen darunter)
+function withSketch(svg, caption, body) {
+  return `<div class="d-sec-wrap"><div class="d-sec-main">${body}</div><figure class="d-sec">${svg}<figcaption>${caption}</figcaption></figure></div>`;
+}
+
+function bucklingCaption(axis) {
+  return `<b class="d-sec-red">Rot</b>: Knicken um ${axis} – die Stütze weicht in Pfeilrichtung aus (${axis === 'z' ? 'über die schwache Richtung' : 'über die starke Richtung'}). Masse in mm.`;
+}
+
 // Schnittgrössen für den Träger: aus dem System (mit Lastbeiwert) oder von Hand
 function beamActions(b, last) {
   if (b.source === 'manual') {
@@ -502,7 +556,12 @@ function beamActions(b, last) {
   }
   const forces = last && last.forces;
   if (!last || !last.result || !last.result.ok) return { error: 'Das System oben ist noch nicht lösbar. Schnittgrössen von Hand eingeben oder das System vervollständigen.' };
-  if (!forces || !forces.ok) return { error: 'Schnittgrössen gibt es nur für gerade, waagrechte Träger. Bitte M<sub>d</sub> und V<sub>d</sub> von Hand eingeben.' };
+  if (!forces || !forces.ok) {
+    // Den echten Grund nennen: Lager oder Last ausserhalb des Trägers ist ein Eingabefehler, kein abgestufter Träger
+    const reason = forces && forces.reason ? escapeHtml(forces.reason) : '';
+    if (reason && /^Ausserhalb/.test(forces.reason)) return { error: `<b class="d-warn">${reason}</b> Danach rechnet die Bemessung mit den Schnittgrössen des Systems.` };
+    return { error: `${reason ? `${reason} ` : ''}Für die Bemessung M<sub>d</sub> und V<sub>d</sub> von Hand eingeben (Schnittgrössen: „von Hand eingeben“).` };
+  }
   const mPos = forces.mMax;
   const mNeg = forces.mMin;
   const mGov = Math.abs(mNeg.m) > Math.abs(mPos.m) ? mNeg : mPos;
@@ -622,8 +681,10 @@ function steelBeamResult(d, last, decimals) {
     const better = results.slice(results.indexOf(chosen) + 1).find((x) => x.all);
     fails.push(`Durchbiegung${better ? ` – mit Durchbiegung reicht ${escapeHtml(better.profile.n)}` : ''}`);
   }
+  const wGov = governingDeflection(chosen.sls);
   const top = head(`${escapeHtml(p.n)} · ${b.grade}${auto ? ' <span class="d-auto">automatisch gewählt</span>' : ''}`, eta, chosen.all,
-    `M<sub>Rd</sub> = ${f(chosen.mRd, 1)} kNm · V<sub>Rd</sub> = ${chosen.vRd ? f(chosen.vRd, 0) : '–'} kN${chosen.sls ? ` · w = ${f(chosen.sls.checks[0] ? chosen.sls.checks[0].w * 1000 : 0, 1)} mm` : ''}${failText(fails)}`);
+    `M<sub>Rd</sub> = ${f(chosen.mRd, 1)} kNm · V<sub>Rd</sub> = ${chosen.vRd ? f(chosen.vRd, 0) : '–'} kN${wGov ? ` · ${deflectionText(wGov)}` : ''}${failText(fails)}`,
+    { govern: governing([['Biegung', chosen.etaM], ['Querkraft', chosen.etaV], ['Durchbiegung', chosen.sls ? chosen.sls.eta : null]]) });
   let n = 1;
   html += actionsStep(actions, decimals);
   n++;
@@ -631,17 +692,21 @@ function steelBeamResult(d, last, decimals) {
     eq(`${W.replace('}', ',erf}')} = \\frac{M_d \\cdot \\gamma_{M1}}{f_y} = \\frac{${f(actions.Md * 100, 1)}\\,\\text{kNcm} \\cdot ${GAMMA_M1}}{${f(fy / 10, 1)}\\,\\text{kN/cm}^2} = ${f(wErf, 1)}${unit('cm^3')}`)
     + note(`f<sub>y</sub> = ${fy} N/mm² = ${f(fy / 10, 1)} kN/cm², γ<sub>M1</sub> = ${GAMMA_M1} (SIA 263). ${b.plastic ? 'Plastischer Widerstand W<sub>pl</sub> (Querschnittsklasse 1 oder 2).' : 'Elastischer Widerstand W<sub>el</sub>.'}`));
   html += step(n++, `Gewählt: ${escapeHtml(p.n)}`, auto ? (b.sls ? 'leichtestes Profil, das auch die Durchbiegung einhält' : 'leichtestes Profil, das reicht') : 'von Hand gewählt',
-    eq(`${W} = ${f(chosen.W, 1)}${unit('cm^3')} ${chosen.W >= wErf - 1e-9 ? '\\ge' : '<'} ${f(wErf, 1)}${unit('cm^3')}${ok(chosen.W >= wErf - 1e-9)}`)
-    + eq(`M_{Rd} = \\frac{${W} \\cdot f_y}{\\gamma_{M1}} = \\frac{${f(chosen.W, 1)} \\cdot ${f(fy / 10, 1)}}{${GAMMA_M1}} = ${f(chosen.mRd * 100, 0)}\\,\\text{kNcm} = ${f(chosen.mRd, 1)}${unit('kNm')}`)
-    + `<div class="d-check-line">${tex(`M_d = ${f(actions.Md, decimals)} \\le M_{Rd} = ${f(chosen.mRd, 1)}${unit('kNm')}${ok(chosen.etaM <= 1 + 1e-9)}`)} ${bar(chosen.etaM)}</div>`
-    + note(`Profilwerte ${escapeHtml(p.n)}: h = ${f(p.h, 0)} mm, b = ${f(p.b, 0)} mm, I<sub>y</sub> = ${f(p.Iy, 0)} cm⁴, W<sub>el,y</sub> = ${f(p.Wy, 1)} cm³, W<sub>pl,y</sub> = ${f(p.Wply, 1)} cm³, ${f(p.g, 1)} kg/m.`));
+    withSketch(steelSectionSvg(p), `${escapeHtml(p.n)} · Biegung um y (die starke Achse). Masse in mm.`,
+      eq(`${W} = ${f(chosen.W, 1)}${unit('cm^3')} ${chosen.W >= wErf - 1e-9 ? '\\ge' : '<'} ${f(wErf, 1)}${unit('cm^3')}${ok(chosen.W >= wErf - 1e-9)}`)
+      + eq(`M_{Rd} = \\frac{${W} \\cdot f_y}{\\gamma_{M1}} = \\frac{${f(chosen.W, 1)} \\cdot ${f(fy / 10, 1)}}{${GAMMA_M1}} = ${f(chosen.mRd * 100, 0)}\\,\\text{kNcm} = ${f(chosen.mRd, 1)}${unit('kNm')}`)
+      + `<div class="d-check-line">${tex(`M_d = ${f(actions.Md, decimals)} \\le M_{Rd} = ${f(chosen.mRd, 1)}${unit('kNm')}${ok(chosen.etaM <= 1 + 1e-9)}`)} ${bar(chosen.etaM)}</div>`
+      + note(`Profilwerte ${escapeHtml(p.n)}: h = ${f(p.h, 0)} mm, b = ${f(p.b, 0)} mm, I<sub>y</sub> = ${f(p.Iy, 0)} cm⁴, W<sub>el,y</sub> = ${f(p.Wy, 1)} cm³, W<sub>pl,y</sub> = ${f(p.Wply, 1)} cm³, ${f(p.g, 1)} kg/m.`)));
   if (chosen.vRd) {
     const avErf = (actions.Vd * GAMMA_M1 * Math.sqrt(3) * 10) / fy;
-    html += step(n++, 'Querkraft', '',
+    const shearCaption = ['IPE', 'HEA', 'HEB', 'HEM', 'UPE', 'UPN'].includes(p.f)
+      ? '<b class="d-sec-hl-text">Gelb</b>: Schubfläche A<sub>v</sub> – vor allem der Steg trägt die Querkraft.'
+      : '<b class="d-sec-hl-text">Gelb</b>: Schubfläche A<sub>v</sub> – die beiden senkrechten Wände tragen die Querkraft.';
+    html += step(n++, 'Querkraft', '', withSketch(steelSectionSvg(p, { highlight: 'shear' }), shearCaption,
       eq(`A_{v,erf} = \\frac{V_d \\cdot \\gamma_{M1} \\cdot \\sqrt{3}}{f_y} = \\frac{${f(actions.Vd, decimals)} \\cdot ${GAMMA_M1} \\cdot \\sqrt{3}}{${f(fy / 10, 1)}} = ${f(avErf, 2)}${unit('cm^2')}\\ ${chosen.av >= avErf - 1e-9 ? '\\le' : '>'}\\ A_v = ${f(chosen.av, 2)}${unit('cm^2')}`)
       + eq(`V_{Rd} = \\frac{A_v \\cdot f_y}{\\sqrt{3} \\cdot \\gamma_{M1}} = \\frac{${f(chosen.av, 2)} \\cdot ${f(fy / 10, 1)}}{\\sqrt{3} \\cdot ${GAMMA_M1}} = ${f(chosen.vRd, 1)}${unit('kN')}`)
       + `<div class="d-check-line">${tex(`V_d = ${f(actions.Vd, decimals)} \\le V_{Rd} = ${f(chosen.vRd, 1)}${unit('kN')}${ok(chosen.etaV <= 1 + 1e-9)}`)} ${bar(chosen.etaV)}</div>`
-      + note(`${['IPE', 'HEA', 'HEB', 'HEM'].includes(p.f) ? 'A<sub>v</sub> = A − 2·b·t<sub>f</sub> + (t<sub>w</sub> + 2r)·t<sub>f</sub> aus der Profiltabelle.' : p.Avz ? 'A<sub>v</sub> aus der Profiltabelle.' : 'A<sub>v</sub> ≈ Stegfläche, beim Hohlprofil A · h / (h + b).'} Querdruck und Kippen werden hier nicht untersucht (Druckgurt gehalten angenommen).`));
+      + note(`${['IPE', 'HEA', 'HEB', 'HEM'].includes(p.f) ? 'A<sub>v</sub> = A − 2·b·t<sub>f</sub> + (t<sub>w</sub> + 2r)·t<sub>f</sub> aus der Profiltabelle.' : p.Avz ? 'A<sub>v</sub> aus der Profiltabelle.' : 'A<sub>v</sub> ≈ Stegfläche, beim Hohlprofil A · h / (h + b).'} Querdruck und Kippen werden hier nicht untersucht (Druckgurt gehalten angenommen).`)));
   }
   if (b.limit) html += deflectionStep(n++, chosen.sls, `E \\cdot I_y = ${f(E_STEEL / 10, 0)}\\,\\text{kN/cm}^2 \\cdot ${f(p.Iy, 0)}\\,\\text{cm}^4 = ${f(2.1 * p.Iy, 0)}${unit('kNm^2')}`, b.limit, 'steel', actions.gamma);
   if (b.qSpan > 0) html += spanStep(n++, b.qSpan, chosen.mRd, chosen.vRd);
@@ -653,13 +718,13 @@ function candidateTable(results, chosen, kind) {
   const from = Math.max(0, index - 2);
   const rows = results.slice(from, index + 4);
   const head = kind === 'beam'
-    ? '<tr><th>Profil</th><th class="num">kg/m</th><th class="num">W [cm³]</th><th class="num">M<sub>Rd</sub> [kNm]</th><th class="num">η<sub>M</sub></th><th class="num">η<sub>V</sub></th><th class="num">w [mm]</th><th class="c"></th></tr>'
+    ? '<tr><th>Profil</th><th class="num">kg/m</th><th class="num">W [cm³]</th><th class="num">M<sub>Rd</sub> [kNm]</th><th class="num">η<sub>M</sub></th><th class="num">η<sub>V</sub></th><th class="num" title="massgebende Durchbiegung, K = am Kragarm">w [mm]</th><th class="c"></th></tr>'
     : '<tr><th>Profil</th><th class="num">kg/m</th><th class="num">A [cm²]</th><th class="num">N<sub>K,Rd,y</sub></th><th class="num">N<sub>K,Rd,z</sub></th><th class="num">η</th><th class="c"></th></tr>';
   const body = rows.map((r) => {
     const p = r.profile;
     const good = kind === 'beam' ? r.all : r.ok;
     const cells = kind === 'beam'
-      ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(r.W, 1)}</td><td class="num">${f(r.mRd, 1)}</td><td class="num">${f(r.etaM * 100, 0)} %</td><td class="num">${r.etaV !== null ? `${f(r.etaV * 100, 0)} %` : '–'}</td><td class="num">${r.sls && r.sls.checks[0] ? f(r.sls.checks[0].w * 1000, 1) : '–'}</td>`
+      ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(r.W, 1)}</td><td class="num">${f(r.mRd, 1)}</td><td class="num">${f(r.etaM * 100, 0)} %</td><td class="num">${r.etaV !== null ? `${f(r.etaV * 100, 0)} %` : '–'}</td><td class="num">${governingDeflection(r.sls) ? `${f(governingDeflection(r.sls).w * 1000, 1)}${governingDeflection(r.sls).cantilever ? ' K' : ''}` : '–'}</td>`
       : `<td class="num">${f(p.g, 1)}</td><td class="num">${f(p.A, 1)}</td><td class="num">${f(r.y.nRd, 0)}</td><td class="num">${f(r.z.nRd, 0)}</td><td class="num">${f(r.eta * 100, 0)} %</td>`;
     return `<tr data-profile="${escapeHtml(p.n)}" class="${r === chosen ? 'chosen' : ''}"><td>${escapeHtml(p.n)}</td>${cells}<td class="c ${good ? 'yes' : 'no'}">${good ? '✓' : '✕'}</td></tr>`;
   }).join('');
@@ -702,17 +767,27 @@ function timberBeamResult(d, last, decimals) {
   const r = timberBeam({ material, b: b.b, h, Md: actions.Md, Vd: actions.Vd, etaW });
   r.sls = b.limit ? serviceability(actions, EIof(h), b.limit) : null;
   setBeamLine(actions, EIof(h), r.sls, `${material.text.split(' ')[0]} ${f(b.b, 0)}/${f(h, 0)}`);
-  const bearings = (actions.reactions || []).filter((x) => x.Rd > 1e-9).map((x) => ({ ...x, ...timberBearing({ material, R: x.Rd, b: b.b, lA: b.lA, etaW }) }));
-  const good = r.ok && (!r.sls || r.sls.good) && bearings.every((x) => x.ok);
-  const eta = Math.max(r.etaM, r.etaV, r.sls ? r.sls.eta : 0, ...bearings.map((x) => x.eta));
+  // Querdruck: ohne Eingabe wird die nötige Auflagerlänge gerechnet (wie im Unterricht), mit Eingabe geprüft
+  const lAGiven = b.lA > 0;
+  const bearings = (actions.reactions || []).filter((x) => x.Rd > 1e-9).map((x) => ({ ...x, ...timberBearing({ material, R: x.Rd, b: b.b, lA: lAGiven ? b.lA : 1, etaW }) }));
+  const bearingsOk = !lAGiven || bearings.every((x) => x.ok);
+  const lAerfMax = bearings.length ? Math.max(...bearings.map((x) => x.lAerf)) : 0;
+  const good = r.ok && (!r.sls || r.sls.good) && bearingsOk;
+  const bearingEta = lAGiven && bearings.length ? Math.max(...bearings.map((x) => x.eta)) : null;
+  const eta = Math.max(r.etaM, r.etaV, r.sls ? r.sls.eta : 0, bearingEta || 0);
   const fails = [];
   if (r.etaM > 1 + 1e-9) fails.push('Biegung');
   if (r.etaV > 1 + 1e-9) fails.push('Schub');
-  const badBearing = bearings.filter((x) => !x.ok);
-  if (badBearing.length) fails.push(`Querdruck (l<sub>A</sub> ≥ ${f(Math.max(...badBearing.map((x) => x.lAerf)), 0)} mm nötig)`);
+  if (!bearingsOk) fails.push(`Querdruck (l<sub>A</sub> ≥ ${f(lAerfMax, 0)} mm nötig)`);
   if (r.sls && !r.sls.good) fails.push('Durchbiegung');
+  const slender = h / b.b;
+  const cautions = [];
+  if (bearings.length && !lAGiven) cautions.push(`Auflagerlänge l<sub>A</sub> ≥ ${f(lAerfMax, 0)} mm (Querdruck)`);
+  if (slender > 6) cautions.push(`sehr schlank (h/b = ${f(slender, 1)}): Breite erhöhen – Kippen ist hier nicht untersucht`);
+  const wGov = governingDeflection(r.sls);
   const top = head(`${material.text.split(' ')[0]} · b/h = ${f(b.b, 0)}/${f(h, 0)} mm${auto ? ' <span class="d-auto">Höhe automatisch</span>' : ''}`, eta, good,
-    `M<sub>Rd</sub> = ${f(r.mRd, 1)} kNm · V<sub>Rd</sub> = ${f(r.vRd, 1)} kN${r.sls && r.sls.checks[0] ? ` · w = ${f(r.sls.checks[0].w * 1000, 1)} mm` : ''}${failText(fails)}`);
+    `M<sub>Rd</sub> = ${f(r.mRd, 1)} kNm · V<sub>Rd</sub> = ${f(r.vRd, 1)} kN${wGov ? ` · ${deflectionText(wGov)}` : ''}${cautions.length ? `<br><span class="d-caution">${cautions.join(' · ')}</span>` : ''}${failText(fails)}`,
+    { govern: governing([['Biegung', r.etaM], ['Schub', r.etaV], ['Durchbiegung', r.sls ? r.sls.eta : null], ['Querdruck', bearingEta]]) });
   let html = '';
   let n = 1;
   html += actionsStep(actions, decimals);
@@ -728,18 +803,23 @@ function timberBeamResult(d, last, decimals) {
     + (auto
       ? res(`\\text{gewählt: } b/h = ${f(b.b, 0)}/${f(h, 0)}${unit('mm')}`) + note(`Aufgerundet auf ${stepMm} mm${material.glulam ? ' (Brettschichtholz: Lamellen zu 40 mm)' : ''}${bySls ? '; wegen der Durchbiegung erhöht' : ''}. ${hV > hM ? 'Hier ist der Schub massgebend.' : 'Hier ist die Biegung massgebend.'}`)
       : note(`Gewählt von Hand: h = ${f(h, 0)} mm.`)));
-  html += step(n++, 'Biegung', '',
+  html += step(n++, 'Biegung', '', withSketch(timberSectionSvg({ shape: 'rect', b: b.b, h }), `b/h = ${f(b.b, 0)}/${f(h, 0)} mm · Biegung um y: die Höhe h zählt im Quadrat.`,
     eq(`W_y = \\frac{b \\cdot h^2}{6} = \\frac{${f(b.b, 0)} \\cdot ${f(h, 0)}^2}{6} = ${f(r.W / 1e6, 3)} \\cdot 10^6${unit('mm^3')},\\qquad M_{Rd} = W_y \\cdot f_{m,d} = ${f(r.mRd, 1)}${unit('kNm')}`)
-    + `<div class="d-check-line">${tex(`\\sigma_{m,d} = \\frac{M_d}{W_y} = \\frac{${f(actions.Md, decimals)} \\cdot 10^6}{${f(r.W / 1e6, 3)} \\cdot 10^6} = ${f(r.sigma, 2)} \\le f_{m,d} = ${f(r.fmd, 2)}${unit('N/mm^2')}${ok(r.etaM <= 1 + 1e-9)}`)} ${bar(r.etaM)}</div>`);
+    + `<div class="d-check-line">${tex(`\\sigma_{m,d} = \\frac{M_d}{W_y} = \\frac{${f(actions.Md, decimals)} \\cdot 10^6}{${f(r.W / 1e6, 3)} \\cdot 10^6} = ${f(r.sigma, 2)} \\le f_{m,d} = ${f(r.fmd, 2)}${unit('N/mm^2')}${ok(r.etaM <= 1 + 1e-9)}`)} ${bar(r.etaM)}</div>`));
   html += step(n++, 'Schub', 'am Auflager',
     eq(`V_{Rd} = \\frac{b \\cdot h \\cdot f_{v,d}}{1.5} = \\frac{${f(b.b, 0)} \\cdot ${f(h, 0)} \\cdot ${f(fvd, 2)}}{1.5} = ${f(r.vRd, 1)}${unit('kN')}`)
     + `<div class="d-check-line">${tex(`\\tau_d = \\frac{1.5 \\cdot V_d}{b \\cdot h} = \\frac{1.5 \\cdot ${f(actions.Vd, decimals)} \\cdot 10^3}{${f(b.b, 0)} \\cdot ${f(h, 0)}} = ${f(r.tau, 2)} \\le f_{v,d} = ${f(r.fvd, 2)}${unit('N/mm^2')}${ok(r.etaV <= 1 + 1e-9)}`)} ${bar(r.etaV)}</div>`);
   if (bearings.length) {
     const fc90d = bearings[0].fc90d;
-    let body = bearings.map((x) => `<div class="d-check-line">${tex(`\\sigma_{c,90,d,${x.name}} = \\frac{${x.name}_d}{b \\cdot l_A} = \\frac{${f(x.Rd, decimals)} \\cdot 10^3}{${f(b.b, 0)} \\cdot ${f(b.lA, 0)}} = ${f(x.sigma, 2)} \\le f_{c,90,d} = ${f(fc90d, 2)}${unit('N/mm^2')}${ok(x.ok)}`)} ${bar(x.eta)}</div>`).join('');
-    const worst = bearings.reduce((m, x) => (x.lAerf > m.lAerf ? x : m), bearings[0]);
-    body += note(`Erforderliche Auflagerlänge l<sub>A</sub> ≥ ${worst.name}<sub>d</sub> / (b · f<sub>c,90,d</sub>) = ${f(worst.lAerf, 0)} mm. f<sub>c,90,d</sub> „generell“ aus HBT${etaW < 1 ? ` · η<sub>w</sub> = ${etaW}` : ''}.`);
-    html += step(n++, 'Querdruck am Auflager', `l<sub>A</sub> = ${f(b.lA, 0)} mm`, body);
+    let body;
+    if (lAGiven) {
+      body = bearings.map((x) => `<div class="d-check-line">${tex(`\\sigma_{c,90,d,${x.name}} = \\frac{${x.name}_d}{b \\cdot l_A} = \\frac{${f(x.Rd, decimals)} \\cdot 10^3}{${f(b.b, 0)} \\cdot ${f(b.lA, 0)}} = ${f(x.sigma, 2)} \\le f_{c,90,d} = ${f(fc90d, 2)}${unit('N/mm^2')}${ok(x.ok)}`)} ${bar(x.eta)}</div>`).join('');
+      body += note(`Erforderlich wären l<sub>A</sub> ≥ ${f(lAerfMax, 0)} mm. f<sub>c,90,d</sub> „generell“ aus HBT${etaW < 1 ? ` · η<sub>w</sub> = ${etaW}` : ''}.`);
+    } else {
+      body = bearings.map((x) => eq(`l_{A,${x.name}} \\ge \\frac{${x.name}_d}{b \\cdot f_{c,90,d}} = \\frac{${f(x.Rd, decimals)} \\cdot 10^3}{${f(b.b, 0)} \\cdot ${f(fc90d, 2)}} = ${f(x.lAerf, 0)}${unit('mm')}`)).join('');
+      body += note(`Aus σ<sub>c,90,d</sub> = A<sub>d</sub> / (b · l<sub>A</sub>) ≤ f<sub>c,90,d</sub>: So lang muss das Auflager mindestens sein. f<sub>c,90,d</sub> „generell“ aus HBT${etaW < 1 ? ` · η<sub>w</sub> = ${etaW}` : ''}. Mit einer eingegebenen Auflagerlänge wird stattdessen die Pressung nachgewiesen.`);
+    }
+    html += step(n++, 'Querdruck am Auflager', lAGiven ? `l<sub>A</sub> = ${f(b.lA, 0)} mm` : 'nötige Auflagerlänge', body);
   }
   if (b.limit) html += deflectionStep(n++, r.sls, `E_{0,mean} \\cdot I_y = ${f(material.E, 0)}\\,\\text{N/mm}^2 \\cdot \\frac{${f(b.b, 0)} \\cdot ${f(h, 0)}^3}{12} = ${f(EIof(h), 0)}${unit('kNm^2')}`, b.limit, 'timber', actions.gamma);
   if (b.qSpan > 0) html += spanStep(n++, b.qSpan, r.mRd, r.vRd);
@@ -879,9 +959,12 @@ function steelColumnResult(d, last, decimals) {
   const intro = columnIntro(c, input, k);
   const list = familyProfiles(data.profiles, c.family);
   const results = list.map((profile) => steelColumn({ profile, grade: c.grade, LkY: k.LkY, LkZ: k.LkZ, Nd, c4: data.c4 }));
+  // Biegung aus einer Horizontalkraft am Fuss (nur zum Vergleich, ohne Interaktion)
+  const bendingOf = (profile) => columnBending(input, (profile.Wply * (STEEL_GRADES[c.grade] / 10)) / GAMMA_M1 / 100, `${escapeHtml(profile.n)}, W<sub>pl,y</sub> · f<sub>y</sub> / γ<sub>M1</sub>`);
   let chosen = c.profile ? results.find((r) => r.profile.n === c.profile) : null;
   const auto = !chosen;
-  if (!chosen) chosen = results.find((r) => r.ok) || null;
+  // automatisch: leichtestes Profil, das knickt sicher hält und auch die Biegung allein aufnimmt
+  if (!chosen) chosen = results.find((r) => r.ok && (!bendingOf(r.profile) || bendingOf(r.profile).enough)) || null;
   if (!chosen) {
     return { top: head(`Kein ${escapeHtml(c.family)} reicht`, 2, false, `N<sub>d</sub> = ${kn(Nd)} kN – andere Profilreihe, höhere Stahlsorte oder kürzere Knicklänge wählen.`), steps: intro.html };
   }
@@ -889,13 +972,17 @@ function steelColumnResult(d, last, decimals) {
   exp.chosen = chosen;
   const fy = chosen.fy;
   const gov = chosen.governing;
-  const top = head(`${escapeHtml(p.n)} · ${c.grade}${auto ? ' <span class="d-auto">automatisch gewählt</span>' : ''}`, chosen.eta, chosen.ok,
-    `N<sub>K,Rd</sub> = ${f(chosen.nRd, 0)} kN (Knicken um ${gov.axis}) · N<sub>d</sub> = ${kn(Nd)} kN${input.column ? ` · ${columnLabel(input.column)}, L = ${f(input.L, 2)} m` : ''}`);
+  const bending = bendingOf(p);
+  const bendEta = bending ? bending.M / bending.mRd : 0;
+  const top = head(`${escapeHtml(p.n)} · ${c.grade}${auto ? ' <span class="d-auto">automatisch gewählt</span>' : ''}`, Math.max(chosen.eta, bendEta), chosen.ok && (!bending || bending.enough),
+    `N<sub>K,Rd</sub> = ${f(chosen.nRd, 0)} kN (Knicken um ${gov.axis}) · N<sub>d</sub> = ${kn(Nd)} kN${input.column ? ` · ${columnLabel(input.column)}, L = ${f(input.L, 2)} m` : ''}${bending ? `<br><span class="d-caution">${bending.text}</span>` : ''}`,
+    { warn: bending ? 'Nur Knicken geprüft' : '', govern: bendEta > chosen.eta ? `Biegung aus ${escapeHtml(input.column.name)}<sub>x</sub> massgebend` : `Knicken um ${gov.axis} massgebend` });
   let html = intro.html;
   let n = intro.next;
-  html += step(n++, `Querschnittswerte ${escapeHtml(p.n)}`, 'Profiltabelle',
+  const sameSteelAxes = Math.abs(chosen.y.nRd - chosen.z.nRd) < 1e-9;
+  html += step(n++, `Querschnittswerte ${escapeHtml(p.n)}`, 'Profiltabelle', withSketch(steelSectionSvg(p, { buckling: sameSteelAxes ? null : gov.axis }), sameSteelAxes ? `${escapeHtml(p.n)} · beide Achsen gleich. Masse in mm.` : bucklingCaption(gov.axis),
     eq(`A = ${f(p.A, 2)}${unit('cm^2')},\\qquad i_y = ${f(p.iy, 2)}${unit('cm')},\\qquad i_z = ${f(p.iz, 2)}${unit('cm')}`)
-    + note(`h = ${f(p.h, 0)} mm, b = ${f(p.b, 0)} mm${p.tf ? `, t<sub>f</sub> = ${f(p.tf, 1)} mm` : ''}${p.t ? `, t = ${f(p.t, 1)} mm` : ''}, ${f(p.g, 1)} kg/m.`));
+    + note(`h = ${f(p.h, 0)} mm, b = ${f(p.b, 0)} mm${p.tf ? `, t<sub>f</sub> = ${f(p.tf, 1)} mm` : ''}${p.t ? `, t = ${f(p.t, 1)} mm` : ''}, ${f(p.g, 1)} kg/m. Der kleinere Trägheitsradius i gehört zur Achse, um die die Stütze am ehesten knickt.`)));
   const ax = [chosen.y, chosen.z];
   const slender = ax.filter((a) => a.lambdaK > 200);
   html += step(n++, 'Schlankheit', '',
@@ -936,6 +1023,15 @@ function timberColumnResult(d, last, decimals) {
   const intro = columnIntro(c, input, k);
   const round = c.shape === 'round';
   const calc = (bb, hh, dd) => timberColumn({ material, shape: c.shape, b: bb, h: hh, d: dd, LkY: k.LkY, LkZ: k.LkZ, Nd, etaW, table: c.kcTable });
+  // Biegung aus einer Horizontalkraft am Fuss (starke Richtung, nur zum Vergleich): die Suche nimmt sie mit
+  const bendingAt = (bb, hh, dd) => {
+    const wBend = round ? (Math.PI * dd ** 3) / 32 : (Math.min(bb, hh) * Math.max(bb, hh) ** 2) / 6;
+    return columnBending(input, (wBend * material.fmd * etaW) / 1e6, `W · f<sub>m,d</sub>${etaW < 1 ? ' · η<sub>w</sub>' : ''}`);
+  };
+  const fits = (bb, hh, dd) => {
+    const bend = bendingAt(bb, hh, dd);
+    return calc(bb, hh, dd).ok && (!bend || bend.enough);
+  };
   const stepMm = timberStep(c.step, material, false);
   let bw = c.b;
   let hw = c.h;
@@ -945,31 +1041,35 @@ function timberColumnResult(d, last, decimals) {
     if (!(dw > 0)) {
       auto = 'Durchmesser automatisch';
       dw = roundUp(60, stepMm);
-      while (dw < 2000 && !calc(0, 0, dw).ok) dw += stepMm;
+      while (dw < 2000 && !fits(0, 0, dw)) dw += stepMm;
       dw = Math.min(dw, 2000);
     }
   } else if (!(bw > 0) && !(hw > 0)) {
     auto = 'quadratisch, automatisch';
     let a = roundUp(60, stepMm);
-    while (a < 2000 && !calc(a, a).ok) a += stepMm;
+    while (a < 2000 && !fits(a, a)) a += stepMm;
     bw = a;
     hw = a;
   } else if (!(hw > 0)) {
     auto = 'Höhe automatisch';
     hw = roundUp(Math.max(bw, stepMm), stepMm);
     // höchstens 400 Schritte (Schutz vor absurden Eingaben)
-    for (let guard = 0; guard < 400 && hw < 8 * bw && !calc(bw, hw).ok; guard++) hw += stepMm;
+    for (let guard = 0; guard < 400 && hw < 8 * bw && !fits(bw, hw); guard++) hw += stepMm;
   } else if (!(bw > 0)) {
     auto = 'Breite automatisch';
     bw = roundUp(60, stepMm);
-    for (let guard = 0; guard < 400 && bw < hw && !calc(bw, hw).ok; guard++) bw += stepMm;
+    for (let guard = 0; guard < 400 && bw < hw && !fits(bw, hw); guard++) bw += stepMm;
   }
   const r = calc(bw, hw, dw);
   exp.r = r;
   const name = round ? `Ø ${f(dw, 0)} mm` : `b/h = ${f(bw, 0)}/${f(hw, 0)} mm`;
-  const top = head(`${material.text.split(' ')[0]} · ${name}${auto ? ` <span class="d-auto">${auto}</span>` : ''}`, r.eta, r.ok,
-    `N<sub>K,Rd</sub> = ${f(r.nRd, 1)} kN${round ? '' : ` (Knicken um ${r.governing.axis})`} · N<sub>d</sub> = ${kn(Nd)} kN${input.column ? ` · ${columnLabel(input.column)}, L = ${f(input.L, 2)} m` : ''}`
-    + (auto && !r.ok ? failText(['auch der grösste gesuchte Querschnitt reicht nicht – Last, Knicklänge oder Holzklasse prüfen']) : ''));
+  const bending = bendingAt(bw, hw, dw);
+  const bendEta = bending ? bending.M / bending.mRd : 0;
+  const sameAxes = round || Math.abs(r.y.nRd - r.z.nRd) < 1e-9;
+  const top = head(`${material.text.split(' ')[0]} · ${name}${auto ? ` <span class="d-auto">${auto}</span>` : ''}`, Math.max(r.eta, bendEta), r.ok && (!bending || bending.enough),
+    `N<sub>K,Rd</sub> = ${f(r.nRd, 1)} kN${sameAxes ? '' : ` (Knicken um ${r.governing.axis})`} · N<sub>d</sub> = ${kn(Nd)} kN${input.column ? ` · ${columnLabel(input.column)}, L = ${f(input.L, 2)} m` : ''}${bending ? `<br><span class="d-caution">${bending.text}</span>` : ''}`
+    + (auto && !r.ok ? failText(['auch der grösste gesuchte Querschnitt reicht nicht – Last, Knicklänge oder Holzklasse prüfen']) : ''),
+    { warn: bending ? 'Nur Knicken geprüft' : '', govern: bendEta > r.eta ? `Biegung aus ${escapeHtml(input.column.name)}<sub>x</sub> massgebend` : sameAxes ? (round ? '' : 'beide Achsen gleich') : `Knicken um ${r.governing.axis} massgebend` });
   let html = intro.html;
   let n = intro.next;
   // Rundholz mit gleicher Knicklänge: nur eine Richtung zeigen
@@ -980,7 +1080,9 @@ function timberColumnResult(d, last, decimals) {
     ? eq(`A = \\frac{\\pi \\cdot d^2}{4} = \\frac{\\pi \\cdot ${f(dw, 0)}^2}{4} = ${f(r.section.A, 0)}${unit('mm^2')},\\qquad i = \\frac{d}{4} = ${f(r.y.i, 1)}${unit('mm')}`)
     : eq(`A = b \\cdot h = ${f(bw, 0)} \\cdot ${f(hw, 0)} = ${f(r.section.A, 0)}${unit('mm^2')}`)
       + eq(`i_y = 0.289 \\cdot h = ${f(r.y.i, 1)}${unit('mm')},\\qquad i_z = 0.289 \\cdot b = ${f(r.z.i, 1)}${unit('mm')}`);
-  html += step(n++, 'Querschnittswerte', name, section + (round ? '' : note('i = h/√12 = 0.289 · h; für Knicken um z zählt die Breite b.')));
+  const timberSketch = timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }, { buckling: sameAxes ? null : r.governing.axis });
+  html += step(n++, 'Querschnittswerte', name, withSketch(timberSketch, sameAxes ? `${name} · ${round ? 'in jede Richtung gleich' : 'beide Achsen gleich'}.` : bucklingCaption(r.governing.axis),
+    section + (round ? '' : note('i = h/√12 = 0.289 · h; für Knicken um z zählt die Breite b.'))));
   const slender = ax.filter((a) => a.lambda > 150);
   html += step(n++, 'Schlankheit', '',
     ax.map((a) => eq(`\\lambda${sub(a)} = \\frac{L_{K${c.zOwn ? `,${a.axis}` : ''}}}{i${sub(a)}} = \\frac{${f(a.Lk * 1000, 0)}}{${f(a.i, 1)}} = ${f(a.lambda, 1)},\\qquad \\lambda_{rel${subComma(a)}} = \\frac{\\lambda${sub(a)}}{${material.lambda0}} = ${f(a.lambdaRel, 3)}`)).join('')
@@ -1019,6 +1121,17 @@ export function updateDesign() {
   const d = ctx.getDesign();
   const last = ctx.getLast();
   const decimals = ctx.getDecimals();
+  // Standardmässig aus: nur die Kopfzeile mit dem Haken, kein Rechenweg, keine Biegelinie
+  const enabled = !ctx.getEnabled || ctx.getEnabled();
+  $('designCard').classList.toggle('is-off', !enabled);
+  $('designCheck').checked = enabled;
+  if (!enabled) {
+    setResult('');
+    setSteps('');
+    beamLine = null;
+    renderBeamLine(d, last);
+    return;
+  }
   // Stützen im System (Lager unter der Achse): Formular neu aufbauen, wenn eine dazukommt oder wegfällt
   const columns = systemColumns(last);
   const signature = columns.map((x) => `${x.name}${x.below ? 'u' : 'o'}`).join(',');
@@ -1048,6 +1161,7 @@ export function updateDesign() {
     return;
   }
   explainOn = !!(ctx.getExplain && ctx.getExplain());
+  termsSeen = new Set();
   beamLine = null;
   // Ungültige Eingabe (rot): nicht mit einem Ersatzwert weiterrechnen, sondern sagen, was fehlt
   const invalid = $('designForm').querySelector('input.invalid');
@@ -1131,6 +1245,12 @@ const FIELD_RANGES = {
 export function initDesign(context) {
   ctx = context;
   const card = $('designCard');
+  $('designCheck').addEventListener('change', (event) => {
+    if (ctx.setEnabled) ctx.setEnabled(event.target.checked);
+    ctx.onChange();
+    renderDesignForm();
+    updateDesign();
+  });
   card.addEventListener('click', (event) => {
     const tab = event.target.closest('[data-tab]');
     if (tab) {

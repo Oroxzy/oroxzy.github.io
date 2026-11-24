@@ -4,7 +4,7 @@ import { renderFigure } from './figure.js';
 import { renderDiagrams } from './diagrams.js';
 import { renderSolution, renderMessages } from './solution.js';
 import { EXAMPLES, exampleById, emptyModel } from './examples.js';
-import { parseNumber, plain, escapeHtml, label, fixed, htmlName } from './format.js';
+import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
 import { initDesign, updateDesign, renderDesignForm, sanitizeDesign } from './design-ui.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
@@ -17,7 +17,7 @@ const state = {
   model: null,
   decimals: 2,
   exampleId: '',
-  view: { snap: true, snapPoints: true, grid: false, step: 0.05, angles: true, highlight: 'frame', dim: true, coords: false, scale: null, scheme: 'family', scaleMode: false, explain: false, lever: true },
+  view: { snap: true, snapPoints: true, grid: false, step: 0.05, angles: true, highlight: 'frame', dim: true, coords: false, scale: null, scheme: 'family', scaleMode: false, explain: false, lever: true, design: false },
   guide: null,
   // Auswahl und Hover als Verweise "S:i" (Lager), "L:i" (Last), "P:i" (Achspunkt)
   selection: [],
@@ -110,6 +110,7 @@ function restoreSettings(stored) {
       scaleMode: v.scaleMode === true,
       explain: v.explain === true,
       lever: v.lever !== false,
+      design: v.design === true,
       scheme: ['family', 'sign', 'six'].includes(v.scheme) ? v.scheme : 'family',
       scale: v.scale && typeof v.scale === 'object' && [v.scale.length, v.scale.force, v.scale.moment].every((n) => typeof n === 'number' && n > 0)
         ? { length: v.scale.length, force: v.scale.force, moment: v.scale.moment, custom: v.scale.custom === true }
@@ -303,6 +304,70 @@ function update() {
   renderScaleCard();
   updateDesign();
   storeModel();
+  recordHistory();
+}
+
+// ---------- Rückgängig / Wiederholen ----------
+// Nach jeder vollständigen Neuberechnung wird das System mit dem letzten Stand verglichen. Tippen im selben
+// Feld und gehaltene Pfeiltasten werden zu einem Schritt zusammengefasst; beim Ziehen zählt erst das Loslassen.
+// Die Einstellungen der Bemessung gehören nicht dazu (sie bleiben beim Rückgängigmachen, wie sie sind).
+const HISTORY_LIMIT = 100;
+const HISTORY_SAME_KEY_MS = 4000; // gleiches Feld: so lange zählt weiteres Tippen zum selben Schritt
+const HISTORY_BURST_MS = 250; // sehr schnelle Folgen (Tastenwiederholung) immer zusammen
+const undoHistory = { undo: [], redo: [], current: null, lastChange: 0, lastKey: null };
+let historyKey = null; // Herkunft der nächsten Änderung (Feld, Pfeiltasten), gesetzt von den Eingaben
+
+function modelSnapshot() {
+  const { design, ...system } = state.model;
+  return JSON.stringify({ model: system, exampleId: state.exampleId });
+}
+
+function recordHistory() {
+  const now = modelSnapshot();
+  const key = historyKey;
+  historyKey = null;
+  if (undoHistory.current === null) {
+    undoHistory.current = now;
+    updateHistoryButtons();
+    return;
+  }
+  if (now === undoHistory.current) return;
+  const time = Date.now();
+  const since = time - undoHistory.lastChange;
+  const merge = since < HISTORY_BURST_MS || (key !== null && key === undoHistory.lastKey && since < HISTORY_SAME_KEY_MS);
+  if (!merge) {
+    undoHistory.undo.push(undoHistory.current);
+    if (undoHistory.undo.length > HISTORY_LIMIT) undoHistory.undo.shift();
+  }
+  undoHistory.lastChange = time;
+  undoHistory.lastKey = key;
+  undoHistory.redo = [];
+  undoHistory.current = now;
+  updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+  $('undoButton').disabled = !undoHistory.undo.length;
+  $('redoButton').disabled = !undoHistory.redo.length;
+}
+
+// back = true: rückgängig, sonst wiederholen
+function stepHistory(back) {
+  const from = back ? undoHistory.undo : undoHistory.redo;
+  const to = back ? undoHistory.redo : undoHistory.undo;
+  if (!from.length || drag) return;
+  to.push(undoHistory.current);
+  const snapshot = JSON.parse(from.pop());
+  state.model = sanitizeModel({ ...snapshot.model, design: state.model.design });
+  state.exampleId = snapshot.exampleId && exampleById(snapshot.exampleId) ? snapshot.exampleId : '';
+  undoHistory.current = modelSnapshot();
+  undoHistory.lastChange = 0;
+  clearSelection();
+  $('exampleSelect').value = state.exampleId;
+  renderInputs();
+  update();
+  updateHistoryButtons();
+  toast(back ? 'Rückgängig gemacht' : 'Wiederholt');
 }
 
 // ---------- Eingabeprüfung ----------
@@ -1359,12 +1424,32 @@ function handleAction(action, button) {
   scheduleUpdate();
 }
 
+// Bemessung zum neuen System passend machen: Vorgabe des Beispiels (Tab, Werkstoff) übernehmen;
+// sonst ohne Stütze im System vom Stützen-Tab (Quelle „aus dem System“) zurück zum Träger.
+function fitDesign(design, model, hint) {
+  const d = clone(design);
+  if (!d || !d.beam || !d.column) return design;
+  if (hint) {
+    if (hint.tab === 'beam' || hint.tab === 'column') d.tab = hint.tab;
+    if (hint.material === 'steel' || hint.material === 'timber') d[d.tab].material = hint.material;
+    return d;
+  }
+  const axis = (model.axis || []).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.z));
+  const hasColumn = (model.supports || []).some((s) => {
+    const zAxis = axisZAt(axis, s.x);
+    return Number.isFinite(s.z) && zAxis !== null && Math.abs(s.z - zAxis) > 1e-6;
+  });
+  if (d.tab === 'column' && d.column.source === 'system' && !hasColumn) d.tab = 'beam';
+  return d;
+}
+
 function loadExample(id) {
   const example = exampleById(id);
   if (!example) return;
   cancelDrag();
-  // Die Einstellungen der Bemessung (Werkstoff, Profilreihe …) bleiben beim Beispielwechsel erhalten
-  state.model = sanitizeModel({ design: state.model.design, ...clone(example.model), title: example.title });
+  // Die Einstellungen der Bemessung (Profilreihe, Stahlsorte …) bleiben beim Beispielwechsel erhalten;
+  // Tab und Werkstoff passen sich dem Beispiel an
+  state.model = sanitizeModel({ design: fitDesign(state.model.design, example.model, example.design), ...clone(example.model), title: example.title });
   state.exampleId = id;
   clearSelection();
   history.replaceState(null, '', location.pathname + location.search);
@@ -1606,22 +1691,22 @@ function termInfo(key) {
   if (key === 'mu') {
     return {
       ref: m.unknownRef, ...pivot, x: m.unknownX, z: m.unknownZ, vertical: true, lever: m.unknownLever, sense: m.unknownSense,
-      text: `${name(m.unknown)} gesucht, nach oben angenommen · Hebelarm ${f(m.unknownLever)} m bis ${m.pivot} · ${senseText(m.unknownSense)}`,
+      text: `${name(m.unknown)} gesucht, nach oben angenommen · Hebelarm ${length(m.unknownLever, state.decimals)} m bis ${m.pivot} · ${senseText(m.unknownSense)}`,
     };
   }
   if (group === 'm' && m.terms[index]) {
     const t = m.terms[index];
     const what = t.kind === 'q'
-      ? `${t.label}: ${f(t.q)} kN/m · ${f(t.length)} m = ${f(t.force)} kN, Resultierende in der Mitte (x = ${f(t.x)} m)`
+      ? `${t.label}: ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(t.force)} kN, Resultierende in der Mitte (x = ${length(t.x, state.decimals)} m)`
       : `${name(t.label)} = ${f(t.force)} kN ${dirWord[t.dir] || ''}`;
     return {
       ref: t.ref, ...pivot, x: t.x, z: t.z, vertical: t.kind === 'v' || t.kind === 'q', lever: t.lever, sense: Math.sign(t.moment), resultant: t.kind === 'q',
-      text: `${what} · Hebelarm ${f(t.lever)} m bis ${m.pivot} · ${senseText(t.moment)}`,
+      text: `${what} · Hebelarm ${length(t.lever, state.decimals)} m bis ${m.pivot} · ${senseText(t.moment)}`,
     };
   }
   if (group === 'v' && v.terms[index]) {
     const t = v.terms[index];
-    const what = t.q !== undefined ? `${t.label}: ${f(t.q)} kN/m · ${f(t.length)} m = ${f(Math.abs(t.value))} kN` : `${name(t.label)} = ${f(Math.abs(t.value))} kN`;
+    const what = t.q !== undefined ? `${t.label}: ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(Math.abs(t.value))} kN` : `${name(t.label)} = ${f(Math.abs(t.value))} kN`;
     return { ref: t.ref, text: `${what} ${t.value > 0 ? 'nach oben → positiv' : 'nach unten → negativ'} (nach oben positiv)` };
   }
   if (key === 'vu') return { ref: v.unknownRef, text: `${name(v.unknown)} gesucht, nach oben angenommen` };
@@ -1691,7 +1776,7 @@ function drawLever(info) {
   const py = Y(info.pivotZ);
   const fx = X(info.x);
   const fy = Y(info.z);
-  const leverText = `a = ${fixed(info.lever, state.decimals)} m`;
+  const leverText = `a = ${length(info.lever, state.decimals)} m`;
   const parts = [];
   let momentAt = null; // Stelle für die Plakette mit dem Moment
   // Hebelarm wie ein Mass knapp neben dem Drehpunkt (nicht auf dem Träger), mit Hilfslinien
@@ -1733,7 +1818,7 @@ function drawLever(info) {
       parts.push(`<path class="lv-arc" d="M${r1(sx)},${r1(sy)} A${radius},${radius} 0 0 ${cw ? 1 : 0} ${r1(bx)},${r1(by)}"/>`);
       parts.push(head(tx, ty, Math.atan2(ty - by, tx - bx), headLength));
       const f = (value) => fixed(value, state.decimals);
-      const content = `M = ${f(info.force)} · ${f(info.lever)} = ${f(Math.abs(info.moment))} kNm ${cw ? '↷' : '↶'}`;
+      const content = `M = ${f(info.force)} · ${length(info.lever, state.decimals)} = ${f(Math.abs(info.moment))} kNm ${cw ? '↷' : '↶'}`;
       parts.push(pill(momentAt.x, momentAt.y, content, momentAt.anchor));
     }
   }
@@ -1758,12 +1843,42 @@ function showTerm(element, event) {
   tip.textContent = info.text;
   tip.hidden = false;
   positionTip(event);
+  showFigurePeek(event);
+}
+
+// Ist die Skizze weggescrollt, zeigt ein schwebendes Fenster eine Kopie mit Markierung und Hebelarm
+let peekPointerY = 0;
+
+function showFigurePeek(event) {
+  if (event && Number.isFinite(event.clientY)) peekPointerY = event.clientY;
+  const peek = $('figurePeek');
+  const svg = $('figure').querySelector('svg');
+  const rect = $('figure').getBoundingClientRect();
+  // Oberkante des sichtbaren Bereichs: unter der Kopfzeile, solange sie oben klebt
+  const topbar = document.querySelector('.topbar');
+  const top = topbar ? Math.max(0, topbar.getBoundingClientRect().bottom) : 0;
+  const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, top);
+  if (!svg || visible > Math.min(rect.height, window.innerHeight - top) * 0.5) {
+    peek.hidden = true;
+    return;
+  }
+  const copy = svg.cloneNode(true);
+  copy.removeAttribute('id');
+  copy.setAttribute('aria-hidden', 'true');
+  // Gegenüber dem Mauszeiger, damit das Fenster die Formel nicht verdeckt
+  const atTop = peekPointerY > window.innerHeight / 2;
+  peek.classList.toggle('at-top', atTop);
+  peek.style.top = atTop ? `${top + 10}px` : '';
+  peek.replaceChildren(copy);
+  peek.hidden = false;
 }
 
 function hideTerm() {
   if (activeTerm) activeTerm.classList.remove('term-active');
   activeTerm = null;
   $('termTip').hidden = true;
+  $('figurePeek').hidden = true;
+  $('figurePeek').replaceChildren();
   removeLever();
   setHover(null);
   drawSelectionLever();
@@ -1802,11 +1917,18 @@ function initTermHover() {
     showTerm(element, event);
   });
   solution.addEventListener('pointerout', (event) => {
+    // Antippen (Touch): bleibt stehen, bis woanders hingetippt wird
+    if (event.pointerType === 'touch') return;
     const element = event.target.closest('[data-term]');
     if (!element || (event.relatedTarget && element.contains(event.relatedTarget))) return;
     hideTerm();
   });
   solution.addEventListener('pointermove', (event) => { if (activeTerm) positionTip(event); });
+  document.addEventListener('pointerdown', (event) => {
+    if (activeTerm && event.pointerType === 'touch' && !event.target.closest('[data-term]')) hideTerm();
+  });
+  // Beim Scrollen das Fenster nachführen (Skizze kommt ins Bild oder verschwindet)
+  window.addEventListener('scroll', () => { if (activeTerm) showFigurePeek(); }, { passive: true });
 }
 
 // ---------- Farbschema ----------
@@ -1906,6 +2028,8 @@ function init() {
     getDecimals: () => state.decimals,
     getExplain: () => state.view.explain,
     getLayout: () => state.layout,
+    getEnabled: () => state.view.design,
+    setEnabled: (on) => { state.view.design = on; },
     onChange: storeModel,
   });
   update();
@@ -1916,11 +2040,15 @@ function init() {
   inputs.addEventListener('input', (event) => {
     const target = event.target;
     if (target.id === 'titleInput') {
+      historyKey = 'title';
       state.model.title = target.value;
       scheduleUpdate();
       return;
     }
     if (target.matches('input[data-field]')) {
+      const row = target.closest('tr[data-index]');
+      const table = target.closest('table');
+      historyKey = `${table ? table.id : ''}:${row ? row.dataset.index : ''}:${target.dataset.field}`;
       setField(target);
       state.exampleId = '';
       $('exampleSelect').value = '';
@@ -2039,8 +2167,16 @@ function init() {
     // Pfeiltasten: Auswahl um einen Rasterschritt verschieben (mit Umschalttaste zehn)
     const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
     const typing = event.target && event.target.closest && event.target.closest('input, select, textarea, [contenteditable]');
+    // Strg+Z / Strg+Y (Strg+Umschalt+Z): ganzes Modell; in einem Eingabefeld bleibt das Rückgängig des Felds
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !typing && (key === 'z' || key === 'y')) {
+      stepHistory(key === 'z' && !event.shiftKey);
+      event.preventDefault();
+      return;
+    }
     if (arrows[event.key] && state.selection.length && !drag && !typing) {
       const step = state.view.step * (event.shiftKey ? 10 : 1);
+      historyKey = 'nudge';
       nudgeSelection(arrows[event.key][0] * step, arrows[event.key][1] * step);
       event.preventDefault();
     }
@@ -2094,6 +2230,17 @@ function init() {
     storeModel();
   });
   initScaleCard();
+  // Menü „Ansicht“: schliesst bei einem Klick daneben und mit Esc
+  const viewMenu = $('viewMenu');
+  document.addEventListener('pointerdown', (event) => {
+    if (viewMenu.open && !viewMenu.contains(event.target)) viewMenu.open = false;
+  });
+  viewMenu.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !viewMenu.open) return;
+    viewMenu.open = false;
+    viewMenu.querySelector('summary').focus();
+    event.stopPropagation();
+  });
   document.querySelector('.figure-tools').addEventListener('change', (event) => {
     const target = event.target;
     if (target.id === 'highlightSelect') {
@@ -2142,13 +2289,16 @@ function init() {
 
   $('newButton').addEventListener('click', () => {
     cancelDrag();
-    state.model = sanitizeModel({ ...emptyModel(), design: state.model.design });
+    const empty = emptyModel();
+    state.model = sanitizeModel({ ...empty, design: fitDesign(state.model.design, empty, null) });
     state.exampleId = '';
     clearSelection();
     history.replaceState(null, '', location.pathname + location.search);
     renderInputs();
     update();
   });
+  $('undoButton').addEventListener('click', () => stepHistory(true));
+  $('redoButton').addEventListener('click', () => stepHistory(false));
   $('shareButton').addEventListener('click', copyShareLink);
   $('saveButton').addEventListener('click', saveFile);
   $('openButton').addEventListener('click', () => $('fileInput').click());

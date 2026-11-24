@@ -12,11 +12,13 @@ export function parseNumber(text) {
   return Number.isFinite(value) ? value : NaN;
 }
 
-// Fester Dezimalstellen-Text ohne „-0.00“.
+// Fester Dezimalstellen-Text ohne „-0.00“, kaufmännisch gerundet: toFixed allein rundet
+// 3.425 zu 3.42 (binäre Darstellung 3.42499…), hier wird es 3.43.
 export function fixed(value, decimals = 2) {
   if (!Number.isFinite(value)) return '–';
-  const limit = 0.5 * Math.pow(10, -decimals);
-  const v = Math.abs(value) < limit ? 0 : value;
+  const factor = Math.pow(10, decimals);
+  const rounded = (Math.sign(value) * Math.round(Math.abs(value) * factor * (1 + 1e-12))) / factor;
+  const v = Math.abs(rounded) < 0.5 / factor ? 0 : rounded;
   return v.toFixed(decimals);
 }
 
@@ -70,4 +72,13 @@ export function htmlName(name) {
   const i = text.indexOf('_');
   if (i <= 0 || i === text.length - 1) return escapeHtml(text);
   return `${escapeHtml(text.slice(0, i))}<sub>${escapeHtml(text.slice(i + 1))}</sub>`;
+}
+
+// Länge mit mindestens `decimals` Stellen, aber ohne Informationsverlust: 3.425 bleibt 3.425,
+// 6 wird 6.00 (höchstens drei Nachkommastellen, wie die Masse in der Skizze).
+export function length(value, decimals = 2) {
+  if (!Number.isFinite(value)) return '–';
+  if (decimals >= 3) return fixed(value, decimals);
+  const exact = Math.abs(value - Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals)) < 1e-9;
+  return fixed(value, exact ? decimals : 3);
 }

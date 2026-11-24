@@ -1,5 +1,5 @@
 // Lösungsweg im Stil der Musterlösungen (ΣH = 0, ΣM = 0 (DP), ΣV = 0, Kontrolle).
-import { fixed, measure, escapeHtml, texName, htmlName } from './format.js';
+import { fixed, measure, escapeHtml, texName, htmlName, length } from './format.js';
 
 export function tex(source, display = false) {
   if (typeof window !== 'undefined' && window.katex) {
@@ -61,7 +61,7 @@ const mark = (key, body) => `\\htmlData{term=${key}}{${body}}`;
 // ---------- Erklärmodus: „Warum?“-Boxen mit den Werten der Aufgabe ----------
 
 export function why(summary, paragraphs) {
-  return `<details class="why"><summary><span class="why-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/><rect x="9" y="19.2" width="6" height="1.6" rx="0.8"/><rect x="10" y="21.6" width="4" height="1.4" rx="0.7"/></svg></span>${summary}</summary>`
+  return `<details class="why"><summary><span class="why-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/><rect x="9" y="19.2" width="6" height="1.6" rx="0.8"/><rect x="10" y="21.6" width="4" height="1.4" rx="0.7"/></svg></span><span>${summary}</span></summary>`
     + `${paragraphs.filter(Boolean).map((p) => `<p>${p}</p>`).join('')}</details>`;
 }
 
@@ -96,9 +96,9 @@ function explainM(result, decimals) {
   const qTerms = m.terms.filter((t) => t.kind === 'q');
   return why(`Warum um Lager ${escapeHtml(m.pivot)}?`, [
     `Um den Drehpunkt <b>${escapeHtml(m.pivot)}</b> dreht die Reaktion in ${escapeHtml(m.pivot)} nicht – ihr Hebelarm ist 0. So bleibt in ΣM = 0 nur <b>${htmlName(m.unknown)}</b> als Unbekannte.`,
-    `Hebelarm = senkrechter Abstand der Wirkungslinie zum Drehpunkt: bei senkrechten Kräften der waagrechte Abstand, bei waagrechten Kräften der Höhenunterschied. ${htmlName(m.unknown)} hat hier den Hebelarm ${fixed(m.unknownLever, decimals)} m.`,
+    `Hebelarm = senkrechter Abstand der Wirkungslinie zum Drehpunkt: bei senkrechten Kräften der waagrechte Abstand, bei waagrechten Kräften der Höhenunterschied. ${htmlName(m.unknown)} hat hier den Hebelarm ${length(m.unknownLever, decimals)} m.`,
     qTerms.length
-      ? `Eine Streckenlast ersetzt man durch ihre Resultierende R = q · l in ihrer Mitte: ${qTerms.map((t) => `${htmlName(t.label)}: ${fixed(t.q, decimals)} kN/m · ${fixed(t.length, decimals)} m = ${fixed(t.force, decimals)} kN bei x = ${measure(t.x)} m`).join('; ')}.`
+      ? `Eine Streckenlast ersetzt man durch ihre Resultierende R = q · l in ihrer Mitte: ${qTerms.map((t) => `${htmlName(t.label)}: ${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m = ${fixed(t.force, decimals)} kN bei x = ${measure(t.x)} m`).join('; ')}.`
       : '',
     'Vorzeichen: im Uhrzeigersinn <span class="cw">↷</span> positiv, dagegen <span class="ccw">↶</span> negativ. <b>Fahre mit der Maus über ein Glied</b> – die Skizze zeigt dann die Kraft und ihren Hebelarm.',
     `<i>Warum nicht um ${escapeHtml(other)}?</i> Geht genauso – dann rechnet man zuerst ${escapeHtml(m.pivot)}<sub>z</sub> aus. Man wählt einen Punkt, durch den möglichst viele unbekannte Kräfte gehen. `
@@ -178,11 +178,11 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
     // Jedes Glied mit gut sichtbarem Drehpfeil davor und in der Farbe seines Drehsinns:
     // blau ↷ im Uhrzeigersinn, orange ↶ dagegen.
     const turn = (sign, body) => `{\\color{${sign > 0 ? CW_COLOR : CCW_COLOR}}${sign > 0 ? '\\curvearrowright' : '\\curvearrowleft'}\\, ${body}}`;
-    const unknownItem = { sign: m.unknownSense, body: mark('mu', turn(m.unknownSense, `${texName(m.unknown)} \\cdot ${n(m.unknownLever, decimals)}`)) };
+    const unknownItem = { sign: m.unknownSense, body: mark('mu', turn(m.unknownSense, `${texName(m.unknown)} \\cdot ${length(m.unknownLever, decimals)}`)) };
     const items = [unknownItem, ...m.terms
       .map((t, i) => ({ t, i }))
       .filter(({ t }) => active.includes(t))
-      .map(({ t, i }) => ({ sign: Math.sign(t.moment), body: mark(`m:${i}`, turn(Math.sign(t.moment), `${forceBody(t, decimals)} \\cdot ${n(t.lever, decimals)}`)) }))];
+      .map(({ t, i }) => ({ sign: Math.sign(t.moment), body: mark(`m:${i}`, turn(Math.sign(t.moment), `${forceBody(t, decimals)} \\cdot ${length(t.lever, decimals)}`)) }))];
     // Drehpunkt direkt hier umschalten; die Rechnung folgt sofort.
     const pivotButtons = (result.reactions || [])
       .map((r) => `<button type="button" data-pivot="${escapeHtml(r.name)}" class="${r.name === m.pivot ? 'on' : ''}" aria-pressed="${r.name === m.pivot}">Lager ${escapeHtml(r.name)}</button>`)
@@ -195,17 +195,17 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
       body += `<p class="sol-note">Resultierendes Moment der Lasten um ${escapeHtml(m.pivot)}: ${tex(`${n(Math.abs(m.known), decimals)}${unit('kNm')}\\ ${knownTurn}`)} (${knownText}). ${htmlName(m.unknown)} muss es mit Gegendrehung ausgleichen.</p>`;
     }
     const rhs = -m.known * m.unknownSense;
-    body += `<div class="sol-eq">${tex(`${texName(m.unknown)} \\cdot ${n(m.unknownLever, decimals)} = ${n(rhs, decimals)}${unit('kNm')}`)}</div>`;
+    body += `<div class="sol-eq">${tex(`${texName(m.unknown)} \\cdot ${length(m.unknownLever, decimals)} = ${n(rhs, decimals)}${unit('kNm')}`)}</div>`;
     body += `<div class="sol-res">${tex(resultLine(m.unknown, m.result, decimals, 'up', 'down'))}</div>`;
 
     // Gliedertabelle
     const rows = m.terms.map((t, i) => {
       const dirArrow = { up: '↑', down: '↓', right: '→', left: '←' }[t.dir] || '';
-      const what = t.kind === 'q' ? `${escapeHtml(t.label)} = ${fixed(t.q, decimals)} kN/m · ${fixed(t.length, decimals)} m` : htmlName(t.label);
+      const what = t.kind === 'q' ? `${escapeHtml(t.label)} = ${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m` : htmlName(t.label);
       const sense = t.lever < 1e-9 || Math.abs(t.moment) < 1e-12 ? '–' : t.moment > 0 ? '<span class="cw">↷</span>' : '<span class="ccw">↶</span>';
-      return `<tr data-term="m:${i}"><td>${what}</td><td class="num">${fixed(t.force, decimals)} kN ${dirArrow}</td><td class="num">${fixed(t.lever, decimals)} m</td><td class="c">${sense}</td><td class="num">${fixed(t.moment, decimals)}</td></tr>`;
+      return `<tr data-term="m:${i}"><td>${what}</td><td class="num">${fixed(t.force, decimals)} kN ${dirArrow}</td><td class="num">${length(t.lever, decimals)} m</td><td class="c">${sense}</td><td class="num">${fixed(t.moment, decimals)}</td></tr>`;
     });
-    const unknownRow = `<tr class="unknown" data-term="mu"><td>${htmlName(m.unknown)} (gesucht)</td><td class="num">?</td><td class="num">${fixed(m.unknownLever, decimals)} m</td><td class="c">${m.unknownSense > 0 ? '<span class="cw">↷</span>' : '<span class="ccw">↶</span>'}</td><td class="num">${m.unknownSense > 0 ? '+' : '−'}${fixed(m.unknownLever, decimals)} · ${htmlName(m.unknown)}</td></tr>`;
+    const unknownRow = `<tr class="unknown" data-term="mu"><td>${htmlName(m.unknown)} (gesucht)</td><td class="num">?</td><td class="num">${length(m.unknownLever, decimals)} m</td><td class="c">${m.unknownSense > 0 ? '<span class="cw">↷</span>' : '<span class="ccw">↶</span>'}</td><td class="num">${m.unknownSense > 0 ? '+' : '−'}${length(m.unknownLever, decimals)} · ${htmlName(m.unknown)}</td></tr>`;
     body += `<details class="sol-details"><summary>Glieder der Momentensumme (Kraft · Hebelarm)</summary><table class="sol-table"><thead><tr><th>Kraft</th><th class="num">Betrag</th><th class="num">Hebelarm</th><th class="c">Drehsinn</th><th class="num">Moment [kNm]</th></tr></thead><tbody>${unknownRow}${rows.join('')}<tr class="sum"><td colspan="4">Summe der bekannten Glieder</td><td class="num">${fixed(m.known, decimals)}</td></tr></tbody></table></details>`;
     if (zeroLever.length) {
       body += `<p class="sol-note">Hebelarm 0 (Wirkungslinie durch den Drehpunkt): ${zeroLever.map((t) => htmlName(t.label)).join(', ')}.</p>`;

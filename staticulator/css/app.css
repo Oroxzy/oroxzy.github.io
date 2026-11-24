@@ -2,7 +2,7 @@
   --bg: #f3f5f8;
   --card: #ffffff;
   --text: #1f2933;
-  --muted: #64748b;
+  --muted: #526071;
   --line: #dde3ea;
   --soft: #eef2f6;
   --accent: #2563eb;
@@ -88,9 +88,10 @@ input[type="text"].invalid { border-color: var(--red); background: #fff5f5; }
   border-radius: var(--radius);
   padding: 12px 14px;
 }
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+select { max-width: 100%; }
 .card h2 { margin: 0; font-size: 14.5px; }
-.help { margin: 2px 0 8px; color: var(--muted); font-size: 12.3px; }
+.help { margin: 2px 0 8px; color: var(--muted); font-size: 13px; }
 .title-input { width: 100%; }
 
 /* Eingabetabellen */
@@ -139,9 +140,9 @@ label.cell input { width: 100%; min-width: 46px; text-align: right; }
 .sol-hint { color: var(--muted); font-weight: 400; font-size: 12.3px; }
 .sol-eq, .sol-res { overflow-x: auto; overflow-y: hidden; padding: 3px 0 3px 30px; font-size: 15px; }
 .sol-res { color: var(--green); }
-.sol-note { margin: 4px 0 2px 30px; color: var(--muted); font-size: 12.5px; }
+.sol-note { margin: 4px 0 2px 30px; color: var(--muted); font-size: 13px; }
 .sol-list { margin: 2px 0 4px 30px; padding-left: 16px; }
-.sol-details { margin: 6px 0 2px 30px; }
+.sol-details { margin: 6px 0 2px 30px; overflow-x: auto; }
 .sol-details summary { cursor: pointer; color: var(--accent); font-size: 12.8px; }
 .sol-table { border-collapse: collapse; margin-top: 6px; font-size: 12.8px; min-width: 60%; }
 .sol-table th, .sol-table td { padding: 4px 10px; border-bottom: 1px solid var(--soft); text-align: left; }
@@ -169,7 +170,7 @@ label.cell input { width: 100%; min-width: 46px; text-align: right; }
 }
 
 @media (max-width: 980px) {
-  .layout { grid-template-columns: 1fr; padding: 12px; }
+  .layout { grid-template-columns: minmax(0, 1fr); padding: 12px; }
   .inputs { position: static; max-height: none; overflow: visible; }
   .topbar { position: static; padding: 10px 12px; }
   .example-picker { flex: 1 1 100%; }
@@ -181,7 +182,9 @@ label.cell input { width: 100%; min-width: 46px; text-align: right; }
   .topbar .actions, .inputs, .footer, .toast { display: none !important; }
   .topbar { position: static; border: none; padding: 0 0 8px; }
   .layout { display: block; padding: 0; }
-  .card { border: none; padding: 6px 0; break-inside: avoid; }
+  .card { border: none; padding: 6px 0; }
+  /* lange Karten (Lösungsweg) dürfen über Seiten laufen, Skizzen und einzelne Schritte nicht */
+  #figure, .figure-box svg.diagram, .sol-step, .scale-tables { break-inside: avoid; }
   .sol-details { display: block; }
   .sol-details > summary { display: none; }
 }
@@ -238,12 +241,11 @@ table.grid tr.row-hover td { background: #f3f7ff; }
 table.grid tr.row-sel td { background: #e6efff; }
 table.grid tr.row-sel td.label { box-shadow: inset 3px 0 0 #2563eb; color: #2563eb; }
 .selection-hint { color: #2563eb; font-weight: 600; }
-.selection-hint.is-hidden { visibility: hidden; }
 .figure.dragging, .figure.dragging * { cursor: grabbing !important; }
 .figure-box { touch-action: pan-y; }
 .figure-box svg, .figure-box svg text { -webkit-user-select: none; user-select: none; }
 .figure-box .drag, .figure-box .vertex { touch-action: none; }
-.drag-hint { margin: 2px 0 6px; color: var(--muted); font-size: 12.3px; }
+.drag-hint { margin: 2px 0 6px; color: var(--muted); font-size: 13px; }
 
 /* Werkzeugleiste über der Skizze */
 .figure-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 2px 0 4px; font-size: 12.5px; color: var(--muted); }
@@ -419,9 +421,9 @@ table.grid tr.has-warn .name-input[type="text"]::placeholder { color: #b45309; }
 /* V- und M-Fläche: kräftiger Verlauf (an der Achse hell, zur Linie hin satt) plus Schraffur */
 /* Farbschema (Umschalter „Farben“ in der Diagramm-Karte). „je Fläche“: plus kühl, minus warm,
    jede Fläche mit eigenem Paar. Dazu „nach Vorzeichen“ (blau/rot) und „6 Farben“. */
-#diagrams, #diagrams[data-scheme="family"] { --v-pos: #0f766e; --v-neg: #ea580c; --m-pos: #4f46e5; --m-neg: #e11d48; }
+#diagrams, #diagrams[data-scheme="family"] { --v-pos: #0f766e; --v-neg: #c2410c; --m-pos: #4f46e5; --m-neg: #e11d48; }
 #diagrams[data-scheme="sign"] { --v-pos: #2563eb; --v-neg: #e11d48; --m-pos: #2563eb; --m-neg: #e11d48; }
-#diagrams[data-scheme="six"] { --v-pos: #2563eb; --v-neg: #ea580c; --m-pos: #16a34a; --m-neg: #db2777; }
+#diagrams[data-scheme="six"] { --v-pos: #2563eb; --v-neg: #c2410c; --m-pos: #16a34a; --m-neg: #db2777; }
 #diagrams svg.dg-V { --dg-pos: var(--v-pos); --dg-neg: var(--v-neg); }
 #diagrams svg.dg-M { --dg-pos: var(--m-pos); --dg-neg: var(--m-neg); }
 #diagrams .dg-val.dg-pos, #diagrams .dg-mark.dg-pos { fill: var(--dg-pos); }
@@ -501,7 +503,7 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .d-in { display: inline-flex; align-items: center; gap: 5px; }
 .d-in em { font-style: normal; color: var(--muted); font-size: 12px; }
 .d-check { display: inline-flex; align-items: center; gap: 6px; align-self: center; font-size: 12.5px; color: var(--muted); cursor: pointer; }
-.d-hint { align-self: center; color: var(--muted); font-size: 12px; }
+.d-hint { align-self: center; color: var(--muted); font-size: 12.5px; }
 .d-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .d-seg button { padding: 4px 16px; border: none; border-radius: 0; background: var(--card); font-size: 12.8px; cursor: pointer; }
 .d-seg button + button { border-left: 1px solid var(--line); }
@@ -559,8 +561,10 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .d-warn { color: var(--red); }
 .d-field input::placeholder { color: var(--muted); opacity: 0.75; }
 /* Lösungsweg: Teile Statik und Bemessung */
-.sol-part { margin: 14px 0 2px; padding: 6px 10px; border-radius: 8px; background: var(--soft); font-size: 14px; color: var(--text); }
+.sol-part { display: flex; align-items: center; gap: 9px; margin: 26px 0 10px; padding: 10px 14px; border: 1px solid #c7d7fe; border-left: 5px solid var(--accent); border-radius: 10px; background: var(--accent-soft); font-size: 17px; font-weight: 700; letter-spacing: 0.1px; color: var(--text); }
 .sol-part:first-of-type { margin-top: 4px; }
+@media screen { html[data-theme="dark"] .sol-part { border-color: #2c3f66; border-left-color: var(--accent); } }
+@media print { .sol-part { break-after: avoid; } }
 .d-steps:empty { display: none; }
 .d-steps { margin-top: 10px; scroll-margin-top: 80px; }
 .d-to-steps { margin: 8px 0 0; font-size: 12.8px; }
@@ -605,4 +609,138 @@ table.grid tr[data-index] td button { cursor: pointer; }
   html[data-theme="dark"] .figure .lever-layer.ccw { color: #fb923c; }
   html[data-theme="dark"] .figure .lever-layer .lv-ring { fill: var(--card); }
   html[data-theme="dark"] .figure .lever-layer .lv-pill text { fill: #0f141b; }
+}
+/* Graue Beschriftungen der Skizze und Diagramme (#64748b, Kontrast 4.8:1) im Dark Mode heller */
+@media screen {
+  html[data-theme="dark"] .figure-box [stroke="#64748b"] { stroke: #94a3b8; }
+  html[data-theme="dark"] .figure-box [fill="#64748b"] { fill: #a3b0c2; }
+}
+/* Touch: grössere Ziele auf Tablet und Handy */
+@media (max-width: 980px) {
+  button, select, input[type="text"], .d-seg button, .d-tabs button { min-height: 40px; }
+  button.icon { min-width: 40px; min-height: 40px; }
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; }
+  .issues li button { min-height: 40px; }
+}
+/* Bemessung per Haken (standardmässig aus) */
+.d-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.d-switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.d-switch-hint { margin-left: 12px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+#designCard.is-off .d-tabs, #designCard.is-off .d-help, #designCard.is-off .d-form, #designCard.is-off .d-result { display: none; }
+#designCard:not(.is-off) .d-switch-hint { display: none; }
+@media print { #designCard.is-off { display: none !important; } }
+/* Bemessung: gelb = erfüllt, aber nur teilweise geprüft; massgebender Nachweis; Hinweise */
+.d-head.warn { background: #fffbeb; border-color: #fcd34d; }
+.d-head.warn .d-verdict { color: #b45309; }
+.d-gov { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.d-caution { color: #b45309; }
+.d-auto { white-space: nowrap; }
+@media screen {
+  html[data-theme="dark"] .d-head.warn { background: #2a2410; border-color: #6b5420; }
+  html[data-theme="dark"] .d-head.warn .d-verdict, html[data-theme="dark"] .d-caution { color: #fbbf24; }
+}
+@media (max-width: 640px) {
+  .d-head { grid-template-columns: 1fr; }
+  .d-head-eta { justify-self: start; flex-wrap: wrap; }
+}
+
+/* ---------- Querschnittsskizzen in der Bemessung ---------- */
+.d-sec-wrap { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 18px; }
+.d-sec-main { flex: 1 1 340px; min-width: 0; }
+.d-sec { flex: 0 0 250px; margin: 2px 0 6px; text-align: center; }
+.d-sec .sec-svg { display: block; width: 100%; max-width: 250px; height: auto; margin: 0 auto; }
+.d-sec figcaption { margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.d-sec-red { color: #dc2626; }
+.d-sec-hl-text { color: #a16207; }
+.sec-steel { fill: #cbd5e1; stroke: #475569; stroke-width: 1.2; }
+.sec-wood { fill: #f3dcb4; stroke: #a16207; stroke-width: 1.2; }
+.sec-ring { fill: none; stroke: #d6a35c; stroke-width: 0.8; opacity: 0.8; }
+.sec-hl { fill: rgba(250, 204, 21, 0.6); stroke: #ca8a04; stroke-width: 1; }
+.sec-hl-text { fill: #854d0e; font-size: 13px; font-weight: 700; }
+.sec-dim { stroke: #64748b; stroke-width: 0.9; }
+.sec-text { fill: #475569; font-size: 11px; }
+.sec-small { font-size: 10px; }
+.sec-axis { stroke: #94a3b8; stroke-width: 1; stroke-dasharray: 7 3 1.5 3; }
+.sec-axis-label { fill: #64748b; font-size: 12px; font-style: italic; }
+.sec-buckle { stroke: #dc2626; stroke-width: 2; }
+.sec-buckle-text { fill: #dc2626; font-weight: 700; }
+.sec-buckle-arrow { fill: none; stroke: #dc2626; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 640px) { .d-sec { flex-basis: 100%; } }
+@media screen {
+  html[data-theme="dark"] .sec-steel { fill: #475569; stroke: #cbd5e1; }
+  html[data-theme="dark"] .sec-wood { fill: #5c4326; stroke: #d6a35c; }
+  html[data-theme="dark"] .sec-ring { stroke: #a16207; }
+  html[data-theme="dark"] .sec-hl { fill: rgba(250, 204, 21, 0.45); stroke: #facc15; }
+  html[data-theme="dark"] .sec-hl-text, html[data-theme="dark"] .d-sec-hl-text { fill: #fde047; color: #fde047; }
+  html[data-theme="dark"] .sec-dim { stroke: #94a3b8; }
+  html[data-theme="dark"] .sec-text { fill: #cbd5e1; }
+  html[data-theme="dark"] .sec-axis { stroke: #64748b; }
+  html[data-theme="dark"] .sec-axis-label { fill: #94a3b8; }
+  html[data-theme="dark"] .sec-buckle, html[data-theme="dark"] .sec-buckle-arrow { stroke: #f87171; }
+  html[data-theme="dark"] .sec-buckle-text { fill: #f87171; }
+  html[data-theme="dark"] .d-sec-red { color: #f87171; }
+}
+@media print { .d-sec { break-inside: avoid; } }
+
+/* ---------- Begriffe im Erklärmodus (Bemessung) ---------- */
+.d-terms { margin: 8px 0 2px 30px; padding: 6px 10px 8px; border: 1px solid #bfdbfe; border-left: 3px solid #3b82f6; border-radius: 8px; background: #eff6ff; font-size: 13px; }
+.d-terms-title { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: #1d4ed8; font-weight: 600; }
+.d-terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; }
+.d-terms dl > div { display: contents; }
+.d-terms dt { color: #1e3a8a; font-weight: 700; white-space: nowrap; }
+.d-terms dd { margin: 0; line-height: 1.45; }
+@media (max-width: 640px) {
+  .d-terms { margin-left: 0; }
+  .d-terms dl { grid-template-columns: 1fr; gap: 0; }
+  .d-terms dd { margin-bottom: 4px; }
+}
+@media screen {
+  html[data-theme="dark"] .d-terms { border-color: #1e3a8a; border-left-color: #60a5fa; background: #131f36; }
+  html[data-theme="dark"] .d-terms-title { color: #93c5fd; }
+  html[data-theme="dark"] .d-terms dt { color: #bfdbfe; }
+}
+@media print { .d-terms { break-inside: avoid; } }
+
+/* ---------- Rückgängig / Wiederholen ---------- */
+.history-buttons { display: inline-flex; }
+.history-buttons button { min-width: 34px; padding: 4px 9px; font-size: 16px; line-height: 1.2; }
+.history-buttons button:first-child { border-radius: 8px 0 0 8px; }
+.history-buttons button:last-child { margin-left: -1px; border-radius: 0 8px 8px 0; }
+button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-color: var(--line); background: var(--card); }
+@media print { .history-buttons { display: none; } }
+
+/* ---------- Menü „Ansicht“ und Bedienhilfe über der Skizze ---------- */
+.view-menu { position: relative; }
+.view-menu > summary { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); cursor: pointer; list-style: none; user-select: none; }
+.view-menu > summary::-webkit-details-marker { display: none; }
+.view-menu > summary::after { content: "▾"; color: var(--muted); font-size: 11px; }
+.view-menu[open] > summary { border-color: var(--accent); }
+.view-menu-panel { position: absolute; top: calc(100% + 5px); left: 0; z-index: 30; display: grid; gap: 8px; min-width: 230px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); }
+.view-menu-panel label { justify-content: space-between; }
+.view-menu-panel label.check { justify-content: flex-start; }
+.figure-tools .selection-hint { margin-left: auto; }
+.selection-hint.is-hidden { display: none; }
+.drag-help { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+.drag-help > summary { display: inline-block; cursor: pointer; color: var(--accent); font-size: 12.5px; }
+.drag-help .drag-hint { margin: 4px 0 2px; }
+@media print { .view-menu, .drag-help { display: none !important; } }
+
+/* ---------- Skizze als schwebendes Fenster (Lösungsweg, wenn die Skizze weggescrollt ist) ---------- */
+.figure-peek { position: fixed; right: 14px; bottom: 14px; z-index: 40; width: min(760px, calc(100vw - 28px)); padding: 22px 8px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22); pointer-events: none; }
+.figure-peek::before { content: "Skizze"; position: absolute; top: 5px; left: 10px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+.figure-peek svg { display: block; width: 100%; height: auto; max-height: 42vh; }
+.figure-peek.at-top { bottom: auto; }
+@media print { .figure-peek { display: none !important; } }
+
+/* Handy: Eingabetabellen passen in die Breite (Richtungsfeld nicht zusammendrücken, kleinere Lösch-Knöpfe) */
+@media (max-width: 480px) {
+  table.grid td { padding: 3px 1px; }
+  table.grid td.dir { width: 46px; min-width: 46px; }
+  table.grid td.dir select { min-width: 44px; }
+  table.grid td.tools { width: 32px; }
+  table.grid button.icon { min-width: 32px; padding: 2px 4px; }
+  label.cell { gap: 3px; }
+  label.cell input { min-width: 30px; padding-left: 3px; padding-right: 3px; }
+  label.cell span { flex: 0 0 auto; font-size: 11px; min-width: 0; }
+  .name-input[type="text"] { width: 42px; }
 }

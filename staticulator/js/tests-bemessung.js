@@ -3,6 +3,8 @@ import { solve, internalForces } from './statik.js';
 import { deflection, steelColumn, steelAxis, timberColumn, steelBeam, timberBeam, maxSpan, kcTableRow, STEEL_GRADES, TIMBER } from './bemessung.js';
 import { PROFILES } from '../data/profiles.js';
 import { GRIDS, TABLE } from '../data/c4.js';
+import { steelSectionSvg, timberSectionSvg } from './section-svg.js';
+import { termsBox } from './design-terms.js';
 
 const C4 = { GRIDS, TABLE };
 const profile = (name) => PROFILES.find((p) => p.n === name);
@@ -118,7 +120,7 @@ function beamDesignTests() {
 }
 
 export function runDesignTests() {
-  return [deflectionTests(), columnTests(), beamDesignTests(), ...courseTests()];
+  return [deflectionTests(), columnTests(), beamDesignTests(), sketchTests(), ...courseTests()];
 }
 
 // Musterlösungen aus dem Unterricht (Baustatik, Bauschule): Knicken Stahl (C4/21, C4/06), Knicken Holz (HBT 2021),
@@ -194,4 +196,30 @@ function courseTests() {
     { title: 'Musterlösungen Holzstützen', source: 'Lösungen Knicken Holz HBT 2021, LA-4 SS24 (k_c wie aus der Tabelle)', checks: timber },
     { title: 'Musterlösungen Träger', source: 'Skript 2.4 (HTy-25), LA-3 SS24', checks: beams },
   ];
+}
+
+// Querschnittsskizzen und Begriffe: jedes Profil zeichnet ohne NaN, die Formelzeichen werden erkannt
+function sketchTests() {
+  const checks = [];
+  const bad = [];
+  for (const p of PROFILES) {
+    for (const options of [{}, { highlight: 'shear' }, { buckling: 'z' }, { buckling: 'y' }]) {
+      const svg = steelSectionSvg(p, options);
+      if (/NaN|undefined|Infinity/.test(svg) || !svg.startsWith('<svg')) bad.push(`${p.n} ${JSON.stringify(options)}`);
+    }
+  }
+  checks.push({ ok: bad.length === 0, text: `Skizzen aller ${PROFILES.length} Stahlprofile (normal, A_v, Knicken y/z)${bad.length ? `: Fehler bei ${bad.slice(0, 5).join(', ')}` : ' ohne NaN'}` });
+  const wood = [timberSectionSvg({ shape: 'rect', b: 160, h: 400 }), timberSectionSvg({ shape: 'rect', b: 240, h: 120 }, { buckling: 'z' }), timberSectionSvg({ shape: 'round', d: 220 }, { buckling: 'y' })];
+  checks.push({ ok: wood.every((s) => s.startsWith('<svg') && !/NaN|undefined/.test(s)), text: 'Holzskizzen Rechteck (hoch, flach) und Rundholz ohne NaN' });
+  // KaTeX-Annotation nachgebildet (so legt KaTeX den TeX-Quelltext ab)
+  const annotated = (source) => `<annotation encoding="application/x-tex">${source.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</annotation>`;
+  const seen = new Set();
+  const first = termsBox(annotated(String.raw`W_{pl,y,erf} = \frac{M_d \cdot \gamma_{M1}}{f_y}`) + annotated(String.raw`M_{Rd} = 10 \le 12`), seen);
+  const names = [...first.matchAll(/<dt>(.*?)<\/dt>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''));
+  const again = termsBox(annotated(String.raw`M_{Rd} = W_{pl,y} \cdot f_y`), seen);
+  checks.push({ ok: names.join(' ') === 'Wpl,y erf Md γM1 fy MRd' && again === '', text: `Begriffe in der Reihenfolge des Auftretens: ${names.join(', ')}; zweites Mal nicht wiederholt: ${again === '' ? 'ja' : 'nein'}` });
+  const timber = termsBox(annotated(String.raw`\lambda_y = \frac{L_{K}}{i_y} = 43.3,\qquad \lambda_{rel,y} = 0.72`) + annotated(String.raw`k_{c,y} = 0.85`), new Set());
+  const tnames = [...timber.matchAll(/<dt>(.*?)<\/dt>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''));
+  checks.push({ ok: tnames.join(' ') === 'λ LK iy, iz λrel kc', text: `Holz: ${tnames.join(', ')} (soll λ, LK, iy/iz, λrel, kc)` });
+  return { title: 'Skizzen und Begriffe', source: 'section-svg.js, design-terms.js', checks };
 }

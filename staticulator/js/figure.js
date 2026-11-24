@@ -14,9 +14,9 @@ export const COLORS = {
   q: '#b8329e',
   qFill: 'rgba(184, 50, 158, 0.08)',
   reaction: '#15803d',
-  dim: '#7b8794',
+  dim: '#64748b',
   text: '#1f2933',
-  muted: '#7b8794',
+  muted: '#64748b',
   pivot: '#2563eb',
 };
 

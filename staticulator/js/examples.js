@@ -175,6 +175,8 @@ export const EXAMPLES = [
       loads: [Q('down', 150, -2, 0), Q('down', 100, 0, 3.3), F('down', 300, 3.3), Q('up', 100, 3.3, 6.6), F('up', 150, 8.6)],
       pivot: 'B',
     },
+    // Die Aufgabe fragt nach der Holzstütze unter A: Bemessung direkt dort öffnen
+    design: { tab: 'column', material: 'timber' },
     expect: null,
   },
   {

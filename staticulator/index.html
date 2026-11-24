@@ -34,6 +34,7 @@
   <nav class="actions">
     <label class="example-picker"><span>Beispiel</span><select id="exampleSelect"></select></label>
     <button type="button" id="newButton">Neu</button>
+    <span class="history-buttons"><button type="button" id="undoButton" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button><button type="button" id="redoButton" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button></span>
     <button type="button" id="shareButton">Link kopieren</button>
     <button type="button" id="saveButton">Speichern</button>
     <button type="button" id="openButton">Öffnen</button>
@@ -98,32 +99,39 @@
     </section>
   </aside>
 
-  <section class="results" aria-live="polite">
+  <section class="results">
     <section class="card result-head">
       <div id="taskTitle" class="task-title"></div>
-      <div id="summary"></div>
-      <div id="messages"></div>
+      <div id="summary" aria-live="polite"></div>
+      <div id="messages" aria-live="polite"></div>
     </section>
     <section class="card">
       <div class="card-head"><h2>System und Auflagerreaktionen</h2></div>
       <div class="figure-tools">
         <label class="check"><input type="checkbox" id="snapCheck" checked> Einrasten</label>
-        <label class="check"><input type="checkbox" id="snapPointsCheck" checked> an Punkten</label>
         <label class="check"><input type="checkbox" id="gridCheck"> Raster anzeigen</label>
-        <label>Raster <select id="gridSelect">
-          <option value="0.01">0.01 m</option><option value="0.05" selected>0.05 m</option><option value="0.1">0.10 m</option><option value="0.25">0.25 m</option><option value="0.5">0.50 m</option><option value="1">1.00 m</option>
-        </select></label>
-        <label class="check"><input type="checkbox" id="angleCheck" checked> Winkel</label>
         <label class="check" title="Bei gewählter Last Hebelarm und Drehsinn zum Drehpunkt zeigen"><input type="checkbox" id="leverCheck" checked> Hebelarm</label>
-        <label class="check" title="Zeigt die Lage des Mauszeigers in Metern"><input type="checkbox" id="coordCheck"> Koordinaten</label>
         <label class="check" title="Skizze nach Längen- und Kräftemassstab zeichnen, Werte in cm fürs Blatt"><input type="checkbox" id="scaleCheck"> Massstab</label>
-        <label>Markierung <select id="highlightSelect" title="Wie angewählte Elemente hervorgehoben werden">
-          <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Schein</option><option value="none">ohne</option>
-        </select></label>
-        <label class="check" title="Nicht gewählte Elemente treten zurück, solange etwas ausgewählt ist"><input type="checkbox" id="dimCheck" checked> Rest abblenden</label>
+        <details class="view-menu" id="viewMenu">
+          <summary title="Weitere Einstellungen der Skizze">Ansicht</summary>
+          <div class="view-menu-panel">
+            <label class="check"><input type="checkbox" id="snapPointsCheck" checked> Einrasten an Punkten</label>
+            <label>Rasterweite <select id="gridSelect">
+              <option value="0.01">0.01 m</option><option value="0.05" selected>0.05 m</option><option value="0.1">0.10 m</option><option value="0.25">0.25 m</option><option value="0.5">0.50 m</option><option value="1">1.00 m</option>
+            </select></label>
+            <label class="check"><input type="checkbox" id="angleCheck" checked> Winkel anzeigen</label>
+            <label class="check" title="Zeigt die Lage des Mauszeigers in Metern"><input type="checkbox" id="coordCheck"> Koordinaten</label>
+            <label>Markierung <select id="highlightSelect" title="Wie angewählte Elemente hervorgehoben werden">
+              <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Schein</option><option value="none">ohne</option>
+            </select></label>
+            <label class="check" title="Nicht gewählte Elemente treten zurück, solange etwas ausgewählt ist"><input type="checkbox" id="dimCheck" checked> Rest abblenden</label>
+          </div>
+        </details>
         <span id="selectionHint" class="selection-hint is-hidden">Masse nur für die Auswahl · blaues Mass anklicken zum Ändern · Esc zeigt alle</span>
       </div>
-      <p class="drag-hint">Lager, Lasten, Streckenlasten und Achse mit der Maus ziehen. Gewählte Stäbe zeigen Griffe: Quadrat = Stabende (Länge, Knoten), Kreis = ganzen Stab verschieben. Umschalttaste: nur waagrecht/senkrecht, Alt: ohne Einrasten, Pfeiltasten: Auswahl um einen Rasterschritt verschieben, Esc bricht ab. Ein Klick wählt ein Element aus (Strg+Klick: mehrere), die Masse zeigen dann nur noch die Auswahl. Mit „Massstab“ zeichnet die Skizze nach Längen- und Kräftemassstab (Werte in cm fürs Blatt).</p>
+      <details class="drag-help"><summary>Bedienung: ziehen, wählen, Tasten</summary>
+      <p class="drag-hint">Lager, Lasten, Streckenlasten und Achse mit der Maus oder dem Finger ziehen. Gewählte Stäbe zeigen Griffe: Quadrat = Stabende (Länge, Knoten), Kreis = ganzen Stab verschieben. Umschalttaste: nur waagrecht/senkrecht, Alt: ohne Einrasten, Pfeiltasten: Auswahl um einen Rasterschritt verschieben, Esc bricht ab. Ein Klick wählt ein Element aus (Strg+Klick: mehrere), die Masse zeigen dann nur noch die Auswahl. Strg+Z macht rückgängig, Strg+Y wiederholt. Im Lösungsweg zeigt das Zeigen auf ein Glied (auf dem Handy: Antippen) die Last und den Hebelarm in der Skizze. Mit „Massstab“ zeichnet die Skizze nach Längen- und Kräftemassstab (Werte in cm fürs Blatt).</p>
+      </details>
       <div id="figure" class="figure-box"></div>
     </section>
     <section class="card" id="diagramCard">
@@ -154,7 +162,7 @@
       </div>
     </section>
     <section class="card" id="designCard">
-      <div class="card-head"><h2>Bemessung</h2>
+      <div class="card-head"><h2><label class="d-switch" title="Bemessung von Träger oder Stütze ein- und ausblenden"><input type="checkbox" id="designCheck"> Bemessung</label><span class="d-switch-hint">Träger und Stütze (Knicken) in Stahl oder Holz</span></h2>
         <div class="d-tabs" id="designTabs" role="tablist">
           <button type="button" role="tab" data-tab="beam">Träger</button>
           <button type="button" role="tab" data-tab="column">Stütze (Knicken)</button>
@@ -182,5 +190,6 @@
 </footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="termTip" class="term-tip" role="tooltip" hidden></div>
+<div id="figurePeek" class="figure-peek" aria-hidden="true" hidden></div>
 </body>
 </html>

@@ -116,7 +116,7 @@ function diagram(forces, layout, kind, decimals, supportsByX) {
   const title = kind === 'V' ? 'V-Fläche (Querkraft)' : 'M-Fläche (Biegemoment)';
 
   parts.push(text(8, 16, `${title} [${unit}]`, { anchor: 'start', size: 13, weight: 700 }));
-  parts.push(text(8, 32, '+ unten, − oben', { anchor: 'start', size: 11, color: '#7b8794' }));
+  parts.push(text(8, 32, '+ unten, − oben', { anchor: 'start', size: 11, color: '#64748b' }));
 
   // Hilfslinien an allen Ereignisstellen
   for (const e of forces.events) {
@@ -261,7 +261,7 @@ export function renderDeflection(data, layout, supportsByX, eventXs = []) {
   const subtitle = `+ unten, − oben · ${data.name}, E·I = ${Math.round(data.EI).toLocaleString('de-CH')} kNm²`;
   const parts = [];
   parts.push(text(8, 16, title, { anchor: 'start', size: 13, weight: 700 }));
-  parts.push(text(8, 32, subtitle, { anchor: 'start', size: 11, color: '#7b8794' }));
+  parts.push(text(8, 32, subtitle, { anchor: 'start', size: 11, color: '#64748b' }));
   for (const x of eventXs) {
     parts.push(`<line x1="${r(X(x))}" y1="${r(base - AMPLITUDE - 14)}" x2="${r(X(x))}" y2="${r(base + AMPLITUDE + 14)}" stroke="#e7ebf0" stroke-width="1" shape-rendering="crispEdges"/>`);
   }
