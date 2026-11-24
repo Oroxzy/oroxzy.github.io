@@ -463,6 +463,16 @@
             line-height: 1.25;
         }
 
+        .title-link {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .title-link:hover,
+        .title-link:focus-visible {
+            text-decoration: underline;
+        }
+
         .description {
             flex: 1;
             display: -webkit-box;
@@ -960,8 +970,8 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-11-24-staticulator-web';
-        const detailsFilePath = 'details.json?v=2026-11-24-staticulator-web';
+        const csvFilePath = 'downloads.csv?v=2026-11-25-staticulator-web-2';
+        const detailsFilePath = 'details.json?v=2026-11-25-staticulator-web-2';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
@@ -1279,7 +1289,8 @@
                         const imageButton = document.createElement('button');
                         imageButton.type = 'button';
                         imageButton.className = 'image-button';
-                        imageButton.setAttribute('aria-label', `${item.titel} vergrößern`);
+                        imageButton.setAttribute('aria-label', item.webpfad ? `${item.titel} im Browser öffnen` : `${item.titel} vergrößern`);
+                        if (item.webpfad) imageButton.title = 'Im Browser öffnen';
 
                         const img = document.createElement('img');
                         img.src = item.picturepfad;
@@ -1289,7 +1300,10 @@
 
                         imageButton.appendChild(img);
                         imageButton.addEventListener('click', () => {
-                            if (item.previewvideopfad) {
+                            // Web-App: ein Klick aufs Bild öffnet die App selbst
+                            if (item.webpfad) {
+                                window.location.href = item.webpfad;
+                            } else if (item.previewvideopfad) {
                                 openVideoPopup(item.previewvideopfad, `${item.titel} Vorschau`);
                             } else {
                                 openPopup(item.picturepfad, item.titel);
@@ -1314,7 +1328,15 @@
                     }
 
                     const title = document.createElement('h4');
-                    title.textContent = item.titel;
+                    if (item.webpfad) {
+                        const titleLink = document.createElement('a');
+                        titleLink.className = 'title-link';
+                        titleLink.href = item.webpfad;
+                        titleLink.textContent = item.titel;
+                        title.appendChild(titleLink);
+                    } else {
+                        title.textContent = item.titel;
+                    }
 
                     const desc = document.createElement('p');
                     desc.className = 'description';
