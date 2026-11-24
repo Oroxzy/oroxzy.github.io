@@ -960,8 +960,8 @@
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-11-24-beamsmith-6.2.2.2';
-        const detailsFilePath = 'details.json?v=2026-11-24-beamsmith-6.2.2.2';
+        const csvFilePath = 'downloads.csv?v=2026-11-24-staticulator-web';
+        const detailsFilePath = 'details.json?v=2026-11-24-staticulator-web';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
@@ -1003,7 +1003,8 @@
                     datum,
                     kategorie,
                     previewvideopfad,
-                    downloadpfad_linux
+                    downloadpfad_linux,
+                    webpfad
                 ] = row.split(';');
 
                 return {
@@ -1017,7 +1018,8 @@
                     datum: datum?.trim(),
                     kategorie: kategorie?.trim(),
                     previewvideopfad: previewvideopfad?.trim(),
-                    downloadpfad_linux: downloadpfad_linux?.trim()
+                    downloadpfad_linux: downloadpfad_linux?.trim(),
+                    webpfad: webpfad?.trim()
                 };
             }).filter(item => item.titel && item.kategorie);
         }
@@ -1163,6 +1165,33 @@
             return wrapper;
         }
 
+        // Web-App: läuft direkt im Browser, ohne Download und ohne Installation
+        function createWebLink(href) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'download-action';
+
+            const link = document.createElement('a');
+            link.className = 'download-link web-link';
+            link.href = href;
+            link.title = 'Im Browser öffnen';
+
+            const icon = document.createElement('span');
+            icon.className = 'action-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = '↗';
+
+            const linkLabel = document.createElement('span');
+            linkLabel.textContent = 'Im Browser öffnen';
+            link.append(icon, linkLabel);
+
+            const note = document.createElement('span');
+            note.className = 'download-count';
+            note.textContent = 'ohne Installation';
+
+            wrapper.append(link, note);
+            return wrapper;
+        }
+
         function createDetailButton(item) {
             const button = document.createElement('button');
             button.type = 'button';
@@ -1191,8 +1220,8 @@
 
                 if (aPriority !== bPriority) return aPriority - bPriority;
 
-                const aHasDownload = Boolean(a.downloadpfad_windows || a.downloadpfad_mac);
-                const bHasDownload = Boolean(b.downloadpfad_windows || b.downloadpfad_mac);
+                const aHasDownload = Boolean(a.downloadpfad_windows || a.downloadpfad_mac || a.webpfad);
+                const bHasDownload = Boolean(b.downloadpfad_windows || b.downloadpfad_mac || b.webpfad);
 
                 if (aHasDownload !== bHasDownload) return aHasDownload ? -1 : 1;
 
@@ -1280,7 +1309,7 @@
                         topLine.appendChild(createBadge('Aktuell', 'latest'));
                     }
 
-                    if (!item.downloadpfad_windows && !item.downloadpfad_mac) {
+                    if (!item.downloadpfad_windows && !item.downloadpfad_mac && !item.webpfad) {
                         topLine.appendChild(createBadge('Noch nicht verfügbar', 'unavailable'));
                     }
 
@@ -1306,6 +1335,10 @@
 
                     const actions = document.createElement('div');
                     actions.className = 'actions';
+
+                    if (item.webpfad) {
+                        actions.appendChild(createWebLink(item.webpfad));
+                    }
 
                     if (item.downloadpfad_windows) {
                         const winKey = getDownloadKey(item, 'win');

@@ -81,5 +81,38 @@
       "Formeln schneller vergleichen"
     ],
     "notes": "TrigoBro ist als Lernhilfe gedacht und legt Wert auf verständliche Rechenwege."
+  },
+  "StatiCulator": {
+    "tagline": "Träger auf zwei Auflagern im Browser rechnen und den Lösungsweg Schritt für Schritt verstehen.",
+    "features": [
+      "Trägerachse, Lager und Lasten in Tabellen eingeben oder direkt in der Skizze ziehen",
+      "Gerade, abgestufte und geknickte Träger, Lager an Stützen oder Hängern",
+      "Auflagerreaktionen mit Lösungsweg wie in den Musterlösungen: ΣH, ΣM um den gewählten Drehpunkt, ΣV und Kontrolle",
+      "Erklärmodus mit „Warum?“-Hinweisen zu jedem Schritt und Hebelarmen in der Skizze",
+      "Querkraft- und Momentenfläche mit Extremwerten und Nullstellen",
+      "Biegelinie des gewählten Trägers mit Grenzwerten im Feld und an Kragarmen",
+      "Bemessung von Stahl- und Holzträgern: Biegung, Querkraft, Querdruck, Durchbiegung, grösste Spannweite",
+      "Stützen auf Knicken in Stahl (SIA 263, Vergleich mit SZS C4) und Holz (SIA 265, HBT 2021)",
+      "Vermassung wie im Bauplan, Zeichnen im Massstab für die Prüfung",
+      "Dark Mode, Druck und PDF, Link teilen, Speichern und Öffnen"
+    ],
+    "inputs": [
+      "Achspunkte, Lagerart und Lagerhöhen",
+      "Einzellasten, Horizontallasten und Streckenlasten mit eigenen Namen",
+      "Werkstoff, Profilreihe oder Holzklasse, Lastbeiwert und Knicklänge"
+    ],
+    "outputs": [
+      "Auflagerkräfte mit vollständigem Rechenweg",
+      "Querkraft-, Momentenfläche und Biegelinie",
+      "Profilwahl mit Ausnutzung und Nachbarprofilen",
+      "Knickwiderstand mit Rechenweg und Tabellenvergleich"
+    ],
+    "useCases": [
+      "Übungen und Prüfungsaufgaben der Baustatik nachrechnen",
+      "Den Lösungsweg zu Auflagerkräften verstehen",
+      "Träger und Stützen schnell vorbemessen",
+      "Skizzen im Massstab fürs Blatt vorbereiten"
+    ],
+    "notes": "StatiCulator ist eine Lernhilfe und ersetzt keine fachkundige Prüfung. Läuft ohne Installation in jedem aktuellen Browser."
   }
 }
