@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>StatiCulator Web – Tests</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; color: #18212b; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 15px; margin: 18px 0 2px; }
+  .src { margin: 0; color: #64748b; font-size: 12px; }
+  ul { margin: 4px 0; padding-left: 18px; }
+  .ok { color: #15803d; }
+  .bad { color: #b91c1c; font-weight: 600; }
+  #summary { font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>StatiCulator Web – Rechenkern gegen Musterlösungen</h1>
+<div id="out">Läuft …</div>
+<script type="module">
+  import { renderTests } from './js/tests.js';
+  try {
+    renderTests(document.getElementById('out'));
+  } catch (error) {
+    document.getElementById('out').textContent = 'Absturz: ' + (error && error.stack ? error.stack : error);
+  }
+</script>
+</body>
+</html>

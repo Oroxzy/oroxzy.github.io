@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatiCulator – Träger auf zwei Auflagern</title>
+<meta name="description" content="Auflagerreaktionen, Querkraft- und Momentenfläche für Träger auf zwei Auflagern – mit Lösungsweg Schritt für Schritt (ΣH, ΣM, ΣV).">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="author" content="Jeremy Meile">
+<script>
+  // Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen): auto, hell oder dunkel
+  (function () {
+    try {
+      var choice = localStorage.getItem('staticulator-theme') || 'auto';
+      var dark = choice === 'dark' || (choice === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) { /* ohne Speicher: hell */ }
+  })();
+</script>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="css/app.css">
+<script defer src="vendor/katex/katex.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img class="logo" src="favicon.svg" alt="" width="36" height="36">
+    <div>
+      <h1>Stati<span>Culator</span></h1>
+      <p>Träger auf zwei Auflagern · Auflagerreaktionen mit Lösungsweg · <span class="credit">© 2026 Jeremy Meile</span></p>
+    </div>
+  </div>
+  <nav class="actions">
+    <label class="example-picker"><span>Beispiel</span><select id="exampleSelect"></select></label>
+    <button type="button" id="newButton">Neu</button>
+    <button type="button" id="shareButton">Link kopieren</button>
+    <button type="button" id="saveButton">Speichern</button>
+    <button type="button" id="openButton">Öffnen</button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    <button type="button" id="printButton">Drucken / PDF</button>
+    <button type="button" id="themeButton" class="theme-button" title="Farbschema: automatisch, hell oder dunkel">◐ Auto</button>
+  </nav>
+</header>
+
+<main class="layout">
+  <aside class="inputs" aria-label="Eingabe">
+    <section class="card">
+      <div class="card-head">
+        <h2>Aufgabe</h2>
+      </div>
+      <input type="text" id="titleInput" class="title-input" placeholder="Titel (optional)">
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Trägerachse</h2>
+        <button type="button" class="small" data-action="add-axis">+ Punkt</button>
+      </div>
+      <p class="help">Eckpunkte der Achse in m (x nach rechts, z nach oben). Gerader Träger: zwei Punkte mit z = 0. Abgestufter Träger: weitere Punkte mit anderer Höhe.</p>
+      <table class="grid" id="axisTable"></table>
+      <ul class="issues" id="axisIssues" aria-live="polite"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Auflager</h2>
+      </div>
+      <p class="help">Festes Gelenklager nimmt H und V auf, Rollenlager nur V. z leer = auf der Achse; ein anderes z setzt das Lager an den Fuss einer Stütze oder an einen Hänger.</p>
+      <table class="grid" id="supportTable"></table>
+      <ul class="issues" id="supportIssues" aria-live="polite"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Lasten</h2>
+      </div>
+      <p class="help">Werte in kN bzw. kN/m. Ein Minus kehrt die Richtung um. z nur bei Kräften neben der Achse (Stiel, Konsole); leer = auf der Achse.</p>
+      <table class="grid" id="loadTable"></table>
+      <ul class="issues" id="loadIssues" aria-live="polite"></ul>
+      <div class="row-actions">
+        <button type="button" class="small" data-action="add-point">+ Einzellast</button>
+        <button type="button" class="small" data-action="add-horizontal">+ Horizontallast</button>
+        <button type="button" class="small" data-action="add-q">+ Streckenlast</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Darstellung</h2>
+      </div>
+      <div class="options">
+        <label>Drehpunkt (DP) <select id="pivotSelect"></select></label>
+        <label>Dezimalstellen <select id="decimalsSelect">
+          <option value="0">0</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
+        </select></label>
+      </div>
+    </section>
+  </aside>
+
+  <section class="results" aria-live="polite">
+    <section class="card result-head">
+      <div id="taskTitle" class="task-title"></div>
+      <div id="summary"></div>
+      <div id="messages"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>System und Auflagerreaktionen</h2></div>
+      <div class="figure-tools">
+        <label class="check"><input type="checkbox" id="snapCheck" checked> Einrasten</label>
+        <label class="check"><input type="checkbox" id="snapPointsCheck" checked> an Punkten</label>
+        <label class="check"><input type="checkbox" id="gridCheck"> Raster anzeigen</label>
+        <label>Raster <select id="gridSelect">
+          <option value="0.01">0.01 m</option><option value="0.05" selected>0.05 m</option><option value="0.1">0.10 m</option><option value="0.25">0.25 m</option><option value="0.5">0.50 m</option><option value="1">1.00 m</option>
+        </select></label>
+        <label class="check"><input type="checkbox" id="angleCheck" checked> Winkel</label>
+        <label class="check" title="Bei gewählter Last Hebelarm und Drehsinn zum Drehpunkt zeigen"><input type="checkbox" id="leverCheck" checked> Hebelarm</label>
+        <label class="check" title="Zeigt die Lage des Mauszeigers in Metern"><input type="checkbox" id="coordCheck"> Koordinaten</label>
+        <label class="check" title="Skizze nach Längen- und Kräftemassstab zeichnen, Werte in cm fürs Blatt"><input type="checkbox" id="scaleCheck"> Massstab</label>
+        <label>Markierung <select id="highlightSelect" title="Wie angewählte Elemente hervorgehoben werden">
+          <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Schein</option><option value="none">ohne</option>
+        </select></label>
+        <label class="check" title="Nicht gewählte Elemente treten zurück, solange etwas ausgewählt ist"><input type="checkbox" id="dimCheck" checked> Rest abblenden</label>
+        <span id="selectionHint" class="selection-hint is-hidden">Masse nur für die Auswahl · blaues Mass anklicken zum Ändern · Esc zeigt alle</span>
+      </div>
+      <p class="drag-hint">Lager, Lasten, Streckenlasten und Achse mit der Maus ziehen. Gewählte Stäbe zeigen Griffe: Quadrat = Stabende (Länge, Knoten), Kreis = ganzen Stab verschieben. Umschalttaste: nur waagrecht/senkrecht, Alt: ohne Einrasten, Pfeiltasten: Auswahl um einen Rasterschritt verschieben, Esc bricht ab. Ein Klick wählt ein Element aus (Strg+Klick: mehrere), die Masse zeigen dann nur noch die Auswahl. Mit „Massstab“ zeichnet die Skizze nach Längen- und Kräftemassstab (Werte in cm fürs Blatt).</p>
+      <div id="figure" class="figure-box"></div>
+    </section>
+    <section class="card" id="diagramCard">
+      <div class="card-head"><h2>Querkraft- und Momentenfläche</h2>
+        <label class="diagram-scheme" title="Farben der Flächen">Farben <select id="schemeSelect">
+          <option value="family">je Fläche (plus kühl, minus warm)</option><option value="sign">nach Vorzeichen (blau/rot)</option><option value="six">6 Farben</option>
+        </select></label>
+      </div>
+      <div id="diagrams" class="figure-box" data-scheme="family"></div>
+      <div id="deflectionDiagram" class="figure-box deflection-box" hidden></div>
+    </section>
+    <section class="card" id="scaleCard" hidden>
+      <div class="card-head"><h2>Zeichnen im Massstab</h2></div>
+      <p class="help">Für die Zeichnung auf dem Blatt: Längen, Kräfte und Momente in Zentimeter umgerechnet. Massstäbe wie in der Aufgabe einstellen oder den Vorschlag übernehmen (passt auf ein A4-Blatt).</p>
+      <div class="scale-controls">
+        <label>Länge: 1 cm ≙ <input type="text" inputmode="decimal" id="scaleLength" class="scale-input" autocomplete="off"> m <span id="scaleRatio" class="scale-ratio"></span></label>
+        <label>Kraft: 1 cm ≙ <input type="text" inputmode="decimal" id="scaleForce" class="scale-input" autocomplete="off"> kN</label>
+        <label>Moment: 1 cm ≙ <input type="text" inputmode="decimal" id="scaleMoment" class="scale-input" autocomplete="off"> kNm</label>
+        <button type="button" class="small" id="scaleSuggest" title="Runde Massstäbe wählen, mit denen alles auf ein A4-Blatt passt">Vorschlag</button>
+      </div>
+      <div id="scaleTables" class="scale-tables"></div>
+      <div class="scale-converter">
+        <strong>Umrechnen</strong>
+        <label><input type="text" inputmode="decimal" id="convValue" class="scale-input" autocomplete="off" placeholder="Wert">
+          <select id="convUnit"><option value="length">m</option><option value="force">kN</option><option value="moment">kNm</option></select>
+          → <output id="convToPaper">–</output> cm auf dem Blatt</label>
+        <label><input type="text" inputmode="decimal" id="convPaper" class="scale-input" autocomplete="off" placeholder="cm"> cm gemessen → <output id="convFromPaper">–</output></label>
+      </div>
+    </section>
+    <section class="card" id="designCard">
+      <div class="card-head"><h2>Bemessung</h2>
+        <div class="d-tabs" id="designTabs" role="tablist">
+          <button type="button" role="tab" data-tab="beam">Träger</button>
+          <button type="button" role="tab" data-tab="column">Stütze (Knicken)</button>
+        </div>
+      </div>
+      <p class="help d-help">Träger: M und V kommen aus dem System oben. Stütze: ein Lager in der Skizze nach unten ziehen – Länge und Normalkraft kommen dann von dort. Der Rechenweg steht unten im Lösungsweg.</p>
+      <div id="designForm" class="d-form"></div>
+      <div id="designResult" class="d-result"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Lösungsweg</h2>
+        <label class="explain-toggle" title="Zu jedem Schritt erklären, warum er so gemacht wird"><input type="checkbox" id="explainCheck"> Schritt für Schritt erklären</label>
+      </div>
+      <h3 class="sol-part" id="staticsPart" hidden>Auflagerreaktionen und Schnittgrössen</h3>
+      <div id="solution"></div>
+      <div id="designSteps" class="d-steps"></div>
+    </section>
+  </section>
+</main>
+
+<footer class="footer">
+  <p class="footer-credit">© 2026 Jeremy Meile · StatiCulator</p>
+  <p>Starrkörper-Gleichgewicht mit ΣH = 0, ΣM = 0 und ΣV = 0. Querkraft- und Momentenfläche für gerade Träger, positive Werte unten. Ohne Gewähr – Ergebnisse bitte selbst prüfen.</p>
+  <p><a href="tests.html">Rechenkern-Tests mit den Musterlösungen</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz)</p>
+</footer>
+<div id="toast" class="toast" role="status" hidden></div>
+<div id="termTip" class="term-tip" role="tooltip" hidden></div>
+</body>
+</html>
