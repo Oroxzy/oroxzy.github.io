@@ -836,3 +836,37 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
   html[data-theme="dark"] #diagrams .dg-val.dg-neg, html[data-theme="dark"] #deflectionDiagram .dg-val.dg-neg { fill: var(--dg-neg); }
   html[data-theme="dark"] .figure .lever-layer.ccw .lv-pill rect { fill: currentColor; }
 }
+
+/* ---------- Aufgabe aus Foto ---------- */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.photo-dialog { width: min(480px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 18px 20px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--text); box-shadow: 0 18px 50px rgba(15, 23, 42, 0.3); }
+.photo-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+.photo-dialog h2 { margin: 0 0 6px; font-size: 17px; }
+.photo-dialog .help { margin: 0 0 12px; color: var(--muted); }
+.photo-pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 120px; padding: 12px; border: 1.5px dashed #b8c2cc; border-radius: 10px; background: var(--soft); color: var(--accent); font-weight: 600; text-align: center; cursor: pointer; }
+.photo-pick:hover { border-color: var(--accent); }
+.photo-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.photo-pick img { display: block; max-width: 100%; max-height: 38vh; border-radius: 6px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18); }
+.photo-hint { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+.photo-hint input[type="text"] { width: 100%; }
+.photo-privacy { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.photo-turnstile:not(:empty) { margin-top: 10px; }
+.photo-status { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--soft); font-size: 13px; }
+.photo-status.busy { color: var(--accent); background: var(--accent-soft); }
+.photo-status.error { color: var(--red); background: color-mix(in srgb, var(--red) 10%, var(--card)); }
+.photo-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.photo-actions .primary { border-color: var(--accent); background: var(--accent); color: #ffffff; font-weight: 600; }
+.photo-actions .primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000000); }
+.import-notice { position: relative; margin-bottom: 12px; padding: 10px 34px 10px 12px; border: 1px solid #f5c26b; border-left: 4px solid #d97706; border-radius: var(--radius); background: #fffbeb; font-size: 13px; }
+.import-notice strong { display: block; color: #92400e; }
+.import-notice p { margin: 3px 0 0; }
+.import-notice ul { margin: 6px 0 0; padding-left: 18px; }
+.import-notice .import-remaining { color: var(--muted); font-size: 12px; }
+.import-close { position: absolute; top: 6px; right: 6px; }
+@media screen {
+  html[data-theme="dark"] .import-notice { border-color: #7c5a1d; border-left-color: #f59e0b; background: #2a2214; }
+  html[data-theme="dark"] .import-notice strong { color: #fbbf24; }
+  html[data-theme="dark"] .photo-pick { border-color: #3b4656; }
+  html[data-theme="dark"] .photo-actions .primary { color: #0f141b; }
+}
+@media print { .import-notice, .photo-dialog { display: none !important; } }

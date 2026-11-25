@@ -39,6 +39,7 @@
     <button type="button" id="saveButton">Speichern</button>
     <button type="button" id="openButton">Öffnen</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    <button type="button" id="photoButton" title="Aufgabe von einem Foto übernehmen (KI)" hidden>Aus Foto</button>
     <button type="button" id="printButton">Drucken / PDF</button>
     <button type="button" id="themeButton" class="theme-button" title="Farbschema: automatisch, hell oder dunkel">◐ Auto</button>
   </nav>
@@ -46,6 +47,13 @@
 
 <main class="layout">
   <aside class="inputs" aria-label="Eingabe">
+    <div id="importNotice" class="import-notice" role="status" hidden>
+      <button type="button" class="icon import-close" id="importClose" aria-label="Hinweis schliessen" title="Schliessen">✕</button>
+      <strong>Aus Foto übernommen – bitte prüfen</strong>
+      <p>Masse, Lager und Lasten mit der Aufgabe vergleichen und Fehler direkt in den Tabellen korrigieren. ↶ holt den vorherigen Stand zurück.</p>
+      <ul id="importNotes" hidden></ul>
+      <p id="importRemaining" class="import-remaining" hidden></p>
+    </div>
     <section class="card">
       <div class="card-head">
         <h2>Aufgabe</h2>
@@ -189,6 +197,25 @@
   <p><a href="tests.html">Rechenkern-Tests mit den Musterlösungen</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz)</p>
 </footer>
 <div id="toast" class="toast" role="status" hidden></div>
+<dialog id="photoDialog" class="photo-dialog" aria-labelledby="photoTitle">
+  <h2 id="photoTitle">Aufgabe aus Foto</h2>
+  <p class="help">Foto der Trägeraufgabe wählen oder aufnehmen. Die KI überträgt Träger, Lager und Lasten in die Eingabe; danach bitte alle Masse und Werte prüfen.</p>
+  <label class="photo-pick">
+    <input type="file" id="photoInput" accept="image/*" class="visually-hidden">
+    <img id="photoPreview" alt="Gewähltes Foto" hidden>
+    <span id="photoPickText">Foto wählen oder aufnehmen …</span>
+  </label>
+  <label class="photo-hint">Hinweis an die KI (optional)
+    <input type="text" id="photoHint" maxlength="300" placeholder="z. B. nur Aufgabe 2, Masse in cm">
+  </label>
+  <p class="photo-privacy">Das Foto geht zur Auswertung über einen Cloudflare-Server an Claude (Anthropic). Die App selbst speichert es nicht. Vorher prüft Cloudflare Turnstile kurz, dass kein Bot anfragt.</p>
+  <div id="photoTurnstile" class="photo-turnstile"></div>
+  <p id="photoStatus" class="photo-status" role="status" hidden></p>
+  <div class="photo-actions">
+    <button type="button" id="photoCancel">Abbrechen</button>
+    <button type="button" id="photoRun" class="primary" disabled>Auswerten</button>
+  </div>
+</dialog>
 <div id="termTip" class="term-tip" role="tooltip" hidden></div>
 <div id="figurePeek" class="figure-peek" aria-hidden="true" hidden></div>
 </body>

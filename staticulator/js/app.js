@@ -7,6 +7,7 @@ import { EXAMPLES, exampleById, emptyModel } from './examples.js';
 import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
 import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt } from './design-ui.js';
 import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js';
+import { initPhotoImport, hideImportNotice } from './photo-import.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
 const DIRECTION_OPTIONS = {
@@ -1479,6 +1480,27 @@ function loadExample(id) {
   resetSteps();
   state.exampleId = id;
   clearSelection();
+  hideImportNotice();
+  history.replaceState(null, '', location.pathname + location.search);
+  renderInputs();
+  update();
+}
+
+// Vom Foto-Import erkanntes System übernehmen (Bemessungseinstellungen bleiben, wie beim Beispielwechsel)
+function applyPhotoTask(task) {
+  const raw = {
+    title: typeof task.title === 'string' && task.title.trim() ? task.title.trim() : 'Aufgabe aus Foto',
+    axis: task.axis,
+    supports: task.supports,
+    loads: task.loads,
+    pivot: 'B',
+  };
+  const model = sanitizeModel({ design: fitDesign(state.model.design, raw, null), ...raw });
+  cancelDrag();
+  state.model = model;
+  resetSteps();
+  state.exampleId = '';
+  clearSelection();
   history.replaceState(null, '', location.pathname + location.search);
   renderInputs();
   update();
@@ -1527,6 +1549,7 @@ function openFile(file) {
       resetSteps();
       state.exampleId = '';
       clearSelection();
+      hideImportNotice();
       renderInputs();
       update();
       toast('System geöffnet.');
@@ -2608,6 +2631,7 @@ function init() {
   });
   initTermHover();
   initDiagramCursor();
+  initPhotoImport({ apply: applyPhotoTask });
   // Farbschema der V- und M-Fläche (nur CSS, kein Neuzeichnen nötig)
   $('schemeSelect').value = state.view.scheme;
   $('diagrams').dataset.scheme = state.view.scheme;
@@ -2687,6 +2711,7 @@ function init() {
     resetSteps();
     state.exampleId = '';
     clearSelection();
+    hideImportNotice();
     history.replaceState(null, '', location.pathname + location.search);
     renderInputs();
     update();
