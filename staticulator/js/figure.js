@@ -391,23 +391,17 @@ export function renderFigure(result, resolved, options = {}) {
     const xTo = layout.xmin + (layout.width - layout.offsetX) / layout.scale;
     const zFrom = layout.zmax - (height - top) / layout.scale;
     const zTo = layout.zmax + (top - viewTop) / layout.scale;
-    // dezent wie Millimeterpapier: Punkte an den Kreuzungen (Muster), nur ganze Meter als feine Linien
     const isMajor = (v) => Math.abs(v - Math.round(v)) < 1e-7;
-    const cell = step * layout.scale;
     const lines = [];
     for (let k = Math.ceil(xFrom / step); k * step <= xTo && lines.length < 900; k++) {
       const v = k * step;
-      if (isMajor(v)) lines.push(`<line x1="${r(X(v))}" y1="${r(viewTop)}" x2="${r(X(v))}" y2="${r(height)}" class="grid-major"/>`);
+      lines.push(`<line x1="${r(X(v))}" y1="${r(viewTop)}" x2="${r(X(v))}" y2="${r(height)}" class="${isMajor(v) ? 'grid-major' : 'grid-minor'}"/>`);
     }
     for (let k = Math.ceil(zFrom / step); k * step <= zTo && lines.length < 1800; k++) {
       const v = k * step;
-      if (isMajor(v)) lines.push(`<line x1="0" y1="${r(Y(v))}" x2="${layout.width}" y2="${r(Y(v))}" class="grid-major"/>`);
+      lines.push(`<line x1="0" y1="${r(Y(v))}" x2="${layout.width}" y2="${r(Y(v))}" class="${isMajor(v) ? 'grid-major' : 'grid-minor'}"/>`);
     }
-    const dot = (cx, cy) => `<circle class="grid-dot" cx="${cx}" cy="${cy}" r="1"/>`;
-    gridParts.push(`<defs><pattern id="sc-grid-dots" patternUnits="userSpaceOnUse" x="${r(X(0))}" y="${r(Y(0))}" width="${r(cell)}" height="${r(cell)}">`
-      + `${dot(0, 0)}${dot(r(cell), 0)}${dot(0, r(cell))}${dot(r(cell), r(cell))}</pattern></defs>`
-      + `<g class="grid"><rect x="0" y="${r(viewTop)}" width="${layout.width}" height="${r(height - viewTop)}" fill="url(#sc-grid-dots)"/>`
-      + `<g stroke-width="1" shape-rendering="crispEdges">${lines.join('')}</g></g>`);
+    gridParts.push(`<g class="grid" stroke-width="1" shape-rendering="crispEdges">${lines.join('')}</g>`);
   }
 
   // Trägerachse

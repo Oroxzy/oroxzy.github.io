@@ -294,8 +294,8 @@ table.grid tr.row-sel td.label { box-shadow: inset 3px 0 0 #2563eb; color: #2563
 .figure-tools label { display: inline-flex; align-items: center; gap: 5px; }
 .figure-tools label.check { color: var(--text); cursor: pointer; }
 .figure-tools select { padding: 2px 5px; }
-.figure .grid-dot { fill: #c5ced9; }
-.figure .grid-major { stroke: #edf1f5; }
+.figure .grid-minor { stroke: #eef1f5; }
+.figure .grid-major { stroke: #dfe5ec; }
 @media print {
   .figure-tools, .drag-hint { display: none; }
   .figure .hl-hover, .figure .hl-sel { filter: none !important; opacity: 1 !important; }
@@ -392,8 +392,8 @@ table.grid tr.row-sel td.label { box-shadow: inset 3px 0 0 #2563eb; color: #2563
   html[data-theme="dark"] .figure-box [fill="#be123c"] { fill: #fb7185; }
   html[data-theme="dark"] .figure-box [stroke="#e7ebf0"] { stroke: #222b38; }
   html[data-theme="dark"] .figure-box .dg-stop-far { stop-opacity: 0.38; }
-  html[data-theme="dark"] .figure .grid-dot { fill: #3a4555; }
-  html[data-theme="dark"] .figure .grid-major { stroke: #1f2732; }
+  html[data-theme="dark"] .figure .grid-minor { stroke: #1b222c; }
+  html[data-theme="dark"] .figure .grid-major { stroke: #283140; }
   html[data-theme="dark"] .figure .grip, html[data-theme="dark"] .figure .hl-corner { fill: var(--card); }
   html[data-theme="dark"] .figure .vertex.hl-hover, html[data-theme="dark"] .figure .vertex.hl-sel { fill: var(--card); stroke: #60a5fa; }
   html[data-theme="dark"] .figure .hl-frame-sel, html[data-theme="dark"] .figure .hl-corner { stroke: #60a5fa; }
