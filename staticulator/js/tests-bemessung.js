@@ -1,6 +1,6 @@
 // Prüft die Bemessung (bemessung.js): Biegelinie gegen Lehrbuchformeln, Knicken gegen SZS C4.
 import { solve, internalForces } from './statik.js';
-import { deflection, steelColumn, steelAxis, timberColumn, steelBeam, timberBeam, maxSpan, kcTableRow, STEEL_GRADES, TIMBER } from './bemessung.js';
+import { deflection, steelColumn, steelAxis, timberColumn, steelBeam, timberBeam, maxSpan, kcTableRow, steelTension, timberTension, STEEL_GRADES, TIMBER } from './bemessung.js';
 import { PROFILES } from '../data/profiles.js';
 import { GRIDS, TABLE } from '../data/c4.js';
 import { steelSectionSvg, timberSectionSvg } from './section-svg.js';
@@ -119,8 +119,22 @@ function beamDesignTests() {
   return { title: 'Träger', source: 'Biegung und Schub', checks };
 }
 
+// Zugstab (Hänger): N_t,Rd = A · f_y / γ_M1 (Stahl), f_t,0,d · η_w · A (Holz)
+function tensionTests() {
+  const checks = [];
+  const s = steelTension({ profile: profile('IPE 200'), grade: 'S235', Nd: 200 });
+  checks.push({ ok: near(s.nRd, (28.5 * 23.5) / 1.05, 1e-9) && near(s.aErf, (200 * 1.05) / 23.5, 1e-9) && s.ok, text: `IPE 200, S235, N_d = 200 kN Zug: N_t,Rd = ${s.nRd.toFixed(1)} kN (soll 637.9), A_erf = ${s.aErf.toFixed(2)} cm² (soll 8.94)` });
+  const t = timberTension({ material: TIMBER.C24, b: 120, h: 220, Nd: 100 });
+  checks.push({ ok: near(t.nRd, (8.5 * 120 * 220) / 1000, 1e-9) && near(t.eta, 100 / 224.4, 1e-9), text: `C24 120/220, N_d = 100 kN Zug: N_t,Rd = ${t.nRd.toFixed(1)} kN (soll 224.4 mit f_t,0,d = 8.5)` });
+  const w = timberTension({ material: TIMBER.GL24h, shape: 'round', d: 200, Nd: 300, etaW: 0.8 });
+  checks.push({ ok: near(w.nRd, (12.8 * 0.8 * Math.PI * 200 ** 2) / 4 / 1000, 1e-9) && w.ok, text: `GL24h Ø 200, η_w = 0.8: N_t,Rd = ${w.nRd.toFixed(1)} kN (soll ${((12.8 * 0.8 * Math.PI * 200 ** 2) / 4 / 1000).toFixed(1)})` });
+  const all = Object.entries(TIMBER).filter(([, m]) => !(m.ft0d > 0 && m.ft0d < m.fmd));
+  checks.push({ ok: all.length === 0, text: `f_t,0,d für alle Holzklassen vorhanden und kleiner als f_m,d${all.length ? `: fehlt bei ${all.map(([id]) => id).join(', ')}` : ''}` });
+  return { title: 'Zugstab (Hänger)', source: 'SIA 263, SIA 265', checks };
+}
+
 export function runDesignTests() {
-  return [deflectionTests(), columnTests(), beamDesignTests(), sketchTests(), ...courseTests()];
+  return [deflectionTests(), columnTests(), beamDesignTests(), tensionTests(), sketchTests(), ...courseTests()];
 }
 
 // Musterlösungen aus dem Unterricht (Baustatik, Bauschule): Knicken Stahl (C4/21, C4/06), Knicken Holz (HBT 2021),
@@ -221,5 +235,8 @@ function sketchTests() {
   const timber = termsBox(annotated(String.raw`\lambda_y = \frac{L_{K}}{i_y} = 43.3,\qquad \lambda_{rel,y} = 0.72`) + annotated(String.raw`k_{c,y} = 0.85`), new Set());
   const tnames = [...timber.matchAll(/<dt>(.*?)<\/dt>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''));
   checks.push({ ok: tnames.join(' ') === 'λ LK iy, iz λrel kc', text: `Holz: ${tnames.join(', ')} (soll λ, LK, iy/iz, λrel, kc)` });
+  const pull = termsBox(annotated(String.raw`L = z_{A} - z_{\text{Achse}} = 0.90`) + annotated(String.raw`A_{erf} = \frac{N_d \cdot \gamma_{M1}}{f_y}`) + annotated(String.raw`N_{t,Rd} = \frac{A \cdot f_y}{\gamma_{M1}}`), new Set());
+  const pnames = [...pull.matchAll(/<dt>(.*?)<\/dt>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''));
+  checks.push({ ok: pnames.join(' ') === 'erf Nd γM1 fy Nt,Rd A', text: `Zug: ${pnames.join(', ')} (soll erf, Nd, γM1, fy, Nt,Rd, A; Lager A in z_A ist keine Fläche)` });
   return { title: 'Skizzen und Begriffe', source: 'section-svg.js, design-terms.js', checks };
 }

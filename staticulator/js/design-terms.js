@@ -6,7 +6,7 @@ const TERMS = [
   // Einwirkungen
   { re: /(^|[^A-Za-z\\])M_d(?![A-Za-z{])/, sym: 'M<sub>d</sub>', text: 'Bemessungsmoment: das grösste Biegemoment aus den Lasten, schon mit Lastfaktoren. Index d = „design“, Bemessungswert.' },
   { re: /(^|[^A-Za-z\\])V_d(?![A-Za-z{])/, sym: 'V<sub>d</sub>', text: 'Bemessungsquerkraft: die grösste Querkraft mit Lastfaktoren, meist direkt am Auflager.' },
-  { re: /(^|[^A-Za-z\\])N_d(?![A-Za-z{])/, sym: 'N<sub>d</sub>', text: 'Bemessungs-Normalkraft: die Druckkraft in der Stütze, mit Lastfaktoren.' },
+  { re: /(^|[^A-Za-z\\])N_d(?![A-Za-z{])/, sym: 'N<sub>d</sub>', text: 'Bemessungs-Normalkraft: die Kraft längs des Stabs (Druck in der Stütze, Zug im Hänger), mit Lastfaktoren.' },
   { re: /\\gamma_F/, sym: 'γ<sub>F</sub>', text: 'Lastbeiwert: macht aus der charakteristischen Last den Bemessungswert (ständig 1.35, Nutzlast 1.5).' },
   { re: /g_k|q_k/, sym: 'g<sub>k</sub>, q<sub>k</sub>', text: 'Ständige Last (Eigengewicht, Aufbau) und Nutzlast, charakteristisch – also ohne Lastfaktor – in kN/m².' },
   { re: /A_E/, sym: 'A<sub>E</sub>', text: 'Einzugsfläche: der Teil der Decke, dessen Last die Stütze trägt.' },
@@ -19,7 +19,7 @@ const TERMS = [
   { re: /\\gamma_\{M1\}/, sym: 'γ<sub>M1</sub>', text: 'Widerstandsbeiwert = 1.05 (SIA 263): die Sicherheit auf der Seite des Materials. Durch ihn wird geteilt.' },
   { re: /W_\{pl,y/, sym: 'W<sub>pl,y</sub>', text: 'Plastisches Widerstandsmoment um die starke Achse y: wie viel Biegung der Querschnitt aufnimmt, wenn er ganz durchfliessen darf. Steht in der Profiltabelle, in cm³.' },
   { re: /W_\{el,y/, sym: 'W<sub>el,y</sub>', text: 'Elastisches Widerstandsmoment um y: nur die äusserste Faser erreicht f<sub>y</sub>. Etwas kleiner als W<sub>pl,y</sub>, Profiltabelle in cm³.' },
-  { re: /,erf\}|_\{v,erf\}/, sym: 'erf', text: 'Index „erforderlich“: so gross muss der Wert mindestens sein, damit der Nachweis aufgeht.' },
+  { re: /,erf\}|_\{v,erf\}|_\{erf\}/, sym: 'erf', text: 'Index „erforderlich“: so gross muss der Wert mindestens sein, damit der Nachweis aufgeht.' },
   { re: /M_\{Rd\}/, sym: 'M<sub>Rd</sub>', text: 'Biegewiderstand: so viel Moment hält der Querschnitt aus. R = „resistance“ (Widerstand), d = Bemessungswert. Nachweis: M<sub>d</sub> ≤ M<sub>Rd</sub>.' },
   { re: /A_\{?v/, sym: 'A<sub>v</sub>', text: 'Schubfläche: der Teil des Querschnitts, der die Querkraft trägt – beim I-Profil vor allem der Steg.' },
   { re: /V_\{Rd\}/, sym: 'V<sub>Rd</sub>', text: 'Querkraftwiderstand: so viel Querkraft hält der Querschnitt aus. Nachweis: V<sub>d</sub> ≤ V<sub>Rd</sub>.' },
@@ -29,7 +29,7 @@ const TERMS = [
   { re: /l_V|l_M|l_\{\\max\}/, sym: 'l<sub>V</sub>, l<sub>M</sub>', text: 'Grösste Spannweite, bei der gerade noch der Schub (V) bzw. die Biegung (M) aufgeht.' },
   // Querschnitt, Knicken (Stahl und Holz)
   // A allein (nicht als Index wie z_{A} oder A_z – das ist das Lager A)
-  { re: /(^|[\s(=])A(?=\s|=|\}|$)/, sym: 'A', text: 'Querschnittsfläche.' },
+  { re: /(^|[\s(=]|(?<!_)\{)A(?=\s|=|\}|$)/, sym: 'A', text: 'Querschnittsfläche.' },
   { re: /(^|[^A-Za-z\\])i_[yz]|(^|[^A-Za-z\\])i\s*=/, sym: 'i<sub>y</sub>, i<sub>z</sub>', text: 'Trägheitsradius i = √(I/A): wie weit das Material im Mittel von der Achse entfernt ist. Kleines i = knickt leicht.' },
   { re: /\\lambda_\{K/, sym: 'λ<sub>K</sub>', text: 'Schlankheit = L<sub>K</sub> / i: lange, dünne Stützen haben ein grosses λ und knicken eher.' },
   { re: /\\lambda_E/, sym: 'λ<sub>E</sub>', text: 'Euler-Schlankheit: bei dieser Schlankheit wäre die Knickspannung gerade gleich f<sub>y</sub> (S235: 93.9).' },
@@ -37,6 +37,8 @@ const TERMS = [
   { re: /\\alpha_K/, sym: 'α<sub>K</sub>', text: 'Imperfektionsbeiwert der Knickspannungskurve (a 0.21, b 0.34, c 0.49, d 0.76): berücksichtigt, dass echte Stützen nie ganz gerade sind.' },
   { re: /\\Phi_\{K/, sym: 'Φ<sub>K</sub>', text: 'Hilfswert, um χ<sub>K</sub> auszurechnen.' },
   { re: /\\chi_\{K/, sym: 'χ<sub>K</sub>', text: 'Abminderungsfaktor fürs Knicken (zwischen 0 und 1): der Anteil der vollen Tragkraft A · f<sub>y</sub>, der wegen des Knickens übrig bleibt.' },
+  { re: /N_\{t,Rd/, sym: 'N<sub>t,Rd</sub>', text: 'Zugwiderstand: so viel Zugkraft hält der Stab aus. Nachweis: N<sub>d</sub> ≤ N<sub>t,Rd</sub>.' },
+  { re: /f_\{t,0,d\}/, sym: 'f<sub>t,0,d</sub>', text: 'Zugfestigkeit des Holzes längs zur Faser (Bemessungswert).' },
   { re: /N_\{K,Rd/, sym: 'N<sub>K,Rd</sub>', text: 'Knickwiderstand: so viel Druckkraft hält die Stütze, bevor sie seitlich ausknickt. Nachweis: N<sub>d</sub> ≤ N<sub>K,Rd</sub>.' },
   // Holz
   { re: /f_\{m,d\}/, sym: 'f<sub>m,d</sub>', text: 'Biegefestigkeit des Holzes (Bemessungswert aus den Holzbautabellen HBT, Sicherheit schon drin).' },

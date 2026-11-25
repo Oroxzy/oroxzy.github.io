@@ -25,7 +25,7 @@
 <body>
 <header class="topbar">
   <div class="brand">
-    <img class="logo" src="favicon.svg" alt="" width="36" height="36">
+    <img class="logo" src="favicon.svg" alt="" width="45" height="36">
     <div>
       <h1>Stati<span>Culator</span></h1>
       <p>Träger auf zwei Auflagern · Auflagerreaktionen mit Lösungsweg · <span class="credit">© 2026 Jeremy Meile</span></p>
@@ -162,19 +162,19 @@
       </div>
     </section>
     <section class="card" id="designCard">
-      <div class="card-head"><h2><label class="d-switch" title="Bemessung von Träger oder Stütze ein- und ausblenden"><input type="checkbox" id="designCheck"> Bemessung</label><span class="d-switch-hint">Träger und Stütze (Knicken) in Stahl oder Holz</span></h2>
+      <div class="card-head"><h2><label class="d-switch" title="Bemessung von Träger oder Stütze ein- und ausblenden"><input type="checkbox" id="designCheck"> Bemessung</label><span class="d-switch-hint">Träger, Stütze (Knicken) und Hänger (Zug) in Stahl oder Holz</span></h2>
         <div class="d-tabs" id="designTabs" role="tablist">
-          <button type="button" role="tab" data-tab="beam">Träger</button>
-          <button type="button" role="tab" data-tab="column">Stütze (Knicken)</button>
+          <button type="button" role="tab" data-tab="beam" aria-controls="designForm">Träger</button>
+          <button type="button" role="tab" data-tab="column" aria-controls="designForm">Stütze / Hänger</button>
         </div>
       </div>
-      <p class="help d-help">Träger: M und V kommen aus dem System oben. Stütze: ein Lager in der Skizze nach unten ziehen – Länge und Normalkraft kommen dann von dort. Der Rechenweg steht unten im Lösungsweg.</p>
-      <div id="designForm" class="d-form"></div>
+      <p class="help d-help">Träger: M und V kommen aus dem System oben. Stütze: ein Lager in der Skizze nach unten ziehen, Hänger: nach oben – Länge und Normalkraft kommen dann von dort, Druck wird auf Knicken, Zug mit dem Zugnachweis bemessen. Der Rechenweg steht unten im Lösungsweg.</p>
+      <div id="designForm" class="d-form" role="tabpanel"></div>
       <div id="designResult" class="d-result"></div>
     </section>
     <section class="card">
       <div class="card-head"><h2>Lösungsweg</h2>
-        <label class="explain-toggle" title="Zu jedem Schritt erklären, warum er so gemacht wird"><input type="checkbox" id="explainCheck"> Schritt für Schritt erklären</label>
+        <div class="card-tools"><button type="button" class="small" id="stepsToggle" hidden>Alle aufklappen</button><label class="explain-toggle" title="Zu jedem Schritt erklären, warum er so gemacht wird"><input type="checkbox" id="explainCheck"> Schritt für Schritt erklären</label></div>
       </div>
       <h3 class="sol-part" id="staticsPart" hidden>Auflagerreaktionen und Schnittgrössen</h3>
       <div id="solution"></div>

@@ -73,10 +73,9 @@ function explainH(result, decimals) {
   const paragraphs = [];
   if (h.unknown) {
     const roller = rollers[0];
-    paragraphs.push(`Waagrecht kann nur das Gelenklager <b>${escapeHtml(h.supportName)}</b> eine Kraft aufnehmen (${htmlName(h.unknown)}). `
-      + (roller
-        ? `Das Rollenlager <b>${escapeHtml(roller.name)}</b> rollt waagrecht weg und überträgt nur senkrechte Kräfte.`
-        : 'Hier sind beide Lager Gelenklager; die Horizontalkraft wird vereinfachend einem Lager zugewiesen.'));
+    paragraphs.push(roller
+      ? `Waagrecht kann nur das Gelenklager <b>${escapeHtml(h.supportName)}</b> eine Kraft aufnehmen (${htmlName(h.unknown)}). Das Rollenlager <b>${escapeHtml(roller.name)}</b> rollt waagrecht weg und überträgt nur senkrechte Kräfte.`
+      : `Hier sind beide Lager Gelenklager: Waagrecht könnten beide eine Kraft aufnehmen, das ist mit den drei Gleichgewichtsbedingungen nicht eindeutig. Vereinfachend wird die ganze Horizontalkraft dem Lager <b>${escapeHtml(h.supportName)}</b> zugewiesen (${htmlName(h.unknown)}).`);
     paragraphs.push(`Darum steht in ΣH = 0 nur <b>eine</b> Unbekannte – diese Gleichung löst man zuerst. `
       + (h.terms.length
         ? `Die Horizontallasten ergeben zusammen ${fixed(sumH, decimals)} kN (nach rechts positiv), also muss ${htmlName(h.unknown)} = ${fixed(Math.abs(h.result), decimals)} kN ${h.result >= 0 ? 'nach rechts' : 'nach links'} wirken.`
@@ -126,15 +125,20 @@ function explainCheck(result, decimals) {
   ]);
 }
 
-function explainForces(forces, zeros, decimals) {
+function explainForces(forces, zeros, decimals, supportsX = []) {
+  // Kragarm: Träger ragt über ein Lager hinaus; Einzelmomente (Stiel, Horizontalkraft mit Hebelarm) lassen M springen
+  const cantilever = supportsX.length > 0 && (forces.xmin < Math.min(...supportsX) - 1e-9 || forces.xmax > Math.max(...supportsX) + 1e-9);
+  const couples = forces.couples && forces.couples.length > 0;
   return why('Wie liest man V und M?', [
     'V springt bei Einzellasten und Lagerkräften um deren Betrag. Unter einer Streckenlast steigt oder fällt V gleichmässig (Steigung = −q).',
     zeros.length
       ? `Wo V das Vorzeichen wechselt – hier bei x = ${zeros.map((z) => measure(z.x)).join(' m und ')} m –, hat M ein Extremum, denn die Steigung von M ist V (dM/dx = V).`
       : 'V wechselt innerhalb eines Feldes nicht das Vorzeichen; das grösste Moment liegt dann an einer Last oder einem Lager.',
     `M<sub>max</sub> = ${fixed(forces.mMax.m, decimals)} kNm bei x = ${measure(forces.mMax.x)} m`
-      + (Math.abs(forces.mMin.m) > 1e-9 ? `, M<sub>min</sub> = ${fixed(forces.mMin.m, decimals)} kNm bei x = ${measure(forces.mMin.x)} m (bei Kragarmen meist das Stützmoment über dem Lager).` : '.'),
-    'An einem freien Trägerende und an einem Lager am Trägerende ist M = 0: Dort kann kein Moment aufgenommen werden.',
+      + (Math.abs(forces.mMin.m) > 1e-9 ? `, M<sub>min</sub> = ${fixed(forces.mMin.m, decimals)} kNm bei x = ${measure(forces.mMin.x)} m${cantilever ? ' (beim Kragarm meist das Stützmoment über dem Lager)' : ''}.` : '.'),
+    couples
+      ? 'An einem freien Trägerende ist M = 0. Wo ein Einzelmoment angreift (Stiel, Horizontalkraft mit Hebelarm), springt M um diesen Betrag – auch am Trägerende.'
+      : 'An einem freien Trägerende und an einem Lager am Trägerende ist M = 0: Dort kann kein Moment aufgenommen werden.',
   ]);
 }
 
@@ -192,7 +196,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
     if (Math.abs(m.known) > 1e-9) {
       const knownTurn = m.known > 0 ? ROTATE_CW : ROTATE_CCW;
       const knownText = m.known > 0 ? 'im Uhrzeigersinn' : 'gegen den Uhrzeigersinn';
-      body += `<p class="sol-note">Resultierendes Moment der Lasten um ${escapeHtml(m.pivot)}: ${tex(`${n(Math.abs(m.known), decimals)}${unit('kNm')}\\ ${knownTurn}`)} (${knownText}). ${htmlName(m.unknown)} muss es mit Gegendrehung ausgleichen.</p>`;
+      body += `<p class="sol-note">Resultierendes Moment der bekannten Kräfte um ${escapeHtml(m.pivot)}: ${tex(`${n(Math.abs(m.known), decimals)}${unit('kNm')}\\ ${knownTurn}`)} (${knownText}). ${htmlName(m.unknown)} muss es mit Gegendrehung ausgleichen.</p>`;
     }
     const rhs = -m.known * m.unknownSense;
     body += `<div class="sol-eq">${tex(`${texName(m.unknown)} \\cdot ${length(m.unknownLever, decimals)} = ${n(rhs, decimals)}${unit('kNm')}`)}</div>`;
@@ -260,7 +264,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
           : fromSupport > 0
             ? `${measure(fromSupport)} m rechts von ${escapeHtml(firstSupport.name)}`
             : `${measure(-fromSupport)} m links von ${escapeHtml(firstSupport.name)}`;
-        const what = z.inSegment ? tex('V = 0') : 'V wechselt das Vorzeichen';
+        const what = z.inSegment ? tex('V = 0') : z.signChange ? 'V wechselt das Vorzeichen' : 'V springt auf 0';
         body += `<li>${what} bei x = ${measure(z.x)} m (${where}), ${tex(`M = ${n(z.m, decimals)}${unit('kNm')}`)}</li>`;
       }
       body += '</ul>';
@@ -271,7 +275,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
       body += `<p class="sol-note">Kräfte neben der Trägerachse (Stiel, Konsole, Stütze) wirken auf den Träger als Einzelmoment Kraft · Abstand: ${forces.couples.map((c) => `${htmlName(c.label)}: ${fixed(c.c, decimals)} kNm bei x = ${measure(c.x)} m`).join('; ')}.</p>`;
     }
     body += `<details class="sol-details"><summary>Werte an allen Stellen (links / rechts der Stelle)</summary><table class="sol-table"><thead><tr><th class="num">x [m]</th><th class="num">V [kN]</th><th class="num">M [kNm]</th></tr></thead><tbody>${rows.join('')}</tbody></table></details>`;
-    if (explain) body += explainForces(forces, zeros, decimals);
+    if (explain) body += explainForces(forces, zeros, decimals, result.reactions.map((r) => r.x));
     blocks.push(step(5, 'Schnittgrössen', 'V positiv: Kräfte links vom Schnitt nach oben · M positiv: Zug unten', body));
   } else if (forces && !forces.ok) {
     blocks.push(step(5, 'Schnittgrössen', '', `<p class="sol-note">${escapeHtml(forces.reason)}</p>`));

@@ -427,7 +427,7 @@ export function internalForces(result) {
   for (const e of events) {
     if (e.x <= xmin + 1e-9 || e.x >= xmax - 1e-9) continue;
     if (e.vLeft * e.vRight < 0 || (Math.abs(e.vRight) < 1e-9 && Math.abs(e.vLeft) > 1e-9)) {
-      zeroCrossings.push({ x: e.x, m: e.mLeft, inSegment: false });
+      zeroCrossings.push({ x: e.x, m: e.mLeft, inSegment: false, signChange: e.vLeft * e.vRight < 0 });
     }
   }
 

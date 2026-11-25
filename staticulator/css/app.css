@@ -40,7 +40,7 @@ button, input, select { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand .logo { width: 36px; height: 36px; flex: none; border-radius: 9px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18), 0 4px 10px rgba(37, 99, 235, 0.18); }
+.brand .logo { width: 45px; height: 36px; flex: none; }
 .brand h1 { margin: 0; font-size: 19px; letter-spacing: 0.2px; }
 .brand h1 span { color: #2563eb; }
 .brand .credit { white-space: nowrap; }
@@ -134,15 +134,56 @@ label.cell input { width: 100%; min-width: 46px; text-align: right; }
 .chip span:not(.chip-name) { color: var(--muted); font-size: 12px; }
 .chip strong { color: var(--green); font-size: 14px; }
 
-.sol-step { border-top: 1px solid var(--soft); padding: 10px 0 6px; }
-.sol-step h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 14.5px; }
-.sol-num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--text); color: #fff; font-size: 12px; }
-.sol-hint { color: var(--muted); font-weight: 400; font-size: 12.3px; }
-.sol-eq, .sol-res { overflow-x: auto; overflow-y: hidden; padding: 3px 0 3px 30px; font-size: 15px; }
-.sol-res { color: var(--green); }
-.sol-note { margin: 4px 0 2px 30px; color: var(--muted); font-size: 13px; }
-.sol-list { margin: 2px 0 4px 30px; padding-left: 16px; }
-.sol-details { margin: 6px 0 2px 30px; overflow-x: auto; }
+/* Lösungsweg als Übersicht (js/step-list.js): pro Schritt eine Zeile mit Titel links und Ergebnis rechts,
+   die Rechnung klappt per Klick darunter auf. Ruhig gehalten: schwarze Titel, graue Nummern und Linien. */
+.sol-step { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: center; column-gap: 16px; border-top: 1px solid var(--line); }
+.sol-step:last-of-type { border-bottom: 1px solid var(--line); }
+.sol-step h3 { position: relative; margin: 0; padding: 11px 0 11px 54px; color: var(--text); font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+.sol-step.sol-acc:not(.sol-flat) h3 { cursor: pointer; user-select: none; }
+.sol-step.sol-acc:not(.sol-flat) h3:hover .sol-chev { color: var(--text); }
+.sol-step h3:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* Winkel: zu → zeigt nach rechts, offen → nach unten */
+.sol-chev { position: absolute; left: 2px; top: 13px; width: 14px; height: 14px; color: var(--muted); }
+.sol-chev::before { content: ""; position: absolute; left: 3px; top: 3px; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
+.sol-step.is-open .sol-chev::before { left: 4px; top: 1px; transform: rotate(45deg); }
+.sol-num { position: absolute; left: 22px; top: 11px; width: 28px; color: var(--muted); font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sol-num::after { content: "."; }
+.sol-hint { display: block; margin-top: 1px; color: var(--muted); font-weight: 400; font-size: 12px; }
+.sol-step.sol-acc:not(.is-open) .sol-hint { display: none; }
+/* immer sichtbar: das Ergebnis des Schritts */
+.sol-key { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; padding: 6px 2px 6px 0; }
+/* KaTeX ragt mit einem Hilfselement 2 px über den Rand: Scrollbalken ausblenden (Wischen geht weiter) */
+.sol-key > * { max-width: 100%; margin: 0; padding: 3px 4px 3px 0; scrollbar-width: none; }
+.sol-key > *::-webkit-scrollbar { display: none; }
+.sol-key .d-check-line { justify-content: flex-end; gap: 2px 10px; }
+.sol-key .sol-eq { color: var(--text); }
+/* aufklappbar: die Rechnung, mit grauer Linie links */
+.sol-body { display: none; grid-column: 1 / -1; min-width: 0; margin: 0 0 14px 54px; padding: 4px 0 4px 16px; border-left: 2px solid #cbd5e1; }
+.sol-step.is-open > .sol-body { display: block; }
+.sol-step.is-open .sol-key-clone { display: none; }
+.sol-eq, .sol-res { overflow-x: auto; overflow-y: hidden; padding: 3px 0; font-size: 15px; }
+.sol-res { color: var(--green); font-size: 15.5px; }
+.sol-res .katex .underline-line { border-bottom-color: transparent; }
+.sol-note { margin: 4px 0; color: var(--muted); font-size: 13px; }
+.sol-list { margin: 2px 0 4px; padding-left: 18px; }
+.sol-details { margin: 6px 0 2px; overflow-x: auto; }
+@media screen { html[data-theme="dark"] .sol-body { border-left-color: #3b4656; } }
+@media (max-width: 640px) {
+  /* schmal: Ergebnis unter dem Titel */
+  .sol-step { grid-template-columns: minmax(0, 1fr); }
+  .sol-step h3 { padding: 10px 0 2px 46px; }
+  .sol-chev { left: 0; top: 12px; }
+  .sol-num { left: 18px; top: 10px; }
+  .sol-key { align-items: flex-start; padding: 0 0 8px 46px; }
+  .sol-key .d-check-line { justify-content: flex-start; }
+  .sol-body { margin-left: 4px; padding-left: 10px; }
+}
+@media print {
+  .sol-body { display: block !important; }
+  .sol-chev, #stepsToggle, .sol-key-clone, .d-switch input { display: none !important; }
+  .sol-step .sol-hint { display: block !important; }
+  .sol-step { break-inside: avoid; }
+}
 .sol-details summary { cursor: pointer; color: var(--accent); font-size: 12.8px; }
 .sol-table { border-collapse: collapse; margin-top: 6px; font-size: 12.8px; min-width: 60%; }
 .sol-table th, .sol-table td { padding: 4px 10px; border-bottom: 1px solid var(--soft); text-align: left; }
@@ -274,7 +315,7 @@ table.grid tr.row-sel td.label { box-shadow: inset 3px 0 0 #2563eb; color: #2563
 #supportTable td.pivot { width: 46px; text-align: right; }
 .pivot-pick { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; white-space: nowrap; }
 .pivot-pick input { accent-color: #2563eb; margin: 0; }
-.pivot-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 6px 30px; font-size: 12.5px; color: var(--muted); }
+.pivot-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 6px; font-size: 12.5px; color: var(--muted); }
 .pivot-switch button { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: #ffffff; color: var(--text); font-size: 12.5px; cursor: pointer; }
 .pivot-switch button.on { background: #2563eb; border-color: #2563eb; color: #ffffff; }
 .figure .pivot-toggle { cursor: pointer; }
@@ -313,7 +354,6 @@ table.grid tr.row-sel td.label { box-shadow: inset 3px 0 0 #2563eb; color: #2563
   html[data-theme="dark"] .name-input[type="text"]:hover, html[data-theme="dark"] .name-input[type="text"]:focus { background: #111720; }
   html[data-theme="dark"] .messages li.warn { background: #33290f; border-color: #6b5420; }
   html[data-theme="dark"] .sol-error { background: #3a1d1d; border-color: #7f2d2d; }
-  html[data-theme="dark"] .sol-num { color: #0f141b; }
   html[data-theme="dark"] .chip { background: #10261a; border-color: #1f4d33; }
   html[data-theme="dark"] .toast { color: #0f141b; }
   html[data-theme="dark"] .messages li.note { border-color: #2c4a80; }
@@ -465,7 +505,7 @@ table.grid tr[data-index] td button { cursor: pointer; }
 /* Erklärmodus im Lösungsweg */
 .explain-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: #b45309; cursor: pointer; }
 .explain-toggle input { accent-color: #d97706; margin: 0; }
-.why { margin: 8px 0 2px 30px; border: 1px solid #fde68a; border-left: 3px solid #f59e0b; border-radius: 8px; background: #fffbeb; font-size: 13px; }
+.why { margin: 10px 0 2px; border: 1px solid #fde68a; border-left: 3px solid #f59e0b; border-radius: 8px; background: #fffbeb; font-size: 13px; }
 .why summary { cursor: pointer; padding: 6px 10px; color: #92400e; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 7px; }
 .why summary::-webkit-details-marker { display: none; }
 .why summary::after { content: "▸"; margin-left: auto; color: #d97706; }
@@ -521,15 +561,15 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .d-euler button.on svg .col { stroke: var(--accent); }
 .d-result .sol-step:first-of-type { border-top: none; }
 .d-empty { margin: 6px 0; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 13px; }
-.d-head { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; margin: 2px 0 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid; }
+.d-head { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin: 2px 0 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid; }
 .d-head.good { background: #effaf2; border-color: #b8e3c5; }
 .d-head.bad { background: #fdecec; border-color: #f3b4b4; }
-.d-head-title { font-size: 16px; font-weight: 700; }
-.d-head-eta { display: flex; align-items: center; gap: 10px; justify-self: end; }
+.d-head-title { flex: 1 1 240px; min-width: 0; font-size: 16px; font-weight: 700; }
+.d-head-eta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-left: auto; }
 .d-verdict { font-weight: 700; font-size: 13px; }
 .d-head.good .d-verdict { color: var(--green); }
 .d-head.bad .d-verdict { color: var(--red); }
-.d-head-detail { grid-column: 1 / -1; color: var(--muted); font-size: 12.8px; }
+.d-head-detail { flex: 1 1 100%; color: var(--muted); font-size: 12.8px; }
 .d-auto { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11.5px; font-weight: 600; vertical-align: middle; }
 .d-bar { display: inline-block; width: 90px; height: 8px; border-radius: 999px; background: var(--soft); overflow: hidden; vertical-align: middle; }
 .d-bar > span { display: block; height: 100%; border-radius: 999px; }
@@ -540,8 +580,8 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .d-eta.good { color: var(--green); }
 .d-eta.tight { color: #b45309; }
 .d-eta.bad { color: var(--red); }
-.d-check-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 3px 0 3px 30px; font-size: 15px; overflow-x: auto; }
-.d-candidates { margin: 10px 0 0 30px; }
+.d-check-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 3px 0; font-size: 15px; overflow-x: auto; }
+.d-candidates { margin: 10px 0 0; }
 .d-table tbody tr { cursor: pointer; }
 .d-table tbody tr:hover td { background: var(--soft); }
 .d-table tr.chosen td { font-weight: 700; background: var(--accent-soft); }
@@ -561,9 +601,8 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .d-warn { color: var(--red); }
 .d-field input::placeholder { color: var(--muted); opacity: 0.75; }
 /* Lösungsweg: Teile Statik und Bemessung */
-.sol-part { display: flex; align-items: center; gap: 9px; margin: 26px 0 10px; padding: 10px 14px; border: 1px solid #c7d7fe; border-left: 5px solid var(--accent); border-radius: 10px; background: var(--accent-soft); font-size: 17px; font-weight: 700; letter-spacing: 0.1px; color: var(--text); }
-.sol-part:first-of-type { margin-top: 4px; }
-@media screen { html[data-theme="dark"] .sol-part { border-color: #2c3f66; border-left-color: var(--accent); } }
+.sol-part { margin: 30px 0 8px; color: var(--text); font-size: 18px; font-weight: 700; }
+.sol-part:first-of-type { margin-top: 8px; }
 @media print { .sol-part { break-after: avoid; } }
 .d-steps:empty { display: none; }
 .d-steps { margin-top: 10px; scroll-margin-top: 80px; }
@@ -594,10 +633,9 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .figure .lever-layer.ccw { color: #ea580c; }
 .figure .lever-layer .lv-action { stroke: currentColor; stroke-width: 1.8; stroke-dasharray: 6 4; }
 .figure .lever-layer .lv-help { stroke: currentColor; stroke-width: 1.3; stroke-dasharray: 4 3; opacity: 0.8; }
-.figure .lever-layer .lv-band { stroke: currentColor; stroke-width: 12; stroke-linecap: round; opacity: 0.18; }
-.figure .lever-layer .lv-arm { stroke: currentColor; stroke-width: 3; }
+.figure .lever-layer .lv-arm { stroke: currentColor; stroke-width: 2.4; stroke-linecap: butt; }
 .figure .lever-layer .lv-fill { fill: currentColor; }
-.figure .lever-layer .lv-arc { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.figure .lever-layer .lv-arc { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: butt; }
 .figure .lever-layer .lv-halo { fill: currentColor; opacity: 0.2; }
 .figure .lever-layer .lv-ring { fill: #ffffff; stroke: currentColor; stroke-width: 2.5; }
 .figure .lever-layer .lv-pill rect { fill: currentColor; }
@@ -640,8 +678,7 @@ table.grid tr[data-index] td button { cursor: pointer; }
   html[data-theme="dark"] .d-head.warn .d-verdict, html[data-theme="dark"] .d-caution { color: #fbbf24; }
 }
 @media (max-width: 640px) {
-  .d-head { grid-template-columns: 1fr; }
-  .d-head-eta { justify-self: start; flex-wrap: wrap; }
+  .d-head-eta { margin-left: 0; }
 }
 
 /* ---------- Querschnittsskizzen in der Bemessung ---------- */
@@ -664,7 +701,8 @@ table.grid tr[data-index] td button { cursor: pointer; }
 .sec-axis-label { fill: #64748b; font-size: 12px; font-style: italic; }
 .sec-buckle { stroke: #dc2626; stroke-width: 2; }
 .sec-buckle-text { fill: #dc2626; font-weight: 700; }
-.sec-buckle-arrow { fill: none; stroke: #dc2626; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sec-buckle-arrow { fill: none; stroke: #dc2626; stroke-width: 1.6; stroke-linecap: butt; }
+.sec-buckle-head { fill: #dc2626; }
 @media (max-width: 640px) { .d-sec { flex-basis: 100%; } }
 @media screen {
   html[data-theme="dark"] .sec-steel { fill: #475569; stroke: #cbd5e1; }
@@ -677,13 +715,14 @@ table.grid tr[data-index] td button { cursor: pointer; }
   html[data-theme="dark"] .sec-axis { stroke: #64748b; }
   html[data-theme="dark"] .sec-axis-label { fill: #94a3b8; }
   html[data-theme="dark"] .sec-buckle, html[data-theme="dark"] .sec-buckle-arrow { stroke: #f87171; }
+  html[data-theme="dark"] .sec-buckle-head { fill: #f87171; }
   html[data-theme="dark"] .sec-buckle-text { fill: #f87171; }
   html[data-theme="dark"] .d-sec-red { color: #f87171; }
 }
 @media print { .d-sec { break-inside: avoid; } }
 
 /* ---------- Begriffe im Erklärmodus (Bemessung) ---------- */
-.d-terms { margin: 8px 0 2px 30px; padding: 6px 10px 8px; border: 1px solid #bfdbfe; border-left: 3px solid #3b82f6; border-radius: 8px; background: #eff6ff; font-size: 13px; }
+.d-terms { margin: 10px 0 2px; padding: 6px 10px 8px; border: 1px solid #bfdbfe; border-left: 3px solid #3b82f6; border-radius: 8px; background: #eff6ff; font-size: 13px; }
 .d-terms-title { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; color: #1d4ed8; font-weight: 600; }
 .d-terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; }
 .d-terms dl > div { display: contents; }
@@ -743,4 +782,53 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
   label.cell input { min-width: 30px; padding-left: 3px; padding-right: 3px; }
   label.cell span { flex: 0 0 auto; font-size: 11px; min-width: 0; }
   .name-input[type="text"] { width: 42px; }
+}
+/* Menü „Ansicht“ auf schmalen Bildschirmen: an der Werkzeugleiste ausgerichtet, nicht am Knopf (sonst ragt es rechts hinaus) */
+@media (max-width: 640px) {
+  .figure-tools { position: relative; }
+  .view-menu { position: static; }
+  .view-menu-panel { left: 0; right: 0; min-width: 0; }
+}
+
+/* ---------- Mauszeiger in der V- und M-Fläche: Linie, Punkt, Wert und Mass ab Trägeranfang ---------- */
+#diagrams svg.diagram { cursor: crosshair; }
+.diagram-cursor { pointer-events: none; }
+.dc-line { stroke: #475569; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.dc-dot { fill: #ffffff; stroke: #1f2933; stroke-width: 2; }
+.dc-pill rect { fill: #1f2933; }
+.dc-pill text { fill: #ffffff; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dc-dim { stroke: #475569; stroke-width: 1; }
+.dc-dim-text { fill: #1f2933; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: #ffffff; stroke-width: 3; stroke-linejoin: round; }
+@media screen {
+  html[data-theme="dark"] .dc-line, html[data-theme="dark"] .dc-dim { stroke: #cbd5e1; }
+  html[data-theme="dark"] .dc-dot { fill: #171d26; stroke: #e5e7eb; }
+  html[data-theme="dark"] .dc-pill rect { fill: #e5e7eb; }
+  html[data-theme="dark"] .dc-pill text { fill: #0f141b; }
+  html[data-theme="dark"] .dc-dim-text { fill: #e5e7eb; stroke: #171d26; }
+}
+@media print { .diagram-cursor { display: none; } }
+
+/* ---------- Bemessung: Ergebnis mit Querschnitt rechts, Profilreihe scrollbar ---------- */
+.d-top { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 18px; }
+.d-top-main { flex: 1 1 460px; min-width: 0; }
+.d-top-sec { flex: 0 0 240px; margin: 2px 0 0; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-align: center; }
+.d-top-sec .sec-svg { display: block; width: 100%; max-width: 224px; height: auto; margin: 0 auto; }
+.d-top-sec figcaption { margin-top: 2px; color: var(--text); font-size: 12.8px; font-weight: 600; }
+@media (max-width: 640px) { .d-top-sec { flex: 1 1 100%; } }
+.d-cand-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 8px 0 6px; color: var(--muted); font-size: 12.5px; }
+.d-cand-tools label.check { display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+.d-cand-scroll { max-height: 290px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.d-cand-scroll .d-table { width: 100%; min-width: 0; margin: 0; }
+.d-cand-scroll thead th { position: sticky; top: 0; z-index: 1; background: var(--card); box-shadow: inset 0 -1px 0 var(--line); }
+.d-candidates.only-fit tr.fail:not(.chosen) { display: none; }
+@media print { .d-top-sec { break-inside: avoid; } }
+
+/* Kontrast: Werte-Beschriftungen in den Flächen im hellen Theme etwas dunkler als die Linienfarbe (mind. 4.5 : 1) */
+#diagrams .dg-val.dg-pos, #deflectionDiagram .dg-val.dg-pos { fill: color-mix(in srgb, var(--dg-pos) 78%, #000000); }
+#diagrams .dg-val.dg-neg, #deflectionDiagram .dg-val.dg-neg { fill: color-mix(in srgb, var(--dg-neg) 78%, #000000); }
+.figure .lever-layer.ccw .lv-pill rect { fill: #c2410c; }
+@media screen {
+  html[data-theme="dark"] #diagrams .dg-val.dg-pos, html[data-theme="dark"] #deflectionDiagram .dg-val.dg-pos { fill: var(--dg-pos); }
+  html[data-theme="dark"] #diagrams .dg-val.dg-neg, html[data-theme="dark"] #deflectionDiagram .dg-val.dg-neg { fill: var(--dg-neg); }
+  html[data-theme="dark"] .figure .lever-layer.ccw .lv-pill rect { fill: currentColor; }
 }

@@ -66,21 +66,24 @@ function r(v) {
   return Math.round(v * 10) / 10;
 }
 
-// Schlanker Pfeil mit leicht eingekerbter Spitze.
+// Pfeil wie in der Technischen Zeichnung: schlankes, gefülltes Dreieck (Länge head, Breite ≈ 0.7 · head),
+// der Schaft endet an dessen Fuss und sticht nicht durch die Spitze.
+export function arrowHeadPath(x, y, angle, head = 9) {
+  const half = head * 0.36;
+  const bx = x - head * Math.cos(angle);
+  const by = y - head * Math.sin(angle);
+  const px = -Math.sin(angle) * half;
+  const py = Math.cos(angle) * half;
+  return `M${r(x)},${r(y)} L${r(bx + px)},${r(by + py)} L${r(bx - px)},${r(by - py)} Z`;
+}
+
 function arrowSvg(x1, y1, x2, y2, color, width = 1.7, head = 9) {
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  const spread = 0.36;
-  const notch = head * 0.74;
-  const nx = x2 - notch * Math.cos(angle);
-  const ny = y2 - notch * Math.sin(angle);
-  const ex = x2 - (notch - 1) * Math.cos(angle);
-  const ey = y2 - (notch - 1) * Math.sin(angle);
-  const a1x = x2 - head * Math.cos(angle - spread);
-  const a1y = y2 - head * Math.sin(angle - spread);
-  const a2x = x2 - head * Math.cos(angle + spread);
-  const a2y = y2 - head * Math.sin(angle + spread);
-  return `<line x1="${r(x1)}" y1="${r(y1)}" x2="${r(ex)}" y2="${r(ey)}" stroke="${color}" stroke-width="${width}" stroke-linecap="round"/>`
-    + `<path d="M${r(x2)},${r(y2)} L${r(a1x)},${r(a1y)} L${r(nx)},${r(ny)} L${r(a2x)},${r(a2y)} Z" fill="${color}" stroke="${color}" stroke-width="0.6" stroke-linejoin="round"/>`;
+  // Schaft bis knapp in den Fuss der Spitze (0.5 px Überlappung gegen Lücken beim Kantenglätten)
+  const ex = x2 - (head - 0.5) * Math.cos(angle);
+  const ey = y2 - (head - 0.5) * Math.sin(angle);
+  return `<line x1="${r(x1)}" y1="${r(y1)}" x2="${r(ex)}" y2="${r(ey)}" stroke="${color}" stroke-width="${width}" stroke-linecap="butt"/>`
+    + `<path d="${arrowHeadPath(x2, y2, angle, head)}" fill="${color}" stroke="${color}" stroke-width="0.5" stroke-linejoin="miter"/>`;
 }
 
 function textSvg(x, y, content, options = {}) {
@@ -148,7 +151,7 @@ function createPlacer(width, height, minY = 0) {
 
   const textRect = (c, w, size) => {
     const x1 = c.anchor === 'start' ? c.x : c.anchor === 'end' ? c.x - w : c.x - w / 2;
-    return { x1, y1: c.y - size * 0.82, x2: x1 + w, y2: c.y + size * 0.26 };
+    return { x1, y1: c.y - size * 0.92, x2: x1 + w, y2: c.y + size * 0.3 }; // voller Schriftkasten (Ober- und Unterlängen)
   };
   const cost = (rect) => {
     let total = 0;
@@ -162,8 +165,8 @@ function createPlacer(width, height, minY = 0) {
   };
 
   return {
-    box(x1, y1, x2, y2, weight = 1, pad = 0) {
-      boxes.push({ x1: Math.min(x1, x2) - pad, y1: Math.min(y1, y2) - pad, x2: Math.max(x1, x2) + pad, y2: Math.max(y1, y2) + pad, weight });
+    box(x1, y1, x2, y2, weight = 1, pad = 0, text = false) {
+      boxes.push({ x1: Math.min(x1, x2) - pad, y1: Math.min(y1, y2) - pad, x2: Math.max(x1, x2) + pad, y2: Math.max(y1, y2) + pad, weight, text });
     },
     segment(x1, y1, x2, y2, weight = 1, pad = 3) {
       segments.push({ x1, y1, x2, y2, weight, pad });
@@ -182,9 +185,13 @@ function createPlacer(width, height, minY = 0) {
       return right;
     },
     // Wählt die erste freie Kandidatenposition, sonst die mit der kleinsten Überdeckung.
+    // Sicherheitsnetz: Text liegt nie auf Text. Überdeckt die beste Stelle noch eine andere Beschriftung,
+    // wird rund um die Kandidaten nach einer Stelle ohne Textüberdeckung gesucht.
     place(content, candidates, options = {}) {
       const size = options.size || 13;
       const w = textWidth(content, size, options.weight) + 6;
+      const textHit = (rect) => boxes.reduce((sum, b) => sum + (b.text ? overlap(rect, b) : 0), 0);
+      const outside = (rect) => rect.x1 < 2 || rect.x2 > width - 2 || rect.y1 < minY + 2 || rect.y2 > height - 2;
       let best = null;
       for (const c of candidates) {
         const rect = textRect(c, w, size);
@@ -193,7 +200,23 @@ function createPlacer(width, height, minY = 0) {
         if (c0 === 0) break;
       }
       if (!best) return '';
-      boxes.push({ ...best.rect, x1: best.rect.x1 - 2, x2: best.rect.x2 + 2, y1: best.rect.y1 - 1, y2: best.rect.y2 + 1, weight: 1 });
+      if (best.cost > 0 && textHit(best.rect) > 0) {
+        let found = null;
+        for (const base of [best.c, ...candidates]) {
+          for (const dy of [0, -14, 14, -28, 28, -42, 42, -56, 56, -70, 70]) {
+            for (const dx of [0, 24, -24, 48, -48, 72, -72, 100, -100, 130, -130, 160, -160]) {
+              const c = { ...base, x: base.x + dx, y: base.y + dy };
+              const rect = textRect(c, w, size);
+              if (outside(rect) || textHit(rect) > 0) continue;
+              const c0 = cost(rect);
+              if (!found || c0 < found.cost) found = { c, rect, cost: c0 };
+            }
+          }
+          if (found) break;
+        }
+        if (found) best = found;
+      }
+      boxes.push({ ...best.rect, x1: best.rect.x1 - 3, x2: best.rect.x2 + 3, y1: best.rect.y1 - 2, y2: best.rect.y2 + 2, weight: 1, text: true });
       const text = textSvg(best.c.x, best.c.y, content, { ...options, anchor: best.c.anchor || 'middle' });
       return options.ref ? `<g class="lbl" data-ref="${options.ref}">${text}</g>` : text;
     },
@@ -336,14 +359,14 @@ export function renderFigure(result, resolved, options = {}) {
       + `<circle cx="92" cy="30" r="5" fill="#ffffff" stroke="${COLORS.pivot}" stroke-width="2"/>`
       + textSvg(102, 34, `Drehpunkt (DP): Lager ${pivotName}  ⇄`, { anchor: 'start', size: 12, color: COLORS.pivot, weight: 600 })
       + '</g>');
-    placer.box(84, 18, 300, 42);
+    placer.box(84, 18, 300, 42, 1, 0, true);
   }
   if (paper) {
     const ratio = Math.round(paper.length * 100 * 1000) / 1000;
     const legend = `Massstab 1:${ratio}  ·  1 cm ≙ ${paper.force} kN`;
     const legendX = pivotName ? 300 : 84;
     shapes.push(textSvg(legendX, 34, legend, { anchor: 'start', size: 12, color: COLORS.text, weight: 600 }));
-    placer.box(legendX - 4, 18, legendX + 260, 42);
+    placer.box(legendX - 4, 18, legendX + 260, 42, 1, 0, true);
   }
 
   // Feines Raster im Hintergrund (Häkchen „Raster anzeigen“)
@@ -915,11 +938,18 @@ export function renderFigure(result, resolved, options = {}) {
         shortDims.push({ ya, yb, ty, content, size, weight, editAttrs });
         continue;
       }
-      const attrs = `${editAttrs} transform="rotate(-90 ${r(tx)} ${r(ty)})"`;
-      labels.push(textSvg(tx, ty, content, { anchor: 'middle', size, color: dimColor, weight, attrs }));
-      // gedrehte Zahl belegt einen schmalen, hohen Streifen links der Masslinie
+      // gedrehte Zahl belegt einen schmalen, hohen Streifen links der Masslinie; ist dort schon eine
+      // Beschriftung, rechts der Linie; ist beides belegt, waagrecht mit Ausweichen (wie kurze Masse)
       const half = textWidth(content, size, weight) / 2 + 2;
-      placer.box(tx - size, ty - half, tx + 2, ty + half);
+      const sides = [tx, dx + 4 + size].map((x) => ({ x, box: [x - size, ty - half, x + 2, ty + half] }));
+      const side = sides.find((sd) => placer.free(...sd.box));
+      if (!side) {
+        shortDims.push({ ya, yb, ty, content, size, weight, editAttrs });
+        continue;
+      }
+      const attrs = `${editAttrs} transform="rotate(-90 ${r(side.x)} ${r(ty)})"`;
+      labels.push(textSvg(side.x, ty, content, { anchor: 'middle', size, color: dimColor, weight, attrs }));
+      placer.box(...side.box, 1, 0, true);
     }
     // Zu kurz für die gedrehte Zahl zwischen den Masshilfslinien: wie im Bauplan waagrecht daneben,
     // zuerst rechts auf halber Höhe, sonst links oder über bzw. unter dem Mass.
@@ -956,6 +986,9 @@ export function renderFigure(result, resolved, options = {}) {
     top,
     height,
     viewTop,
+    // für den Hebelarm (app.js): Höhe der Masskette und Unterkante des Gezeichneten an einer Stelle x [m]
+    dimY,
+    lowestAt,
     svg: `<svg class="figure" viewBox="0 ${r(viewTop)} ${layout.width} ${r(height - viewTop)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Systemskizze mit Lasten und Auflagerreaktionen" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">${defs}${gridParts.join('')}${shapes.join('')}${guides.join('')}${labels.join('')}${handles.join('')}</svg>`,
   };
 }

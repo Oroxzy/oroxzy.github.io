@@ -78,7 +78,9 @@ export function steelAxis(profile, fy, Lk, axis) {
   const lambdaBar = lambdaK / lambdaE;
   const curve = bucklingCurve(profile, axis);
   const alpha = CURVE_ALPHA[curve];
-  const { phi, chi } = steelChi(lambdaBar, alpha);
+  const { phi, chi: chiExact } = steelChi(lambdaBar, alpha);
+  // wie von Hand: χ auf drei Stellen (so steht es im Lösungsweg), damit das gezeigte Produkt aufgeht
+  const chi = Math.round(chiExact * 1000) / 1000;
   const npl = (A * 100 * fy) / 1000; // kN
   const nRd = (chi * npl) / GAMMA_M1;
   const ncr = (Math.PI ** 2 * E_STEEL * I * 1e4) / (Lk * 1000) ** 2 / 1000; // kN
@@ -171,6 +173,11 @@ export const TIMBER = {
 };
 for (const material of Object.values(TIMBER)) material.lambda0 = material.glulam ? 60 : 57;
 
+// Zug parallel zur Faser f_t,0,d in N/mm²: f_t,0,k / γ_M wie f_m,d und f_c,0,d oben
+// (EN 338:2016 Vollholz, γ_M = 1.7; EN 14080:2013 Brettschichtholz, γ_M = 1.5).
+const TIMBER_FT0D = { C16: 5.0, C24: 8.5, C30: 11.2, D30: 10.6, GL20h: 10.7, GL24c: 11.3, GL24h: 12.8, GL28c: 13.0, GL28h: 14.9, GL32c: 13.0, GL32h: 17.1 };
+for (const [id, ft0d] of Object.entries(TIMBER_FT0D)) TIMBER[id].ft0d = ft0d;
+
 // Feuchteklassen nach SIA 265: Abminderung eta_w der Festigkeiten
 export const TIMBER_EXPOSURE = [
   { id: 'dry', factor: 1.0, text: 'Feuchteklasse 1: vor Witterung geschützt (η_w = 1.0)' },
@@ -205,10 +212,29 @@ export function timberAxis(material, section, Lk, axis, etaW, table = false) {
   const lambda = (Lk * 1000) / i;
   const lambdaRel = lambda / material.lambda0;
   const betaC = material.glulam ? 0.1 : 0.2;
-  const { used, k, kc } = timberKc(lambdaRel, betaC, table);
+  const { used, k, kc: kcExact } = timberKc(lambdaRel, betaC, table);
+  // wie aus der Tabelle bzw. von Hand: k_c auf drei Stellen, damit das gezeigte Produkt aufgeht
+  const kc = Math.round(kcExact * 1000) / 1000;
   const fc0d = material.fc0d * etaW;
   const nRd = (kc * fc0d * section.A) / 1000;
   return { axis, Lk, A: section.A, i, lambda, lambdaRel, used, betaC, k, kc, fc0d, nRd };
+}
+
+// ---------- Zugstab (Hänger) ----------
+// Stahl, SIA 263: Fliessen im Bruttoquerschnitt N_t,Rd = A · f_y / γ_M1 (A in cm², f_y in kN/cm²).
+// Ein gezogener Stab knickt nicht; die Länge spielt keine Rolle.
+export function steelTension({ profile, grade, Nd }) {
+  const fy = STEEL_GRADES[grade];
+  const nRd = (profile.A * (fy / 10)) / GAMMA_M1;
+  return { profile, fy, nRd, aErf: (Nd * GAMMA_M1) / (fy / 10), Nd, eta: Nd / nRd, ok: Nd <= nRd + 1e-9 };
+}
+
+// Holz, SIA 265: N_t,Rd = f_t,0,d · η_w · A (A in mm²), Bruttoquerschnitt
+export function timberTension({ material, shape = 'rect', b, h, d, Nd, etaW = 1 }) {
+  const section = timberSection(shape, b, h, d);
+  const ft0d = material.ft0d * etaW;
+  const nRd = (ft0d * section.A) / 1000;
+  return { material, section, ft0d, nRd, aErf: (Nd * 1000) / ft0d, Nd, eta: Nd / nRd, ok: Nd <= nRd + 1e-9 };
 }
 
 export function timberColumn({ material, shape = 'rect', b, h, d, LkY, LkZ, Nd, etaW = 1, table = false }) {

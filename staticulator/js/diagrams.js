@@ -7,7 +7,21 @@ import { label, measure, escapeHtml } from './format.js';
 const POS_LINE = '#1d4ed8';
 const NEG_LINE = '#be123c';
 const HEIGHT = 210;
+// Unter der jeweils untersten Fläche (M, Biegelinie) ein eigener Streifen für das Mass am Mauszeiger (app.js),
+// damit es nie mit den Beschriftungen der Fläche zusammenstösst
+export const CURSOR_BAND = 26;
 const AMPLITUDE = 72;
+
+// Breite einer Beschriftung (fett gemessen, damit die Platzierung sicher ist; ohne Browser geschätzt)
+let measureCtx = null;
+function labelWidth(content, size) {
+  if (typeof document !== 'undefined') {
+    if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+    measureCtx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    return measureCtx.measureText(content).width;
+  }
+  return content.length * size * 0.62;
+}
 
 function r(v) {
   return Math.round(v * 10) / 10;
@@ -104,7 +118,7 @@ function fillPolygons(pts, X, Yv, kind) {
     .join('');
 }
 
-function diagram(forces, layout, kind, decimals, supportsByX) {
+function diagram(forces, layout, kind, decimals, supportsByX, band = 0) {
   const { X } = layout;
   const pts = samples(forces, kind);
   const maxAbs = Math.max(1e-9, ...pts.map(([, v]) => Math.abs(v)));
@@ -138,11 +152,11 @@ function diagram(forces, layout, kind, decimals, supportsByX) {
   for (let i = 1; i < pts.length; i++) lines.push([X(pts[i - 1][0]), Yv(pts[i - 1][1]), X(pts[i][0]), Yv(pts[i][1])]);
   lines.push([X(forces.xmin), base, X(forces.xmax), base]);
   const boxOf = (x, y, content, anchor, size) => {
-    const width = content.length * size * 0.57 + 4;
+    const width = labelWidth(content, size) + 4;
     const left = anchor === 'end' ? x - width : anchor === 'start' ? x : x - width / 2;
-    return { left, right: left + width, top: y - size * 0.78, bottom: y + size * 0.24 };
+    return { left, right: left + width, top: y - size * 0.86, bottom: y + size * 0.32 }; // mit Unterlängen und weissem Rand
   };
-  const hitsText = (b) => placed.some((p) => b.left < p.right + 3 && b.right > p.left - 3 && b.top < p.bottom + 1 && b.bottom > p.top - 1);
+  const hitsText = (b) => placed.some((p) => b.left < p.right + 3 && b.right > p.left - 3 && b.top < p.bottom + 3 && b.bottom > p.top - 3);
   const hitsLine = (b) => lines.some(([x1, y1, x2, y2]) => segmentHitsRect(x1, y1, x2, y2, b));
   const inside = (b) => b.top >= 1 && b.bottom <= HEIGHT - 1 && b.left >= 1 && b.right <= layout.width - 1;
   const tryPlace = (content, candidates, style) => {
@@ -202,7 +216,14 @@ function diagram(forces, layout, kind, decimals, supportsByX) {
       const away = mark.m > 0 ? 13 : -13;
       const content = `${mark.text} = ${label(mark.m, decimals)} kNm`;
       const style = { size: 12, weight: 700, color: colorOf(mark.m), cls: signClass(mark.m) };
-      if (!tryPlace(content, [{ x, y: ty }, { x: x + 8, y: ty, anchor: 'start' }, { x: x - 8, y: ty, anchor: 'end' }, { x, y: ty + away }], style)) {
+      // erst direkt an der Marke, dann seitlich weiter weg und auf der anderen Seite der Linie (nie auf Text)
+      const near = [{ x, y: ty }, { x: x + 8, y: ty, anchor: 'start' }, { x: x - 8, y: ty, anchor: 'end' }, { x, y: ty + away }];
+      const otherY = mark.m > 0 ? y - 8 : y + 17;
+      const further = [];
+      for (const row of [ty, ty + away, otherY]) {
+        for (const k of [1, 2, 3, 4]) further.push({ x: x + 8 + k * 30, y: row, anchor: 'start' }, { x: x - 8 - k * 30, y: row, anchor: 'end' });
+      }
+      if (!tryPlace(content, [...near, { x, y: otherY }, ...further], style)) {
         placed.push({ ...boxOf(x, ty, content, 'middle', 12), x, text: content });
         parts.push(text(x, ty, content, style));
       }
@@ -244,7 +265,8 @@ function diagram(forces, layout, kind, decimals, supportsByX) {
     tryPlace(`V = 0 bei x = ${measure(z.x)}`, candidates, { size: 11, color: '#1f2933' });
   }
 
-  return `<svg class="diagram dg-${kind}" viewBox="0 0 ${layout.width} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(title)}" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">${parts.join('')}</svg>`;
+  // data-*: Massstab für den Mauszeiger (app.js zeigt dort Wert und Mass an der Stelle x)
+  return `<svg class="diagram dg-${kind}" viewBox="0 0 ${layout.width} ${HEIGHT + band}" data-band="${band}" data-kind="${kind}" data-base="${r(base)}" data-max="${maxAbs}" data-amp="${AMPLITUDE}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(title)}" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">${parts.join('')}</svg>`;
 }
 
 // Biegelinie des gewählten Trägers (aus der Bemessung), im gleichen Stil wie V- und M-Fläche:
@@ -272,13 +294,13 @@ export function renderDeflection(data, layout, supportsByX, eventXs = []) {
 
   const placed = [];
   const boxOf = (x, y, content, anchor, size) => {
-    const width = content.length * size * 0.57 + 4;
+    const width = labelWidth(content, size) + 4;
     const left = anchor === 'end' ? x - width : anchor === 'start' ? x : x - width / 2;
-    return { left, right: left + width, top: y - size * 0.78, bottom: y + size * 0.24 };
+    return { left, right: left + width, top: y - size * 0.86, bottom: y + size * 0.32 }; // mit Unterlängen und weissem Rand
   };
   placed.push(boxOf(8, 16, title, 'start', 13), boxOf(8, 32, subtitle, 'start', 11));
   const free = (b) => b.top >= 1 && b.bottom <= HEIGHT - 1 && b.left >= 1 && b.right <= layout.width - 1
-    && !placed.some((p) => b.left < p.right + 3 && b.right > p.left - 3 && b.top < p.bottom + 1 && b.bottom > p.top - 1);
+    && !placed.some((p) => b.left < p.right + 3 && b.right > p.left - 3 && b.top < p.bottom + 3 && b.bottom > p.top - 3);
   for (const [x, name] of supportsByX) {
     parts.push(`<path d="M${r(X(x))},${r(base)} l-5.5,9 l11,0 Z" fill="#ffffff" stroke="#1f2933" stroke-width="1"/>`);
     parts.push(text(X(x) + 8, base + 12, name, { anchor: 'start', size: 10.5, weight: 700, color: '#52606d' }));
@@ -310,10 +332,10 @@ export function renderDeflection(data, layout, supportsByX, eventXs = []) {
       break;
     }
   }
-  return `<svg class="diagram dg-${kind}" viewBox="0 0 ${layout.width} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(title)}" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">${parts.join('')}</svg>`;
+  return `<svg class="diagram dg-${kind}" viewBox="0 0 ${layout.width} ${HEIGHT + CURSOR_BAND}" data-band="${CURSOR_BAND}" data-kind="${kind}" data-base="${r(base)}" data-max="${maxAbs}" data-amp="${AMPLITUDE}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapeHtml(title)}" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">${parts.join('')}</svg>`;
 }
 
 export function renderDiagrams(forces, layout, result, decimals = 2) {
   const supportsByX = result.reactions.map((s) => [s.x, s.name]);
-  return diagram(forces, layout, 'V', decimals, supportsByX) + diagram(forces, layout, 'M', decimals, supportsByX);
+  return diagram(forces, layout, 'V', decimals, supportsByX) + diagram(forces, layout, 'M', decimals, supportsByX, CURSOR_BAND);
 }

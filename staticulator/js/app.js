@@ -1,11 +1,12 @@
 // StatiCulator Web – Oberfläche
 import { solve, internalForces, resolveModel, axisZAt } from './statik.js';
-import { renderFigure } from './figure.js';
+import { renderFigure, arrowHeadPath } from './figure.js';
 import { renderDiagrams } from './diagrams.js';
 import { renderSolution, renderMessages } from './solution.js';
 import { EXAMPLES, exampleById, emptyModel } from './examples.js';
 import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
-import { initDesign, updateDesign, renderDesignForm, sanitizeDesign } from './design-ui.js';
+import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt } from './design-ui.js';
+import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
 const DIRECTION_OPTIONS = {
@@ -293,6 +294,8 @@ function update() {
   const openSections = [...$('solution').querySelectorAll('details[open] > summary')].map((s) => s.textContent);
   setHtml($('solution'), renderSolution(result, forces, state.decimals, { explain: state.view.explain }));
   $('solution').querySelectorAll('details > summary').forEach((s) => { if (openSections.includes(s.textContent)) s.parentElement.open = true; });
+  // Übersicht: pro Schritt Titel und Ergebnis, die Rechnung zum Aufklappen
+  enhanceSteps($('solution'), { explain: state.view.explain, changed: updateStepsToggle });
   setHtml($('messages'), renderMessages(result));
   const example = exampleById(state.exampleId);
   const title = (model.title || '').trim();
@@ -305,6 +308,14 @@ function update() {
   updateDesign();
   storeModel();
   recordHistory();
+}
+
+// Knopf „Alle aufklappen / Alle zuklappen“ im Kopf des Lösungswegs
+function updateStepsToggle() {
+  const button = $('stepsToggle');
+  if (!button) return;
+  button.hidden = !document.querySelector('section.sol-step.sol-acc:not(.sol-flat)');
+  button.textContent = anyClosed() ? 'Alle aufklappen' : 'Alle zuklappen';
 }
 
 // ---------- Rückgängig / Wiederholen ----------
@@ -359,6 +370,7 @@ function stepHistory(back) {
   to.push(undoHistory.current);
   const snapshot = JSON.parse(from.pop());
   state.model = sanitizeModel({ ...snapshot.model, design: state.model.design });
+  resetSteps();
   state.exampleId = snapshot.exampleId && exampleById(snapshot.exampleId) ? snapshot.exampleId : '';
   undoHistory.current = modelSnapshot();
   undoHistory.lastChange = 0;
@@ -517,6 +529,7 @@ function drawFigure() {
   state.layout = figure.layout;
   state.top = figure.top;
   state.viewTop = figure.viewTop;
+  state.figureDims = { dimY: figure.dimY, lowestAt: figure.lowestAt };
   const svg = $('figure').querySelector('svg');
   if (drag && svg) {
     svg.classList.add('dragging');
@@ -1429,6 +1442,9 @@ function handleAction(action, button) {
 function fitDesign(design, model, hint) {
   const d = clone(design);
   if (!d || !d.beam || !d.column) return design;
+  // ein von Hand gewähltes Profil gehört zur alten Aufgabe: im neuen System wieder automatisch wählen
+  d.beam.profile = '';
+  d.column.profile = '';
   if (hint) {
     if (hint.tab === 'beam' || hint.tab === 'column') d.tab = hint.tab;
     if (hint.material === 'steel' || hint.material === 'timber') d[d.tab].material = hint.material;
@@ -1450,6 +1466,7 @@ function loadExample(id) {
   // Die Einstellungen der Bemessung (Profilreihe, Stahlsorte …) bleiben beim Beispielwechsel erhalten;
   // Tab und Werkstoff passen sich dem Beispiel an
   state.model = sanitizeModel({ design: fitDesign(state.model.design, example.model, example.design), ...clone(example.model), title: example.title });
+  resetSteps();
   state.exampleId = id;
   clearSelection();
   history.replaceState(null, '', location.pathname + location.search);
@@ -1497,6 +1514,7 @@ function openFile(file) {
       const data = JSON.parse(String(reader.result));
       cancelDrag();
       state.model = sanitizeModel(data.model || data);
+      resetSteps();
       state.exampleId = '';
       clearSelection();
       renderInputs();
@@ -1740,8 +1758,18 @@ function pillWidth(content) {
   return leverMeasure.measureText(content).width + 16;
 }
 
-// Wirkungslinie (gestrichelt), Hebelarm (kräftiger Doppelpfeil mit Farbband und Plakette), Drehpunkt
-// (gefüllter Ring mit Hof) und bei gewählter Last der Drehsinn als Bogenpfeil mit dem Moment.
+// Breite einer Masszahl am Mauszeiger (11.5 px, halbfett wie .dc-dim-text)
+let dimMeasure = null;
+function dimTextWidth(content) {
+  if (!dimMeasure) {
+    dimMeasure = document.createElement('canvas').getContext('2d');
+    dimMeasure.font = '600 11.5px system-ui, -apple-system, "Segoe UI", sans-serif';
+  }
+  return dimMeasure.measureText(content).width;
+}
+
+// Wirkungslinie (gestrichelt), Hebelarm als farbiges Mass (Doppelpfeil mit Plakette auf der Linie), Drehpunkt
+// (Ring mit Hof) und bei gewählter Last der Drehsinn als Bogenpfeil mit dem Moment daneben.
 // Farbe nach Drehsinn wie im Lösungsweg: ↷ blau, ↶ orange (über CSS, auch im Dark Mode).
 function drawLever(info) {
   removeLever();
@@ -1753,16 +1781,15 @@ function drawLever(info) {
   const r1 = (value) => Math.round(value * 10) / 10;
   const width = svg.viewBox.baseVal.width;
   const line = (x1, y1, x2, y2, cls) => `<line class="${cls}" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}"/>`;
-  const head = (x, y, angle, size = 10) => {
-    const p1 = [x - size * Math.cos(angle - 0.42), y - size * Math.sin(angle - 0.42)];
-    const p2 = [x - size * Math.cos(angle + 0.42), y - size * Math.sin(angle + 0.42)];
-    const n = [x - size * 0.72 * Math.cos(angle), y - size * 0.72 * Math.sin(angle)];
-    return `<path class="lv-fill" d="M${r1(x)},${r1(y)} L${r1(p1[0])},${r1(p1[1])} L${r1(n[0])},${r1(n[1])} L${r1(p2[0])},${r1(p2[1])} Z"/>`;
-  };
-  // Hebelarm: helles Band, darauf der kräftige Doppelpfeil
+  // gleiche Pfeilspitze wie in der Skizze: schlankes, gefülltes Dreieck
+  const head = (x, y, angle, size = 11) => `<path class="lv-fill" d="${arrowHeadPath(x, y, angle, size)}"/>`;
+  // Hebelarm: Doppelpfeil, der Schaft endet an den Füssen der Spitzen
   const lever = (x1, y1, x2, y2) => {
     const angle = Math.atan2(y2 - y1, x2 - x1);
-    return line(x1, y1, x2, y2, 'lv-band') + line(x1, y1, x2, y2, 'lv-arm') + head(x2, y2, angle) + head(x1, y1, angle + Math.PI);
+    const size = Math.min(11, Math.hypot(x2 - x1, y2 - y1) / 3);
+    const dx = Math.cos(angle) * (size - 0.5);
+    const dy = Math.sin(angle) * (size - 0.5);
+    return line(x1 + dx, y1 + dy, x2 - dx, y2 - dy, 'lv-arm') + head(x2, y2, angle, size) + head(x1, y1, angle + Math.PI, size);
   };
   // Plakette: farbiges, abgerundetes Feld mit weisser Schrift; im Bild gehalten
   const pill = (cx, cy, content, anchor = 'middle') => {
@@ -1778,30 +1805,67 @@ function drawLever(info) {
   const fy = Y(info.z);
   const leverText = `a = ${length(info.lever, state.decimals)} m`;
   const parts = [];
-  let momentAt = null; // Stelle für die Plakette mit dem Moment
-  // Hebelarm wie ein Mass knapp neben dem Drehpunkt (nicht auf dem Träger), mit Hilfslinien
-  if (info.vertical) {
-    const ly = py + 26;
-    parts.push(line(fx, Math.min(fy, ly), fx, Math.max(fy, ly), 'lv-action'));
-    if (Math.abs(fx - px) > 2) {
-      parts.push(line(px, py, px, ly + 5, 'lv-help'), lever(fx, ly, px, ly), pill((fx + px) / 2, ly - 15, leverText));
+  let momentAt = []; // Kandidaten für die Plakette mit dem Moment
+  // Plaketten, Drehpunkt und Drehpfeil dürfen sich nie überdecken: jede Plakette nimmt die erste freie Lage
+  const placed = [{ x: px - 13, y: py - 13, width: 26, height: 26 }];
+  const momentArc = info.showMoment && info.lever > 1e-9 && Number.isFinite(info.moment) && Math.abs(info.moment) >= 1e-9;
+  if (momentArc) placed.push({ x: px - 32, y: py - 34, width: 64, height: 30 });
+  const boxOf = (cx, cy, content, anchor = 'middle') => {
+    const w = pillWidth(content);
+    let left = anchor === 'start' ? cx : anchor === 'end' ? cx - w : cx - w / 2;
+    left = Math.min(width - w - 3, Math.max(3, left));
+    return { x: left, y: cy - 10, width: w, height: 20 };
+  };
+  const placePill = (content, candidates) => {
+    let best = null;
+    for (const c of candidates) {
+      const box = boxOf(c.x, c.y, content, c.anchor);
+      const hit = placed.reduce((sum, o) => sum + overlapArea(box, o, 3), 0);
+      if (!best || hit < best.hit) best = { c, hit, box };
+      if (hit === 0) break;
     }
-    momentAt = { x: (fx + px) / 2, y: ly + 18, anchor: 'middle' };
-    if (info.resultant) parts.push(`<circle class="lv-fill" cx="${r1(fx)}" cy="${r1(fy)}" r="4.5"/>`, pill(fx, fy - 17, 'R'));
+    placed.push(best.box);
+    return pill(best.c.x, best.c.y, content, best.c.anchor);
+  };
+  // Hebelarm wie ein Mass: frei unter Lagern und Reaktionspfeilen, über der Masskette, mit Hilfslinien
+  if (info.vertical) {
+    const dims = state.figureDims || {};
+    const lowest = (xm) => (dims.lowestAt ? dims.lowestAt(xm) : null);
+    const lowP = lowest(info.pivotX);
+    const lowF = lowest(info.x);
+    let ly = Math.max(py + 26, (lowP ?? py) + 14, (lowF ?? fy) + 14);
+    if (Number.isFinite(dims.dimY)) ly = Math.min(ly, dims.dimY - 34);
+    parts.push(line(fx, Math.min(fy, ly), fx, Math.max(fy, ly) + 5, 'lv-action'));
+    if (Math.abs(fx - px) > 2) {
+      // Hilfslinie am Drehpunkt erst unter Lager und Reaktion, damit sie das Lagersymbol nicht kreuzt
+      const helpFrom = Math.min(ly - 8, (lowP ?? py) + 4);
+      // Plakette auf der Masslinie (wie eine Masszahl); bei kurzem Hebelarm darüber
+      const onLine = Math.abs(fx - px) > pillWidth(leverText) + 34;
+      const mid = (fx + px) / 2;
+      parts.push(line(px, helpFrom, px, ly + 5, 'lv-help'), lever(fx, ly, px, ly), placePill(leverText, onLine ? [{ x: mid, y: ly }, { x: mid, y: ly - 15 }] : [{ x: mid, y: ly - 15 }, { x: mid, y: ly + 15 }]));
+    }
+    // Moment neben dem Drehpfeil über dem Drehpunkt, zur Bildmitte hin
+    const inward = px > width / 2 ? [{ x: px - 36, y: py - 34, anchor: 'end' }, { x: px + 36, y: py - 34, anchor: 'start' }] : [{ x: px + 36, y: py - 34, anchor: 'start' }, { x: px - 36, y: py - 34, anchor: 'end' }];
+    momentAt = [...inward, { x: px, y: py - 60 }, { x: (fx + px) / 2, y: ly + 24 }];
+    if (info.resultant) {
+      placed.push({ x: fx - 6, y: fy - 6, width: 12, height: 12 });
+      parts.push(`<circle class="lv-fill" cx="${r1(fx)}" cy="${r1(fy)}" r="4.5"/>`, placePill('R', [{ x: fx, y: fy - 17 }, { x: fx, y: fy - 36 }, { x: fx + 12, y: fy - 17, anchor: 'start' }, { x: fx - 12, y: fy - 17, anchor: 'end' }]));
+    }
   } else {
     const lx = px + 28;
     parts.push(line(Math.min(fx, lx), fy, Math.max(fx, lx), fy, 'lv-action'));
     if (Math.abs(fy - py) > 2) {
-      parts.push(line(px, py, lx + 5, py, 'lv-help'), lever(lx, fy, lx, py), pill(lx + 9, (fy + py) / 2, leverText, 'start'));
+      parts.push(line(px, py, lx + 5, py, 'lv-help'), lever(lx, fy, lx, py), placePill(leverText, [{ x: lx + 9, y: (fy + py) / 2, anchor: 'start' }, { x: lx - 9, y: (fy + py) / 2, anchor: 'end' }]));
     }
-    momentAt = { x: lx + 9, y: (fy + py) / 2 + 24, anchor: 'start' };
+    const mid = (fy + py) / 2;
+    momentAt = [{ x: lx + 9, y: mid + 24, anchor: 'start' }, { x: lx + 9, y: mid - 24, anchor: 'start' }, { x: px - 36, y: py - 34, anchor: 'end' }, { x: px + 36, y: py - 34, anchor: 'start' }, { x: px, y: py - 60 }, { x: px, y: py + 40 }];
   }
   // Drehpunkt: Hof, Ring und Mittelpunkt
   parts.push(`<circle class="lv-halo" cx="${r1(px)}" cy="${r1(py)}" r="13"/>`, `<circle class="lv-ring" cx="${r1(px)}" cy="${r1(py)}" r="7.5"/>`, `<circle class="lv-fill" cx="${r1(px)}" cy="${r1(py)}" r="2.6"/>`);
   // Drehsinn um den Drehpunkt (bei gewählter Last): Bogenpfeil über dem Drehpunkt und Moment
   if (info.showMoment) {
     if (!(info.lever > 1e-9) || !Number.isFinite(info.moment) || Math.abs(info.moment) < 1e-9) {
-      parts.push(pill(px, py - 24, 'Hebelarm 0: geht durch den Drehpunkt, kein Moment'));
+      parts.push(placePill('Hebelarm 0: geht durch den Drehpunkt, kein Moment', [{ x: px, y: py - 24 }, { x: px, y: py - 46 }, { x: px, y: py + 40 }]));
     } else {
       const radius = 26;
       const headLength = 12;
@@ -1819,7 +1883,7 @@ function drawLever(info) {
       parts.push(head(tx, ty, Math.atan2(ty - by, tx - bx), headLength));
       const f = (value) => fixed(value, state.decimals);
       const content = `M = ${f(info.force)} · ${length(info.lever, state.decimals)} = ${f(Math.abs(info.moment))} kNm ${cw ? '↷' : '↶'}`;
-      parts.push(pill(momentAt.x, momentAt.y, content, momentAt.anchor));
+      parts.push(placePill(content, momentAt));
     }
   }
   const layer = document.createElementNS(SVG_NS, 'g');
@@ -1863,6 +1927,8 @@ function showFigurePeek(event) {
     return;
   }
   const copy = svg.cloneNode(true);
+  // keine doppelten IDs im Dokument: Verweise (Filter) zeigen dann auf die Originale in der Skizze
+  copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
   copy.removeAttribute('id');
   copy.setAttribute('aria-hidden', 'true');
   // Gegenüber dem Mauszeiger, damit das Fenster die Formel nicht verdeckt
@@ -1900,12 +1966,197 @@ function drawSelectionLever() {
   drawLever({ ...info, showMoment: true, moment: term.moment, force: term.force, sense: Math.sign(term.moment) || 1 });
 }
 
+// Tooltip neben dem Zeiger, immer mit 8 px Abstand im Bild (rechts und unten; sonst über dem Zeiger)
 function positionTip(event) {
   const tip = $('termTip');
   if (tip.hidden) return;
-  const left = Math.min(window.innerWidth - tip.offsetWidth - 8, event.clientX + 14);
-  tip.style.left = `${Math.max(8, left)}px`;
-  tip.style.top = `${event.clientY + 18}px`;
+  const viewW = document.documentElement.clientWidth;
+  const viewH = document.documentElement.clientHeight;
+  // zuerst links ansetzen, damit die Breite nach dem Umbruch gemessen wird
+  tip.style.left = '8px';
+  tip.style.top = '0px';
+  const w = tip.offsetWidth;
+  const h = tip.offsetHeight;
+  const left = Math.max(8, Math.min(viewW - w - 8, event.clientX + 14));
+  let top = event.clientY + 18;
+  if (top + h > viewH - 8) top = Math.max(8, event.clientY - h - 12);
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+}
+
+// ---------- Mauszeiger in der V- und M-Fläche ----------
+// Senkrechte Linie durch beide Flächen, Punkt und Wert auf der Kurve, unten das Mass vom Trägeranfang
+// bis zum Zeiger (und ab dem Lager links davon). Nahe einer Ereignisstelle (Last, Lager) rastet der
+// Zeiger dort ein und zeigt den Sprung in V als „links → rechts“.
+const cursorSvgs = () => [...$('diagrams').querySelectorAll('svg.diagram'), ...($('deflectionDiagram').hidden ? [] : $('deflectionDiagram').querySelectorAll('svg.diagram'))];
+
+function diagramCursor(event) {
+  const svg = event.target.closest && event.target.closest('#diagrams svg.diagram, #deflectionDiagram svg.diagram');
+  const forces = state.last && state.last.forces;
+  const layout = state.layout;
+  if (!svg || !forces || !forces.ok || !layout || drag) {
+    hideDiagramCursor();
+    return;
+  }
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(ctm.inverse());
+  const X = layout.X;
+  const toX = (px) => layout.xmin + (px - layout.offsetX) / layout.scale;
+  if (point.x < X(forces.xmin) - 12 || point.x > X(forces.xmax) + 12) {
+    hideDiagramCursor();
+    return;
+  }
+  // auf cm gerundet (wie man es abliest), an Ereignisstellen eingerastet
+  let x = Math.min(forces.xmax, Math.max(forces.xmin, Math.round(toX(point.x) * 100) / 100));
+  const snap = forces.events.find((e) => Math.abs(X(e.x) - point.x) <= 6);
+  if (snap) x = snap.x;
+  const at = forces.valueAt(x);
+  const w = deflectionAt(x);
+  const values = {
+    V: snap ? [snap.vLeft, snap.vRight] : [at.v],
+    M: snap ? [snap.mLeft, snap.mRight] : [at.m],
+    W: w === null ? [] : [w * 1000],
+  };
+  // am Trägerende gibt es nur eine Seite
+  if (snap && Math.abs(x - forces.xmin) < 1e-9) { values.V = [snap.vRight]; values.M = [snap.mRight]; }
+  if (snap && Math.abs(x - forces.xmax) < 1e-9) { values.V = [snap.vLeft]; values.M = [snap.mLeft]; }
+  for (const kind of ['V', 'M']) {
+    const list = values[kind];
+    if (list.length === 2 && Math.abs(list[0] - list[1]) < 1e-9) list.pop();
+  }
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const f = (v) => label(Math.abs(v) < 1e-9 ? 0 : v, state.decimals);
+  const px = X(x);
+  const svgs = cursorSvgs();
+  // Mass im Streifen unter der untersten Fläche (data-band), sonst in der letzten Fläche
+  const dimSvg = [...svgs].reverse().find((s) => Number(s.dataset.band) > 0) || svgs[svgs.length - 1];
+  svgs.forEach((s) => {
+    const kind = s.dataset.kind;
+    const base = Number(s.dataset.base);
+    const max = Number(s.dataset.max);
+    const amp = Number(s.dataset.amp);
+    const width = s.viewBox.baseVal.width;
+    const height = s.viewBox.baseVal.height;
+    const band = Number(s.dataset.band) || 0;
+    const contentHeight = height - band; // ohne den Streifen für das Mass
+    const withDim = s === dimSvg;
+    const dimY = height - 8; // Masslinie im Streifen
+    const Yv = (v) => base + (v / max) * amp;
+    const list = values[kind] || [];
+    const unit = { V: 'kN', M: 'kNm', W: 'mm' }[kind] || '';
+    const name = kind === 'W' ? 'w' : kind;
+    const fmt = kind === 'W' ? (v) => label(Math.abs(v) < 1e-9 ? 0 : v, 1) : f;
+    const parts = [`<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY : base + amp + 16)}"/>`];
+    for (const v of list) parts.push(`<circle class="dc-dot" cx="${r1(px)}" cy="${r1(Yv(v))}" r="4"/>`);
+    // Wert als Plakette neben dem Punkt: erste Lage, die keine Beschriftung der Fläche und keinen Punkt überdeckt
+    const content = `${name} = ${list.map(fmt).join(' → ')} ${unit}`;
+    const w = pillWidth(content);
+    const right = px < width / 2;
+    const yMid = list.length ? Yv(list[list.length - 1]) : base;
+    if (list.length) {
+      const obstacles = [...diagramTextBoxes(s), ...list.map((v) => ({ x: px - 6, y: Yv(v) - 6, width: 12, height: 12 }))];
+      const sides = right ? [1, -1] : [-1, 1];
+      let best = null;
+      for (const dy of [-26, 8, -50, 32, -74, 56]) {
+        for (const side of sides) {
+          const left = Math.min(width - w - 3, Math.max(3, side > 0 ? px + 10 : px - 10 - w));
+          const top = Math.min(contentHeight - 22, Math.max(2, yMid + dy));
+          const box = { x: left, y: top, width: w, height: 20 };
+          const hit = obstacles.reduce((sum, o) => sum + overlapArea(box, o, 2), 0);
+          if (!best || hit < best.hit) best = { left, top, hit };
+          if (hit === 0) break;
+        }
+        if (best.hit === 0) break;
+      }
+      parts.push(`<g class="dc-pill"><rect x="${r1(best.left)}" y="${r1(best.top)}" width="${r1(w)}" height="20" rx="10"/><text x="${r1(best.left + w / 2)}" y="${r1(best.top + 14.3)}" text-anchor="middle">${escapeHtml(content)}</text></g>`);
+    }
+    // Mass beidseitig in der unteren Fläche: Trägeranfang bis Zeiger und Zeiger bis Trägerende,
+    // dazu der Abstand zum nächsten Lager auf der jeweiligen Seite (wenn es nicht am Trägerende steht)
+    if (withDim) {
+      const y = dimY;
+      const x0 = X(forces.xmin);
+      const x1 = X(forces.xmax);
+      const tick = (tx) => `<line class="dc-dim" x1="${r1(tx - 4)}" y1="${r1(y + 4)}" x2="${r1(tx + 4)}" y2="${r1(y - 4)}"/>`;
+      const reactions = state.last.result.reactions || [];
+      const inside = (s2) => s2.x > forces.xmin + 1e-9 && s2.x < forces.xmax - 1e-9;
+      const leftSupport = reactions.filter((s2) => inside(s2) && s2.x < x - 1e-9).sort((a, b) => b.x - a.x)[0];
+      const rightSupport = reactions.filter((s2) => inside(s2) && s2.x > x + 1e-9).sort((a, b) => a.x - b.x)[0];
+      const textWidth = (content) => dimTextWidth(content) + 4;
+      const dist = (d) => `${length(d, state.decimals)} m`;
+      // links: Trägeranfang bis Zeiger, rechts: Zeiger bis Trägerende; Text lang (mit Lagerabstand) und kurz
+      const specs = [];
+      if (x - forces.xmin > 1e-9) specs.push({ from: x0, to: px, side: 'left', short: dist(x - forces.xmin), long: `${dist(x - forces.xmin)}${leftSupport ? ` (${dist(x - leftSupport.x)} ab ${leftSupport.name})` : ''}` });
+      if (forces.xmax - x > 1e-9) specs.push({ from: px, to: x1, side: 'right', short: dist(forces.xmax - x), long: `${dist(forces.xmax - x)}${rightSupport ? ` (${dist(rightSupport.x - x)} bis ${rightSupport.name})` : ''}` });
+      // Masszahl über der Linie, mittig; passt sie nicht hinein, aussen neben das Mass; immer im Bild
+      const placeText = (spec, content, forceOutside = false) => {
+        const tw = textWidth(content);
+        let tx = (spec.from + spec.to) / 2;
+        let anchor = 'middle';
+        if (forceOutside || Math.abs(spec.to - spec.from) < tw) {
+          tx = spec.side === 'left' ? spec.from - 6 : spec.to + 6;
+          anchor = spec.side === 'left' ? 'end' : 'start';
+        }
+        if (anchor === 'middle') tx = Math.min(width - 4 - tw / 2, Math.max(4 + tw / 2, tx));
+        if (anchor === 'end' && tx - tw < 2) { tx = spec.to + 6; anchor = 'start'; }
+        if (anchor === 'start' && tx + tw > width - 2) { tx = spec.from - 6; anchor = 'end'; }
+        const left = anchor === 'middle' ? tx - tw / 2 : anchor === 'end' ? tx - tw : tx;
+        return { content, tx, anchor, box: { x: left, y: y - 16, width: tw, height: 13 } };
+      };
+      const clash = (labels) => labels.length === 2 && overlapArea(labels[0].box, labels[1].box, 4) > 0;
+      // Zwei Masszahlen dürfen sich nie berühren: erst ohne Lagerabstand, dann die kürzere aussen, sonst nur eine
+      let labels = specs.map((spec) => placeText(spec, spec.long));
+      if (clash(labels)) labels = specs.map((spec) => placeText(spec, spec.short));
+      if (clash(labels)) {
+        const shorter = Math.abs(specs[0].to - specs[0].from) < Math.abs(specs[1].to - specs[1].from) ? 0 : 1;
+        labels[shorter] = placeText(specs[shorter], specs[shorter].short, true);
+        if (clash(labels)) labels[shorter] = null;
+      }
+      specs.forEach((spec, i) => {
+        parts.push(`<line class="dc-dim" x1="${r1(spec.from)}" y1="${r1(y)}" x2="${r1(spec.to)}" y2="${r1(y)}"/>`);
+        const lab = labels[i];
+        if (lab) parts.push(`<text class="dc-dim-text" x="${r1(lab.tx)}" y="${r1(y - 5)}" text-anchor="${lab.anchor}">${escapeHtml(lab.content)}</text>`);
+      });
+      if (x - forces.xmin > 1e-9) parts.push(tick(x0));
+      if (forces.xmax - x > 1e-9) parts.push(tick(x1));
+      parts.push(tick(px));
+    }
+    let layer = s.querySelector('g.diagram-cursor');
+    if (!layer) {
+      layer = document.createElementNS(SVG_NS, 'g');
+      layer.setAttribute('class', 'diagram-cursor');
+      s.appendChild(layer);
+    }
+    layer.innerHTML = parts.join('');
+  });
+}
+
+// Überdeckungsfläche zweier Rechtecke (mit Sicherheitsabstand)
+function overlapArea(a, b, margin = 0) {
+  const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) + margin;
+  const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) + margin;
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+// Beschriftungen einer Fläche (ohne die Zeiger-Schicht), einmal pro gezeichnetem SVG gemessen
+const textBoxCache = new WeakMap();
+function diagramTextBoxes(svg) {
+  if (!textBoxCache.has(svg)) {
+    textBoxCache.set(svg, [...svg.querySelectorAll('text')].filter((t) => !t.closest('g.diagram-cursor')).map((t) => t.getBBox()));
+  }
+  return textBoxCache.get(svg);
+}
+
+function hideDiagramCursor() {
+  document.querySelectorAll('g.diagram-cursor').forEach((g) => g.remove());
+}
+
+function initDiagramCursor() {
+  for (const box of [$('diagrams'), $('deflectionDiagram')]) {
+    box.addEventListener('pointermove', diagramCursor);
+    box.addEventListener('pointerdown', diagramCursor);
+    box.addEventListener('pointerleave', hideDiagramCursor);
+  }
 }
 
 function initTermHover() {
@@ -2211,6 +2462,8 @@ function init() {
   $('coordCheck').checked = state.view.coords;
   $('leverCheck').checked = state.view.lever;
   $('scaleCheck').checked = state.view.scaleMode;
+  // Alle Schritte des Lösungswegs auf- oder zuklappen
+  $('stepsToggle').addEventListener('click', () => setAllSteps(anyClosed()));
   // Erklärmodus im Lösungsweg: „Warum?“-Boxen je Schritt
   $('explainCheck').checked = state.view.explain;
   $('explainCheck').addEventListener('change', (event) => {
@@ -2219,6 +2472,7 @@ function init() {
     scheduleUpdate();
   });
   initTermHover();
+  initDiagramCursor();
   // Farbschema der V- und M-Fläche (nur CSS, kein Neuzeichnen nötig)
   $('schemeSelect').value = state.view.scheme;
   $('diagrams').dataset.scheme = state.view.scheme;
@@ -2240,6 +2494,10 @@ function init() {
     viewMenu.open = false;
     viewMenu.querySelector('summary').focus();
     event.stopPropagation();
+  });
+  // Fokus per Tab aus dem Menü hinaus: Menü schliessen
+  viewMenu.addEventListener('focusout', (event) => {
+    if (viewMenu.open && event.relatedTarget && !viewMenu.contains(event.relatedTarget)) viewMenu.open = false;
   });
   document.querySelector('.figure-tools').addEventListener('change', (event) => {
     const target = event.target;
@@ -2291,6 +2549,7 @@ function init() {
     cancelDrag();
     const empty = emptyModel();
     state.model = sanitizeModel({ ...empty, design: fitDesign(state.model.design, empty, null) });
+    resetSteps();
     state.exampleId = '';
     clearSelection();
     history.replaceState(null, '', location.pathname + location.search);

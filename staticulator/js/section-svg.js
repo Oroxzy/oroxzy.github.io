@@ -32,11 +32,23 @@ function axes(sx, sy, halfW, halfH, buckling) {
     + `<text class="sec-axis-label${buckling === 'y' ? ' sec-buckle-text' : ''}" x="${r1(sx + halfW + 20)}" y="${r1(sy + 4)}">y</text>`
     + `<line class="${zCls}" x1="${r1(sx)}" y1="${r1(sy - halfH - 14)}" x2="${r1(sx)}" y2="${r1(sy + halfH + 14)}"/>`
     + `<text class="sec-axis-label${buckling === 'z' ? ' sec-buckle-text' : ''}" x="${r1(sx + 4)}" y="${r1(sy + halfH + 24)}">z</text>`;
-  // Knicken um z: Ausweichen in y-Richtung (und umgekehrt) – kleine Pfeile
-  if (buckling === 'z') s += `<path class="sec-buckle-arrow" d="M${r1(sx + halfW + 6)},${r1(sy - 22)} l10,0 m-4,-3 l4,3 l-4,3 M${r1(sx - halfW - 6)},${r1(sy - 22)} l-10,0 m4,-3 l-4,3 l4,3"/>`;
+  // Knicken um z: Ausweichen in y-Richtung (und umgekehrt) – kleine Pfeile wie in der Systemskizze
+  if (buckling === 'z') s += arrow(sx + halfW + 5, sy - 22, sx + halfW + 17, sy - 22) + arrow(sx - halfW - 5, sy - 22, sx - halfW - 17, sy - 22);
   // Knicken um y: Ausweichen in z-Richtung – Pfeile links neben dem Querschnitt (frei von Breitenmass und t_f)
-  if (buckling === 'y') s += `<path class="sec-buckle-arrow" d="M${r1(CX - halfW - 7)},${r1(sy - halfH + 4)} l0,-11 m-3,4 l3,-4 l3,4 M${r1(CX - halfW - 7)},${r1(sy + halfH - 4)} l0,11 m-3,-4 l3,4 l3,-4"/>`;
+  if (buckling === 'y') s += arrow(CX - halfW - 7, sy - halfH + 5, CX - halfW - 7, sy - halfH - 8) + arrow(CX - halfW - 7, sy + halfH - 5, CX - halfW - 7, sy + halfH + 8);
   return s;
+}
+
+// Kleiner Pfeil: Schaft bis zum Fuss der gefüllten, schlanken Spitze
+function arrow(x1, y1, x2, y2, head = 6) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const half = head * 0.36;
+  const bx = x2 - head * Math.cos(angle);
+  const by = y2 - head * Math.sin(angle);
+  const px = -Math.sin(angle) * half;
+  const py = Math.cos(angle) * half;
+  return `<line class="sec-buckle-arrow" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(bx + 0.4 * Math.cos(angle))}" y2="${r1(by + 0.4 * Math.sin(angle))}"/>`
+    + `<path class="sec-buckle-head" d="M${r1(x2)},${r1(y2)} L${r1(bx + px)},${r1(by + py)} L${r1(bx - px)},${r1(by - py)} Z"/>`;
 }
 
 // Profil aus der Profiltabelle: I/H, U, Hohlprofil. options.highlight: 'shear' | null, options.buckling: 'y' | 'z' | null
