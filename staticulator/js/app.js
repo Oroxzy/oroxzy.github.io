@@ -37,6 +37,16 @@ function clone(value) {
 
 // ---------- Laden und Speichern ----------
 
+// Ein negativer Lastwert kehrt die Richtung um: als Betrag mit umgedrehtem Pfeil speichern,
+// damit Tabelle, Skizze und Lösungsweg dasselbe zeigen (↓ −50 wird ↑ 50)
+const OPPOSITE_DIR = { down: 'up', up: 'down', left: 'right', right: 'left' };
+function positiveLoad(load) {
+  if (typeof load.value === 'number' && Number.isFinite(load.value) && load.value < 0) {
+    return { ...load, dir: OPPOSITE_DIR[load.dir] || load.dir, value: -load.value };
+  }
+  return load;
+}
+
 function encodeModel(model) {
   const json = JSON.stringify({ v: 1, model });
   const bytes = new TextEncoder().encode(json);
@@ -70,10 +80,10 @@ function sanitizeModel(raw) {
   while (supports.length < 2) supports.push({ name: supports.length === 0 ? 'A' : 'B', type: supports.length === 0 ? 'fest' : 'rolle', x: null, z: null });
   const loads = (Array.isArray(raw.loads) ? raw.loads : []).slice(0, 200).map((l) => {
     if (l && l.kind === 'q') {
-      return { kind: 'q', dir: l.dir === 'up' ? 'up' : 'down', value: numberOrNull(l.value), x1: numberOrNull(l.x1), x2: numberOrNull(l.x2), name: typeof l.name === 'string' ? l.name.slice(0, 20) : '' };
+      return positiveLoad({ kind: 'q', dir: l.dir === 'up' ? 'up' : 'down', value: numberOrNull(l.value), x1: numberOrNull(l.x1), x2: numberOrNull(l.x2), name: typeof l.name === 'string' ? l.name.slice(0, 20) : '' });
     }
     const dir = ['down', 'up', 'right', 'left'].includes(l && l.dir) ? l.dir : 'down';
-    return { kind: 'F', dir, value: numberOrNull(l && l.value), x: numberOrNull(l && l.x), z: numberOrNull(l && l.z), name: typeof (l && l.name) === 'string' ? l.name.slice(0, 20) : '' };
+    return positiveLoad({ kind: 'F', dir, value: numberOrNull(l && l.value), x: numberOrNull(l && l.x), z: numberOrNull(l && l.z), name: typeof (l && l.name) === 'string' ? l.name.slice(0, 20) : '' });
   });
   return {
     title: typeof raw.title === 'string' ? raw.title.slice(0, 200) : '',
@@ -1910,6 +1920,55 @@ function showTerm(element, event) {
   showFigurePeek(event);
 }
 
+// Ausschnitt für das schwebende Fenster: Hebelarm (Wirkungslinie, Mass, Drehpunkt, Drehpfeil) und die
+// markierte Last samt Beschriftung, mit Rand und Mindestbreite; im Bild gehalten. Ohne Markierung: null.
+function peekRegion(svg) {
+  const vb = svg.viewBox.baseVal;
+  let x1 = Infinity;
+  let y1 = Infinity;
+  let x2 = -Infinity;
+  let y2 = -Infinity;
+  const hasLever = !!svg.querySelector('.lever-layer');
+  for (const element of svg.querySelectorAll('.lever-layer, .hl-hover')) {
+    let box;
+    try { box = element.getBBox(); } catch (error) { continue; }
+    if (!(box.width > 0 || box.height > 0)) continue;
+    x1 = Math.min(x1, box.x);
+    y1 = Math.min(y1, box.y);
+    x2 = Math.max(x2, box.x + box.width);
+    y2 = Math.max(y2, box.y + box.height);
+  }
+  if (!Number.isFinite(x1)) return null;
+  x1 -= 40;
+  x2 += 40;
+  y1 -= 28;
+  y2 += 28;
+  // Mindestbreite (eine einzelne Last soll nicht riesig werden) und ein angenehmes Seitenverhältnis
+  // ohne Hebelarm (z. B. ΣV) mehr Umgebung, damit man sieht, wo die Last im System sitzt
+  const minWidth = Math.max(320, vb.width * (hasLever ? 0.4 : 0.6), (y2 - y1) * 1.8);
+  if (x2 - x1 < minWidth) {
+    const center = (x1 + x2) / 2;
+    x1 = center - minWidth / 2;
+    x2 = center + minWidth / 2;
+  }
+  // Mindesthöhe, damit Träger und Lager rund um die Last mit drauf sind
+  const minHeight = (x2 - x1) * 0.45;
+  if (y2 - y1 < minHeight) {
+    const middle = (y1 + y2) / 2;
+    y1 = middle - minHeight / 2;
+    y2 = middle + minHeight / 2;
+  }
+  // im Bild halten (verschieben statt abschneiden)
+  const width = Math.min(x2 - x1, vb.width);
+  x1 = Math.min(Math.max(x1, vb.x), vb.x + vb.width - width);
+  const height = Math.min(y2 - y1, vb.height);
+  y1 = Math.min(Math.max(y1, vb.y), vb.y + vb.height - height);
+  // lohnt sich nur, wenn der Ausschnitt deutlich kleiner als das ganze Bild ist
+  if (width > vb.width * 0.9) return null;
+  const round = (v) => Math.round(v * 10) / 10;
+  return { x: round(x1), y: round(y1), width: round(width), height: round(height) };
+}
+
 // Ist die Skizze weggescrollt, zeigt ein schwebendes Fenster eine Kopie mit Markierung und Hebelarm
 let peekPointerY = 0;
 
@@ -1931,6 +1990,9 @@ function showFigurePeek(event) {
   copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
   copy.removeAttribute('id');
   copy.setAttribute('aria-hidden', 'true');
+  // nur den Ausschnitt um Last, Hebelarm und Drehpunkt zeigen: so wird er gross und lesbar
+  const region = peekRegion(svg);
+  if (region) copy.setAttribute('viewBox', `${region.x} ${region.y} ${region.width} ${region.height}`);
   // Gegenüber dem Mauszeiger, damit das Fenster die Formel nicht verdeckt
   const atTop = peekPointerY > window.innerHeight / 2;
   peek.classList.toggle('at-top', atTop);
@@ -2313,6 +2375,24 @@ function init() {
       state.exampleId = '';
       $('exampleSelect').value = '';
       scheduleUpdate();
+    } else if (target.matches('#loadTable input[data-field="value"]')) {
+      // Minus beim Verlassen des Feldes in die Pfeilrichtung übernehmen (↓ −50 wird ↑ 50)
+      const row = target.closest('tr[data-index]');
+      const index = row ? Number(row.dataset.index) : -1;
+      const load = state.model.loads[index];
+      if (load && typeof load.value === 'number' && load.value < 0) {
+        state.model.loads[index] = positiveLoad(load);
+        const active = document.activeElement;
+        const activeRow = active && active.closest && active.closest('#loadTable tr[data-index]');
+        const keep = activeRow ? { index: activeRow.dataset.index, field: active.dataset.field } : null;
+        historyKey = `loadTable:${index}:value`;
+        renderLoadTable();
+        if (keep && keep.field) {
+          const again = document.querySelector(`#loadTable tr[data-index="${keep.index}"] [data-field="${keep.field}"]`);
+          if (again) again.focus();
+        }
+        scheduleUpdate();
+      }
     } else if (target.id === 'pivotSelect') {
       setPivot(target.value);
     } else if (target.matches('input[data-pivot]')) {
