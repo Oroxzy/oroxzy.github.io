@@ -106,7 +106,7 @@ function storeModel() {
 // Darstellungseinstellungen aus dem Speicher (gelten auch, wenn ein geteilter Link geöffnet wird).
 function restoreSettings(stored) {
   if (!stored) return;
-  if (Number.isInteger(stored.decimals)) state.decimals = Math.min(3, Math.max(0, stored.decimals));
+  if (Number.isInteger(stored.decimals)) state.decimals = Math.min(5, Math.max(0, stored.decimals));
   if (stored.view && typeof stored.view === 'object') {
     const v = stored.view;
     state.view = {
@@ -1826,13 +1826,27 @@ function drawLever(info) {
     left = Math.min(width - w - 3, Math.max(3, left));
     return { x: left, y: cy - 10, width: w, height: 20 };
   };
+  const vb = svg.viewBox.baseVal;
   const placePill = (content, candidates) => {
     let best = null;
-    for (const c of candidates) {
+    const tryAt = (c) => {
       const box = boxOf(c.x, c.y, content, c.anchor);
-      const hit = placed.reduce((sum, o) => sum + overlapArea(box, o, 3), 0);
+      // oben oder unten aus dem Bild zählt wie eine Überdeckung
+      const outside = Math.max(0, vb.y + 2 - box.y) + Math.max(0, box.y + box.height - (vb.y + vb.height - 2));
+      const hit = placed.reduce((sum, o) => sum + overlapArea(box, o, 3), 0) + outside * box.width;
       if (!best || hit < best.hit) best = { c, hit, box };
-      if (hit === 0) break;
+      return hit === 0;
+    };
+    // erst die bevorzugten Lagen; ist keine frei (lange Zahlen, Rand), schrittweise darum herum suchen
+    if (!candidates.some(tryAt)) {
+      const steps = [[0, -22], [0, 22], [-40, 0], [40, 0], [-40, -22], [40, -22], [-40, 22], [40, 22]];
+      search: for (let k = 1; k <= 3; k++) {
+        for (const c of candidates) {
+          for (const [dx, dy] of steps) {
+            if (tryAt({ ...c, x: c.x + dx * k, y: c.y + dy * k })) break search;
+          }
+        }
+      }
     }
     placed.push(best.box);
     return pill(best.c.x, best.c.y, content, best.c.anchor);
@@ -1912,7 +1926,9 @@ function showTerm(element, event) {
   activeTerm = element;
   element.classList.add('term-active');
   if (info.ref) setHover(info.ref, 'solution');
+  // ohne Hebelarm (ΣV, ΣH) auch keinen Hebelarm einer gewählten Last zeigen, sonst wirkt es wie ΣM
   if (info.lever !== undefined) drawLever(info);
+  else removeLever();
   const tip = $('termTip');
   tip.textContent = info.text;
   tip.hidden = false;
@@ -1922,14 +1938,16 @@ function showTerm(element, event) {
 
 // Ausschnitt für das schwebende Fenster: Hebelarm (Wirkungslinie, Mass, Drehpunkt, Drehpfeil) und die
 // markierte Last samt Beschriftung, mit Rand und Mindestbreite; im Bild gehalten. Ohne Markierung: null.
-function peekRegion(svg) {
+function peekRegion(svg, focus) {
   const vb = svg.viewBox.baseVal;
   let x1 = Infinity;
   let y1 = Infinity;
   let x2 = -Infinity;
   let y2 = -Infinity;
   const hasLever = !!svg.querySelector('.lever-layer');
-  for (const element of svg.querySelectorAll('.lever-layer, .hl-hover')) {
+  const parts = [...svg.querySelectorAll('.lever-layer, [data-ref]')]
+    .filter((element) => element.classList.contains('lever-layer') || focus.has(element.getAttribute('data-ref')));
+  for (const element of parts) {
     let box;
     try { box = element.getBBox(); } catch (error) { continue; }
     if (!(box.width > 0 || box.height > 0)) continue;
@@ -1969,6 +1987,25 @@ function peekRegion(svg) {
   return { x: round(x1), y: round(y1), width: round(width), height: round(height) };
 }
 
+// In der Vorschau tritt alles zurück, was mit dem überfahrenen Term nichts zu tun hat: kräftig bleiben die Last
+// (bzw. Lagerkraft), der Hebelarm und am Drehpunkt das Lager mit Namen; der Träger bleibt als Bezug halb sichtbar.
+function fadePeek(copy, info, focus) {
+  copy.querySelectorAll(':scope > .hl-layer, :scope > .hit-layer').forEach((element) => element.remove());
+  if (!focus.size) return;
+  const pivot = info && info.pivotName !== undefined ? state.model.supports.findIndex((s) => s.name === info.pivotName) : -1;
+  const pivotRef = pivot >= 0 ? `S:${pivot}` : null;
+  for (const child of copy.children) {
+    if (child.tagName === 'defs' || child.classList.contains('lever-layer')) continue;
+    const ref = child.getAttribute('data-ref');
+    if (ref && focus.has(ref)) continue;
+    // Lagersymbol und Name am Drehpunkt bleiben; seine Lagerkraft (Hebelarm 0) tritt zurück
+    const pivotPart = ref && ref === pivotRef
+      && (child.classList.contains('drag') || (child.classList.contains('lbl') && !child.textContent.includes('=')));
+    if (pivotPart) continue;
+    child.classList.add(ref && ref.startsWith('A:') ? 'peek-context' : 'peek-faded');
+  }
+}
+
 // Ist die Skizze weggescrollt, zeigt ein schwebendes Fenster eine Kopie mit Markierung und Hebelarm
 let peekPointerY = 0;
 
@@ -1990,8 +2027,11 @@ function showFigurePeek(event) {
   copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
   copy.removeAttribute('id');
   copy.setAttribute('aria-hidden', 'true');
+  const info = activeTerm ? termInfo(activeTerm.dataset.term) : null;
+  const focus = expandRefs([info && info.ref]);
+  fadePeek(copy, info, focus);
   // nur den Ausschnitt um Last, Hebelarm und Drehpunkt zeigen: so wird er gross und lesbar
-  const region = peekRegion(svg);
+  const region = peekRegion(svg, focus);
   if (region) copy.setAttribute('viewBox', `${region.x} ${region.y} ${region.width} ${region.height}`);
   // Gegenüber dem Mauszeiger, damit das Fenster die Formel nicht verdeckt
   const atTop = peekPointerY > window.innerHeight / 2;
@@ -2118,18 +2158,33 @@ function diagramCursor(event) {
     const yMid = list.length ? Yv(list[list.length - 1]) : base;
     if (list.length) {
       const obstacles = [...diagramTextBoxes(s), ...list.map((v) => ({ x: px - 6, y: Yv(v) - 6, width: 12, height: 12 }))];
-      const sides = right ? [1, -1] : [-1, 1];
+      const sides = right ? [px + 10, px - 10 - w] : [px - 10 - w, px + 10];
+      // zuerst neben dem Punkt; ist dort alles belegt (lange Zahlen), auch mittig über/unter dem Punkt und weiter weg
+      const candidates = [];
+      for (const dy of [-26, 8, -50, 32, -74, 56]) sides.forEach((x) => candidates.push([x, dy]));
+      for (const dy of [-26, 8, -50, 32, -74, 56, -98, 80]) candidates.push([px - w / 2, dy]);
+      for (const dy of [-98, 80]) sides.forEach((x) => candidates.push([x, dy]));
       let best = null;
-      for (const dy of [-26, 8, -50, 32, -74, 56]) {
-        for (const side of sides) {
-          const left = Math.min(width - w - 3, Math.max(3, side > 0 ? px + 10 : px - 10 - w));
-          const top = Math.min(contentHeight - 22, Math.max(2, yMid + dy));
-          const box = { x: left, y: top, width: w, height: 20 };
-          const hit = obstacles.reduce((sum, o) => sum + overlapArea(box, o, 2), 0);
-          if (!best || hit < best.hit) best = { left, top, hit };
-          if (hit === 0) break;
+      for (const [x, dy] of candidates) {
+        const left = Math.min(width - w - 3, Math.max(3, x));
+        const top = Math.min(contentHeight - 22, Math.max(2, yMid + dy));
+        const box = { x: left, y: top, width: w, height: 20 };
+        const hit = obstacles.reduce((sum, o) => sum + overlapArea(box, o, 2), 0);
+        if (!best || hit < best.hit) best = { left, top, hit };
+        if (hit === 0) break;
+      }
+      // dicht beschriftete Fläche: freie Lage im Raster suchen, möglichst nah am Punkt und nicht über dem Zeiger
+      if (best.hit > 0) {
+        let near = null;
+        for (let top = 2; top <= contentHeight - 22; top += 6) {
+          for (let left = 3; left <= width - w - 3; left += 8) {
+            const box = { x: left, y: top, width: w, height: 20 };
+            if (obstacles.some((o) => overlapArea(box, o, 2) > 0)) continue;
+            const distance = Math.hypot(left + w / 2 - px, top + 10 - yMid) + (left < px && left + w > px ? 60 : 0);
+            if (!near || distance < near.distance) near = { left, top, distance };
+          }
         }
-        if (best.hit === 0) break;
+        if (near) best = { left: near.left, top: near.top, hit: 0 };
       }
       parts.push(`<g class="dc-pill"><rect x="${r1(best.left)}" y="${r1(best.top)}" width="${r1(w)}" height="20" rx="10"/><text x="${r1(best.left + w / 2)}" y="${r1(best.top + 14.3)}" text-anchor="middle">${escapeHtml(content)}</text></g>`);
     }

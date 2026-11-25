@@ -769,6 +769,10 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .figure-peek::before { content: "Skizze"; position: absolute; top: 5px; left: 10px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
 .figure-peek svg { display: block; width: 100%; height: auto; max-height: 42vh; }
 .figure-peek.at-top { bottom: auto; }
+/* Unbeteiligtes tritt in der Vorschau zurück, der Träger bleibt als Bezug halb sichtbar */
+.figure-peek .peek-faded { opacity: 0.22; }
+.figure-peek .peek-context { opacity: 0.5; }
+.figure-peek :is(.grip, .vertex) { display: none; }
 @media print { .figure-peek { display: none !important; } }
 
 /* Handy: Eingabetabellen passen in die Breite (Richtungsfeld nicht zusammendrücken, kleinere Lösch-Knöpfe) */
