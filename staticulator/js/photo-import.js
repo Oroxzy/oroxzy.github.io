@@ -96,6 +96,9 @@ export function initPhotoImport({ apply }) {
   });
   dialog.addEventListener('close', stop);
   $('importClose').addEventListener('click', hideImportNotice);
+  $('photoRefToggle').addEventListener('click', () => setReferenceOpen($('photoRef').classList.contains('collapsed')));
+  $('photoRefClose').addEventListener('click', hidePhotoReference);
+  $('photoRefImg').addEventListener('click', () => $('photoRefImg').classList.toggle('large'));
 }
 
 async function useFile(file) {
@@ -227,7 +230,11 @@ async function run(apply) {
     apply(task);
     finish();
     $('photoDialog').close();
+    // das Foto bleibt über der Skizze zum Vergleichen (die Vorschau gibt ihre Bildadresse dorthin ab)
+    const url = image.url;
+    image = null;
     setImage(null);
+    showPhotoReference(url);
     $('photoHint').value = '';
     showImportNotice(notes, data.remaining);
   } catch (error) {
@@ -336,4 +343,36 @@ export function showImportNotice(notes, remaining) {
 export function hideImportNotice() {
   const notice = $('importNotice');
   if (notice) notice.hidden = true;
+}
+
+// Originalfoto über der Skizze: auf- und zuklappbar, Klick aufs Bild vergrössert; weg mit ✕ oder beim nächsten System
+let referenceUrl = null;
+
+function showPhotoReference(url) {
+  if (referenceUrl && referenceUrl !== url) URL.revokeObjectURL(referenceUrl);
+  referenceUrl = url;
+  $('photoRefImg').src = url;
+  $('photoRefImg').classList.remove('large');
+  $('photoRef').hidden = false;
+  setReferenceOpen(true);
+}
+
+function setReferenceOpen(open) {
+  $('photoRef').classList.toggle('collapsed', !open);
+  $('photoRefToggle').setAttribute('aria-expanded', String(open));
+}
+
+export function hidePhotoReference() {
+  const box = $('photoRef');
+  if (!box) return;
+  box.hidden = true;
+  $('photoRefImg').removeAttribute('src');
+  if (referenceUrl) URL.revokeObjectURL(referenceUrl);
+  referenceUrl = null;
+}
+
+// anderes System geladen: Hinweis und Foto gehören nicht mehr dazu
+export function resetImport() {
+  hideImportNotice();
+  hidePhotoReference();
 }

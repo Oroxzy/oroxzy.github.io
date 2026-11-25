@@ -1,13 +1,16 @@
 // StatiCulator Web – Oberfläche
 import { solve, internalForces, resolveModel, axisZAt } from './statik.js';
 import { renderFigure, arrowHeadPath } from './figure.js';
+import { DIM_STYLE, dimSlash, dimLine } from './dimension.js';
 import { renderDiagrams } from './diagrams.js';
 import { renderSolution, renderMessages } from './solution.js';
 import { EXAMPLES, exampleById, emptyModel } from './examples.js';
 import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
 import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt } from './design-ui.js';
 import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js';
-import { initPhotoImport, hideImportNotice } from './photo-import.js';
+import { initPhotoImport, resetImport } from './photo-import.js';
+import { exportImage } from './export-image.js';
+import { initSelfCheck, updateSelfCheck, clearSelfCheck } from './self-check.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
 const DIRECTION_OPTIONS = {
@@ -317,6 +320,7 @@ function update() {
   showInputIssues(checkInputs(model));
   renderScaleCard();
   updateDesign();
+  updateSelfCheck();
   storeModel();
   recordHistory();
 }
@@ -1474,13 +1478,14 @@ function loadExample(id) {
   const example = exampleById(id);
   if (!example) return;
   cancelDrag();
+  rememberCurrent();
   // Die Einstellungen der Bemessung (Profilreihe, Stahlsorte …) bleiben beim Beispielwechsel erhalten;
   // Tab und Werkstoff passen sich dem Beispiel an
   state.model = sanitizeModel({ design: fitDesign(state.model.design, example.model, example.design), ...clone(example.model), title: example.title });
   resetSteps();
   state.exampleId = id;
   clearSelection();
-  hideImportNotice();
+  resetImport();
   history.replaceState(null, '', location.pathname + location.search);
   renderInputs();
   update();
@@ -1497,6 +1502,7 @@ function applyPhotoTask(task) {
   };
   const model = sanitizeModel({ design: fitDesign(state.model.design, raw, null), ...raw });
   cancelDrag();
+  rememberCurrent();
   state.model = model;
   resetSteps();
   state.exampleId = '';
@@ -1504,6 +1510,80 @@ function applyPhotoTask(task) {
   history.replaceState(null, '', location.pathname + location.search);
   renderInputs();
   update();
+}
+
+// ---------- Zuletzt bearbeitet ----------
+// Bevor ein anderes System geladen wird (Beispiel, Neu, Öffnen, Foto, Link), merkt sich die App das bisherige,
+// wenn es etwas Eigenes ist (unverändertes Beispiel nicht). Höchstens sechs, das neueste zuerst.
+const RECENT_KEY = 'staticulator-recent';
+const RECENT_MAX = 6;
+
+function readRecent() {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(list) ? list.filter((entry) => entry && entry.model && typeof entry.key === 'string') : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function systemKey(model) {
+  const { design, pivot, ...system } = model;
+  return JSON.stringify(system);
+}
+
+function rememberCurrent() {
+  clearSelfCheck();
+  const model = state.model;
+  if (!model || !(model.loads || []).some((load) => Number.isFinite(load.value))) return;
+  const key = systemKey(model);
+  if (state.exampleId) {
+    const example = exampleById(state.exampleId);
+    if (example && systemKey(sanitizeModel({ ...clone(example.model), title: example.title })) === key) return;
+  }
+  const { design, ...system } = model;
+  const list = readRecent().filter((entry) => entry.key !== key);
+  list.unshift({ key, title: model.title || 'ohne Titel', at: Date.now(), model: system });
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+  } catch (error) {
+    // voller Speicher: ohne Liste weiter
+  }
+  renderRecent();
+}
+
+function agoText(time) {
+  const minutes = Math.round((Date.now() - time) / 60000);
+  if (minutes < 1) return 'gerade eben';
+  if (minutes < 60) return `vor ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `vor ${hours} h`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'gestern' : `vor ${days} Tagen`;
+}
+
+function renderRecent() {
+  const list = readRecent();
+  $('recentPicker').hidden = !list.length;
+  $('recentSelect').innerHTML = '<option value="">zurückholen …</option>'
+    + list.map((entry, i) => `<option value="${i}">${escapeHtml(entry.title)} · ${agoText(entry.at)}</option>`).join('');
+  $('recentSelect').value = '';
+}
+
+function restoreRecent(index) {
+  const entry = readRecent()[index];
+  if (!entry) return;
+  cancelDrag();
+  rememberCurrent();
+  state.model = sanitizeModel({ design: fitDesign(state.model.design, entry.model, null), ...entry.model });
+  resetSteps();
+  state.exampleId = '';
+  clearSelection();
+  resetImport();
+  history.replaceState(null, '', location.pathname + location.search);
+  renderInputs();
+  update();
+  toast(`„${entry.title}“ wieder geladen.`);
 }
 
 function toast(message) {
@@ -1538,6 +1618,32 @@ function saveFile() {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
+// Skizze (und Flächen) als Bild: ohne Auswahl, Hebelarm und Mauszeiger, immer im hellen Farbschema
+async function saveImage(format) {
+  const root = document.documentElement;
+  const theme = root.getAttribute('data-theme');
+  const selection = state.selection.slice();
+  const name = (state.model.title || 'staticulator').replace(/[^\wäöüÄÖÜ.-]+/g, '_').slice(0, 60) || 'staticulator';
+  try {
+    root.setAttribute('data-theme', 'light');
+    state.selection = [];
+    removeLever();
+    hideDiagramCursor();
+    drawFigure();
+    const svgs = [$('figure').querySelector('svg')];
+    if ($('exportDiagrams').checked) svgs.push(...document.querySelectorAll('#diagrams svg.diagram, #deflectionDiagram:not([hidden]) svg.diagram'));
+    await exportImage(format, svgs, state.model.title, name);
+    toast(format === 'svg' ? 'Bild als SVG gespeichert.' : 'Bild als PNG gespeichert.');
+  } catch (error) {
+    toast(error.message || 'Das Bild liess sich nicht speichern.');
+  } finally {
+    if (theme) root.setAttribute('data-theme', theme);
+    state.selection = selection;
+    drawFigure();
+    drawSelectionLever();
+  }
+}
+
 function openFile(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -1545,11 +1651,12 @@ function openFile(file) {
     try {
       const data = JSON.parse(String(reader.result));
       cancelDrag();
+      rememberCurrent();
       state.model = sanitizeModel(data.model || data);
       resetSteps();
       state.exampleId = '';
       clearSelection();
-      hideImportNotice();
+      resetImport();
       renderInputs();
       update();
       toast('System geöffnet.');
@@ -1778,7 +1885,10 @@ function removeLever() {
   const layer = figure.querySelector('.lever-layer');
   if (layer) layer.remove();
   const svg = figure.querySelector('svg');
-  if (svg) svg.classList.remove('lever-focus');
+  if (svg) {
+    svg.classList.remove('lever-focus');
+    svg.querySelectorAll('.lv-under').forEach((element) => element.classList.remove('lv-under'));
+  }
 }
 
 let leverMeasure = null;
@@ -1796,7 +1906,7 @@ let dimMeasure = null;
 function dimTextWidth(content) {
   if (!dimMeasure) {
     dimMeasure = document.createElement('canvas').getContext('2d');
-    dimMeasure.font = '600 11.5px system-ui, -apple-system, "Segoe UI", sans-serif';
+    dimMeasure.font = '400 12px system-ui, -apple-system, "Segoe UI", sans-serif';
   }
   return dimMeasure.measureText(content).width;
 }
@@ -1816,13 +1926,16 @@ function drawLever(info) {
   const line = (x1, y1, x2, y2, cls) => `<line class="${cls}" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}"/>`;
   // gleiche Pfeilspitze wie in der Skizze: schlankes, gefülltes Dreieck
   const head = (x, y, angle, size = 11) => `<path class="lv-fill" d="${arrowHeadPath(x, y, angle, size)}"/>`;
-  // Hebelarm: Doppelpfeil, der Schaft endet an den Füssen der Spitzen
+  // Hebelarm als Mass wie überall (dimension.js): Masslinie mit Überstand und Schrägstrichen, etwas
+  // kräftiger und in der Farbe des Drehsinns (currentColor der Ebene)
   const lever = (x1, y1, x2, y2) => {
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const size = Math.min(11, Math.hypot(x2 - x1, y2 - y1) / 3);
-    const dx = Math.cos(angle) * (size - 0.5);
-    const dy = Math.sin(angle) * (size - 0.5);
-    return line(x1 + dx, y1 + dy, x2 - dx, y2 - dy, 'lv-arm') + head(x2, y2, angle, size) + head(x1, y1, angle + Math.PI, size);
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const ux = (x2 - x1) / len;
+    const uy = (y2 - y1) / len;
+    const over = DIM_STYLE.lineOver;
+    const vertical = Math.abs(x2 - x1) < 1e-6;
+    return line(x1 - ux * over, y1 - uy * over, x2 + ux * over, y2 + uy * over, 'lv-arm')
+      + dimSlash(x1, y1, vertical, { k: 1.2, color: 'currentColor' }) + dimSlash(x2, y2, vertical, { k: 1.2, color: 'currentColor' });
   };
   // Plakette: farbiges, abgerundetes Feld mit weisser Schrift; im Bild gehalten
   const pill = (cx, cy, content, anchor = 'middle') => {
@@ -1882,14 +1995,14 @@ function drawLever(info) {
     const lowF = lowest(info.x);
     let ly = Math.max(py + 26, (lowP ?? py) + 14, (lowF ?? fy) + 14);
     if (Number.isFinite(dims.dimY)) ly = Math.min(ly, dims.dimY - 34);
-    parts.push(line(fx, Math.min(fy, ly), fx, Math.max(fy, ly) + 5, 'lv-action'));
+    parts.push(line(fx, Math.min(fy, ly), fx, Math.max(fy, ly) + DIM_STYLE.extOver, 'lv-action'));
     if (Math.abs(fx - px) > 2) {
       // Hilfslinie am Drehpunkt erst unter Lager und Reaktion, damit sie das Lagersymbol nicht kreuzt
       const helpFrom = Math.min(ly - 8, (lowP ?? py) + 4);
       // Plakette auf der Masslinie (wie eine Masszahl); bei kurzem Hebelarm darüber
       const onLine = Math.abs(fx - px) > pillWidth(leverText) + 34;
       const mid = (fx + px) / 2;
-      parts.push(line(px, helpFrom, px, ly + 5, 'lv-help'), lever(fx, ly, px, ly), placePill(leverText, onLine ? [{ x: mid, y: ly }, { x: mid, y: ly - 15 }] : [{ x: mid, y: ly - 15 }, { x: mid, y: ly + 15 }]));
+      parts.push(line(px, helpFrom, px, ly + DIM_STYLE.extOver, 'lv-help'), lever(fx, ly, px, ly), placePill(leverText, onLine ? [{ x: mid, y: ly }, { x: mid, y: ly - 15 }] : [{ x: mid, y: ly - 15 }, { x: mid, y: ly + 15 }]));
     }
     // Moment neben dem Drehpfeil über dem Drehpunkt, zur Bildmitte hin
     const inward = px > width / 2 ? [{ x: px - 36, y: py - 34, anchor: 'end' }, { x: px + 36, y: py - 34, anchor: 'start' }] : [{ x: px + 36, y: py - 34, anchor: 'start' }, { x: px - 36, y: py - 34, anchor: 'end' }];
@@ -1900,9 +2013,9 @@ function drawLever(info) {
     }
   } else {
     const lx = px + 28;
-    parts.push(line(Math.min(fx, lx), fy, Math.max(fx, lx), fy, 'lv-action'));
+    parts.push(line(Math.min(fx, lx), fy, Math.max(fx, lx + DIM_STYLE.extOver), fy, 'lv-action'));
     if (Math.abs(fy - py) > 2) {
-      parts.push(line(px, py, lx + 5, py, 'lv-help'), lever(lx, fy, lx, py), placePill(leverText, [{ x: lx + 9, y: (fy + py) / 2, anchor: 'start' }, { x: lx - 9, y: (fy + py) / 2, anchor: 'end' }]));
+      parts.push(line(px, py, lx + DIM_STYLE.extOver, py, 'lv-help'), lever(lx, fy, lx, py), placePill(leverText, [{ x: lx + 9, y: (fy + py) / 2, anchor: 'start' }, { x: lx - 9, y: (fy + py) / 2, anchor: 'end' }]));
     }
     const mid = (fy + py) / 2;
     momentAt = [{ x: lx + 9, y: mid + 24, anchor: 'start' }, { x: lx + 9, y: mid - 24, anchor: 'start' }, { x: px - 36, y: py - 34, anchor: 'end' }, { x: px + 36, y: py - 34, anchor: 'start' }, { x: px, y: py - 60 }, { x: px, y: py + 40 }];
@@ -1939,6 +2052,16 @@ function drawLever(info) {
   svg.appendChild(layer);
   // Der Rest der Skizze tritt zurück, solange der Hebelarm gezeigt wird
   svg.classList.add('lever-focus');
+  // Beschriftungen, über die Hebelarm oder Plaketten laufen, treten fast ganz zurück (ausser der eigenen Last)
+  const marks = [...layer.querySelectorAll('.lv-arm, .lv-pill')].map((element) => element.getBBox());
+  for (const text of svg.querySelectorAll('text')) {
+    if (text.closest('.lever-layer')) continue;
+    const owner = text.closest('[data-ref]');
+    if (owner && (owner.classList.contains('hl-sel') || owner.classList.contains('hl-hover'))) continue;
+    const box = text.getBBox();
+    const hit = marks.some((m) => box.x < m.x + m.width + 2 && box.x + box.width > m.x - 2 && box.y < m.y + m.height + 2 && box.y + box.height > m.y - 2);
+    if (hit) text.classList.add('lv-under');
+  }
 }
 
 let activeTerm = null;
@@ -2172,7 +2295,7 @@ function diagramCursor(event) {
     const unit = { V: 'kN', M: 'kNm', W: 'mm' }[kind] || '';
     const name = kind === 'W' ? 'w' : kind;
     const fmt = kind === 'W' ? (v) => label(Math.abs(v) < 1e-9 ? 0 : v, 1) : f;
-    const parts = [`<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY : base + amp + 16)}"/>`];
+    const parts = [`<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY + DIM_STYLE.extOver : base + amp + 16)}"/>`];
     for (const v of list) parts.push(`<circle class="dc-dot" cx="${r1(px)}" cy="${r1(Yv(v))}" r="4"/>`);
     // Wert als Plakette neben dem Punkt: erste Lage, die keine Beschriftung der Fläche und keinen Punkt überdeckt
     const content = `${name} = ${list.map(fmt).join(' → ')} ${unit}`;
@@ -2217,7 +2340,9 @@ function diagramCursor(event) {
       const y = dimY;
       const x0 = X(forces.xmin);
       const x1 = X(forces.xmax);
-      const tick = (tx) => `<line class="dc-dim" x1="${r1(tx - 4)}" y1="${r1(y + 4)}" x2="${r1(tx + 4)}" y2="${r1(y - 4)}"/>`;
+      // gleiche Vermassung wie in der Skizze (dimension.js): Schrägstriche, Masslinie mit Überstand,
+      // kurze Hilfslinien an den Trägerenden, Masszahl über der Linie
+      const tick = (tx) => dimSlash(tx, y);
       const reactions = state.last.result.reactions || [];
       const inside = (s2) => s2.x > forces.xmin + 1e-9 && s2.x < forces.xmax - 1e-9;
       const leftSupport = reactions.filter((s2) => inside(s2) && s2.x < x - 1e-9).sort((a, b) => b.x - a.x)[0];
@@ -2252,10 +2377,15 @@ function diagramCursor(event) {
         labels[shorter] = placeText(specs[shorter], specs[shorter].short, true);
         if (clash(labels)) labels[shorter] = null;
       }
+      if (specs.length) {
+        const from = Math.min(...specs.map((spec) => spec.from));
+        const to = Math.max(...specs.map((spec) => spec.to));
+        for (const ex of [x0, x1]) parts.push(`<line class="dim-ext" x1="${r1(ex)}" y1="${r1(y - 12)}" x2="${r1(ex)}" y2="${r1(y + DIM_STYLE.extOver)}" stroke="${DIM_STYLE.ext}" stroke-width="1" shape-rendering="crispEdges"/>`);
+        parts.push(dimLine(from - DIM_STYLE.lineOver, y, to + DIM_STYLE.lineOver, y));
+      }
       specs.forEach((spec, i) => {
-        parts.push(`<line class="dc-dim" x1="${r1(spec.from)}" y1="${r1(y)}" x2="${r1(spec.to)}" y2="${r1(y)}"/>`);
         const lab = labels[i];
-        if (lab) parts.push(`<text class="dc-dim-text" x="${r1(lab.tx)}" y="${r1(y - 5)}" text-anchor="${lab.anchor}">${escapeHtml(lab.content)}</text>`);
+        if (lab) parts.push(`<text class="dc-dim-text dim-text" x="${r1(lab.tx)}" y="${r1(y - DIM_STYLE.textGap)}" text-anchor="${lab.anchor}">${escapeHtml(lab.content)}</text>`);
       });
       if (x - forces.xmin > 1e-9) parts.push(tick(x0));
       if (forces.xmax - x > 1e-9) parts.push(tick(x1));
@@ -2632,6 +2762,8 @@ function init() {
   initTermHover();
   initDiagramCursor();
   initPhotoImport({ apply: applyPhotoTask });
+  initSelfCheck({ getLast: () => state.last, getDecimals: () => state.decimals });
+  updateSelfCheck();
   // Farbschema der V- und M-Fläche (nur CSS, kein Neuzeichnen nötig)
   $('schemeSelect').value = state.view.scheme;
   $('diagrams').dataset.scheme = state.view.scheme;
@@ -2643,20 +2775,27 @@ function init() {
     storeModel();
   });
   initScaleCard();
-  // Menü „Ansicht“: schliesst bei einem Klick daneben und mit Esc
-  const viewMenu = $('viewMenu');
-  document.addEventListener('pointerdown', (event) => {
-    if (viewMenu.open && !viewMenu.contains(event.target)) viewMenu.open = false;
-  });
-  viewMenu.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || !viewMenu.open) return;
-    viewMenu.open = false;
-    viewMenu.querySelector('summary').focus();
-    event.stopPropagation();
-  });
-  // Fokus per Tab aus dem Menü hinaus: Menü schliessen
-  viewMenu.addEventListener('focusout', (event) => {
-    if (viewMenu.open && event.relatedTarget && !viewMenu.contains(event.relatedTarget)) viewMenu.open = false;
+  // Menüs „Ansicht“ und „Bild speichern“: schliessen bei einem Klick daneben und mit Esc
+  for (const menu of [$('viewMenu'), $('exportMenu')]) {
+    document.addEventListener('pointerdown', (event) => {
+      if (menu.open && !menu.contains(event.target)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('summary').focus();
+      event.stopPropagation();
+    });
+    // Fokus per Tab aus dem Menü hinaus: Menü schliessen
+    menu.addEventListener('focusout', (event) => {
+      if (menu.open && event.relatedTarget && !menu.contains(event.relatedTarget)) menu.open = false;
+    });
+  }
+  $('exportMenu').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-export]');
+    if (!button) return;
+    $('exportMenu').open = false;
+    saveImage(button.dataset.export);
   });
   document.querySelector('.figure-tools').addEventListener('change', (event) => {
     const target = event.target;
@@ -2706,12 +2845,13 @@ function init() {
 
   $('newButton').addEventListener('click', () => {
     cancelDrag();
+    rememberCurrent();
     const empty = emptyModel();
     state.model = sanitizeModel({ ...empty, design: fitDesign(state.model.design, empty, null) });
     resetSteps();
     state.exampleId = '';
     clearSelection();
-    hideImportNotice();
+    resetImport();
     history.replaceState(null, '', location.pathname + location.search);
     renderInputs();
     update();
@@ -2726,12 +2866,32 @@ function init() {
     event.target.value = '';
   });
   $('printButton').addEventListener('click', () => window.print());
+  renderRecent();
+  $('recentSelect').addEventListener('change', (event) => {
+    if (event.target.value !== '') restoreRecent(Number(event.target.value));
+    renderRecent();
+  });
+  // Name für die Kopfzeile im Ausdruck (bleibt im Browser gespeichert); Kopfzeile vor jedem Drucken füllen
+  const NAME_KEY = 'staticulator-name';
+  try { $('nameInput').value = localStorage.getItem(NAME_KEY) || ''; } catch (error) { /* ohne Speicher */ }
+  $('nameInput').addEventListener('input', () => {
+    try { localStorage.setItem(NAME_KEY, $('nameInput').value.trim()); } catch (error) { /* ohne Speicher */ }
+  });
+  window.addEventListener('beforeprint', () => {
+    const name = $('nameInput').value.trim();
+    $('printTitle').textContent = state.model.title || 'Träger auf zwei Auflagern';
+    $('printName').textContent = name;
+    $('printName').classList.toggle('blank', !name);
+    $('printDate').textContent = new Date().toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  });
   window.addEventListener('hashchange', () => {
     const hash = location.hash.replace(/^#/, '');
     if (!hash.startsWith('m=')) return;
     history.replaceState(null, '', location.pathname + location.search);
     try {
-      state.model = decodeModel(hash.slice(2));
+      const linked = decodeModel(hash.slice(2));
+      rememberCurrent();
+      state.model = linked;
       state.exampleId = '';
       cancelDrag();
       clearSelection();

@@ -33,6 +33,7 @@
   </div>
   <nav class="actions">
     <label class="example-picker"><span>Beispiel</span><select id="exampleSelect"></select></label>
+    <label class="example-picker recent-picker" id="recentPicker" hidden title="Zuletzt bearbeitete Systeme (im Browser gespeichert)"><span>Zuletzt</span><select id="recentSelect"></select></label>
     <button type="button" id="newButton">Neu</button>
     <span class="history-buttons"><button type="button" id="undoButton" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled>↶</button><button type="button" id="redoButton" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled>↷</button></span>
     <button type="button" id="shareButton">Link kopieren</button>
@@ -44,6 +45,13 @@
     <button type="button" id="themeButton" class="theme-button" title="Farbschema: automatisch, hell oder dunkel">◐ Auto</button>
   </nav>
 </header>
+
+<!-- Kopfzeile nur im Ausdruck / PDF -->
+<div class="print-head" aria-hidden="true">
+  <div><span>Aufgabe</span><strong id="printTitle"></strong></div>
+  <div><span>Name</span><strong id="printName"></strong></div>
+  <div><span>Datum</span><strong id="printDate"></strong></div>
+</div>
 
 <main class="layout">
   <aside class="inputs" aria-label="Eingabe">
@@ -59,6 +67,7 @@
         <h2>Aufgabe</h2>
       </div>
       <input type="text" id="titleInput" class="title-input" placeholder="Titel (optional)">
+      <input type="text" id="nameInput" class="title-input author-input" placeholder="Dein Name (steht im Ausdruck)" autocomplete="name">
     </section>
 
     <section class="card">
@@ -115,6 +124,14 @@
     </section>
     <section class="card">
       <div class="card-head"><h2>System und Auflagerreaktionen</h2></div>
+      <div id="photoRef" class="photo-ref" hidden>
+        <div class="photo-ref-head">
+          <button type="button" class="photo-ref-toggle" id="photoRefToggle" aria-expanded="true" aria-controls="photoRefImg">Originalfoto <span aria-hidden="true">▾</span></button>
+          <span class="photo-ref-hint">zum Vergleichen mit der Skizze · Klick aufs Bild vergrössert</span>
+          <button type="button" class="icon photo-ref-close" id="photoRefClose" aria-label="Foto ausblenden" title="Foto ausblenden">✕</button>
+        </div>
+        <img id="photoRefImg" alt="Originalfoto der Aufgabe">
+      </div>
       <div class="figure-tools">
         <label class="check"><input type="checkbox" id="snapCheck" checked> Einrasten</label>
         <label class="check"><input type="checkbox" id="gridCheck"> Raster anzeigen</label>
@@ -133,6 +150,14 @@
               <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Schein</option><option value="none">ohne</option>
             </select></label>
             <label class="check" title="Nicht gewählte Elemente treten zurück, solange etwas ausgewählt ist"><input type="checkbox" id="dimCheck" checked> Rest abblenden</label>
+          </div>
+        </details>
+        <details class="view-menu" id="exportMenu">
+          <summary title="Skizze als Bild speichern (für Berichte und Abgaben)">Bild speichern</summary>
+          <div class="view-menu-panel">
+            <button type="button" data-export="png">PNG – Bild für Word und Abgabe</button>
+            <button type="button" data-export="svg">SVG – Vektor, beliebig gross</button>
+            <label class="check"><input type="checkbox" id="exportDiagrams" checked> mit Querkraft- und Momentenfläche</label>
           </div>
         </details>
         <span id="selectionHint" class="selection-hint is-hidden">Masse nur für die Auswahl · blaues Mass anklicken zum Ändern · Esc zeigt alle</span>
@@ -184,6 +209,19 @@
       <div class="card-head"><h2>Lösungsweg</h2>
         <div class="card-tools"><button type="button" class="small" id="stepsToggle" hidden>Alle aufklappen</button><label class="explain-toggle" title="Zu jedem Schritt erklären, warum er so gemacht wird"><input type="checkbox" id="explainCheck"> Schritt für Schritt erklären</label></div>
       </div>
+      <details id="selfCheck" class="self-check" hidden>
+        <summary>Eigene Lösung prüfen</summary>
+        <div class="self-check-body">
+          <p class="help">Werte aus deiner Handrechnung eintragen (leer lassen, was du nicht prüfen willst). Vorzeichen: x nach rechts und z nach oben positiv, Moment positiv = Zug unten.</p>
+          <div id="selfCheckFields" class="self-check-fields"></div>
+          <div class="self-check-actions">
+            <button type="button" class="primary" id="selfCheckRun">Prüfen</button>
+            <button type="button" id="selfCheckShow">Lösung zeigen</button>
+            <button type="button" id="selfCheckClear">Leeren</button>
+          </div>
+          <p id="selfCheckSummary" class="self-check-summary" role="status"></p>
+        </div>
+      </details>
       <h3 class="sol-part" id="staticsPart" hidden>Auflagerreaktionen und Schnittgrössen</h3>
       <div id="solution"></div>
       <div id="designSteps" class="d-steps"></div>

@@ -2,6 +2,7 @@
 // massstäblich aus den Profilmassen, mit Achsen y/z, Massen und optionaler Markierung
 // (Schubfläche A_v oder Knickachse). Farben über CSS-Klassen (auch Dark Mode).
 import { fixed } from './format.js';
+import { DIM_STYLE, dimSlash, dimLine, extLine } from './dimension.js';
 
 const BOX = 132; // grösste Abmessung des Querschnitts in px
 const W = 250;
@@ -12,16 +13,19 @@ const CY = 116;
 const r1 = (v) => Math.round(v * 10) / 10;
 const mmText = (v) => (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : fixed(v, 1));
 
-function dimV(x, y1, y2, label) {
-  const tick = (y) => `<line class="sec-dim" x1="${r1(x - 4)}" y1="${r1(y + 4)}" x2="${r1(x + 4)}" y2="${r1(y - 4)}"/>`;
-  return `<line class="sec-dim" x1="${r1(x)}" y1="${r1(y1 - 5)}" x2="${r1(x)}" y2="${r1(y2 + 5)}"/>${tick(y1)}${tick(y2)}`
-    + `<text class="sec-text" x="${r1(x - 6)}" y="${r1((y1 + y2) / 2)}" text-anchor="middle" transform="rotate(-90 ${r1(x - 6)} ${r1((y1 + y2) / 2)})">${label}</text>`;
+// Masse wie überall in der App (dimension.js). from: Kante des Querschnitts, dort beginnen die Hilfslinien.
+function dimV(x, y1, y2, label, fromX = null) {
+  const ext = fromX === null ? '' : [y1, y2].map((y) => extLine(fromX - DIM_STYLE.gap, y, x - DIM_STYLE.extOver, y)).join('');
+  const ty = (y1 + y2) / 2;
+  const tx = x - DIM_STYLE.textGap;
+  return ext + dimLine(x, y1 - DIM_STYLE.lineOver, x, y2 + DIM_STYLE.lineOver) + dimSlash(x, y1, true) + dimSlash(x, y2, true)
+    + `<text class="sec-text dim-text" x="${r1(tx)}" y="${r1(ty)}" text-anchor="middle" transform="rotate(-90 ${r1(tx)} ${r1(ty)})">${label}</text>`;
 }
 
-function dimH(y, x1, x2, label) {
-  const tick = (x) => `<line class="sec-dim" x1="${r1(x - 4)}" y1="${r1(y + 4)}" x2="${r1(x + 4)}" y2="${r1(y - 4)}"/>`;
-  return `<line class="sec-dim" x1="${r1(x1 - 5)}" y1="${r1(y)}" x2="${r1(x2 + 5)}" y2="${r1(y)}"/>${tick(x1)}${tick(x2)}`
-    + `<text class="sec-text" x="${r1((x1 + x2) / 2)}" y="${r1(y - 6)}" text-anchor="middle">${label}</text>`;
+function dimH(y, x1, x2, label, fromY = null) {
+  const ext = fromY === null ? '' : [x1, x2].map((x) => extLine(x, fromY - DIM_STYLE.gap, x, y - DIM_STYLE.extOver)).join('');
+  return ext + dimLine(x1 - DIM_STYLE.lineOver, y, x2 + DIM_STYLE.lineOver, y) + dimSlash(x1, y) + dimSlash(x2, y)
+    + `<text class="sec-text dim-text" x="${r1((x1 + x2) / 2)}" y="${r1(y - DIM_STYLE.textGap)}" text-anchor="middle">${label}</text>`;
 }
 
 // Achsen durch den Schwerpunkt (sx, sy); die massgebende Knickachse rot und kräftig
@@ -114,7 +118,7 @@ export function steelSectionSvg(p, options = {}) {
     }
     extra = `<text class="sec-text sec-small" x="${r1(right + 4)}" y="${r1(top + 10)}">t = ${mmText(p.t || 0)}</text>`;
   }
-  const body = shape + highlight + axes(sx, CY, hb, hh, options.buckling) + dimV(left - 18, top, bottom, `h = ${mmText(h)}`) + dimH(top - 14, left, right, `b = ${mmText(b)}`) + extra;
+  const body = shape + highlight + axes(sx, CY, hb, hh, options.buckling) + dimV(left - 20, top, bottom, `h = ${mmText(h)}`, left) + dimH(top - 18, left, right, `b = ${mmText(b)}`, top) + extra;
   return wrap(body, options.title || p.n);
 }
 
@@ -126,7 +130,7 @@ export function timberSectionSvg(spec, options = {}) {
     body += `<circle class="sec-wood" cx="${CX}" cy="${CY}" r="${R}"/>`;
     for (const f of [0.25, 0.5, 0.75]) body += `<circle class="sec-ring" cx="${r1(CX + 3)}" cy="${r1(CY + 2)}" r="${r1(R * f)}"/>`;
     body += axes(CX, CY, R, R, options.buckling);
-    body += dimH(CY - R - 14, CX - R, CX + R, `Ø ${mmText(spec.d)}`);
+    body += dimH(CY - R - 18, CX - R, CX + R, `Ø ${mmText(spec.d)}`, CY);
   } else {
     const s = BOX / Math.max(spec.b, spec.h);
     const hb = (spec.b * s) / 2;
@@ -138,7 +142,7 @@ export function timberSectionSvg(spec, options = {}) {
     for (const f of [0.35, 0.7, 1.05, 1.4]) body += `<circle class="sec-ring" cx="${r1(CX - hb * 0.4)}" cy="${r1(CY + hh * 1.1)}" r="${r1(Math.max(hb, hh) * f)}"/>`;
     body += '</g>';
     body += axes(CX, CY, hb, hh, options.buckling);
-    body += dimV(CX - hb - 18, CY - hh, CY + hh, `h = ${mmText(spec.h)}`) + dimH(CY - hh - 14, CX - hb, CX + hb, `b = ${mmText(spec.b)}`);
+    body += dimV(CX - hb - 20, CY - hh, CY + hh, `h = ${mmText(spec.h)}`, CX - hb) + dimH(CY - hh - 18, CX - hb, CX + hb, `b = ${mmText(spec.b)}`, CY - hh);
   }
   return wrap(body, options.title || '');
 }

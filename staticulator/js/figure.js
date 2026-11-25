@@ -6,6 +6,7 @@
 // Ziehbare Elemente tragen data-drag="art:index" (siehe app.js).
 import { axisZAt, isNum } from './statik.js';
 import { label, measure, escapeHtml } from './format.js';
+import { DIM_STYLE, dimSlash, dimLine, extLine } from './dimension.js';
 
 export const COLORS = {
   axis: '#1f2933',
@@ -23,8 +24,12 @@ export const COLORS = {
 const WIDTH = 1000;
 const SIDE = 96;
 const Q_GAP = 6;
-const Q_HEIGHT = 24;
-const Q_STEP = 32;
+// Streckenlasten: Blockhöhe nach dem Betrag, im Verhältnis zur grössten im Bild (gleiche Lasten gleich hoch);
+// zwischen Q_MIN und Q_MAX, damit kleine sichtbar bleiben und grosse nicht ausufern. Q_STEP: Abstand der Ebenen,
+// wenn sich Streckenlasten überlappen.
+const Q_MIN = 10;
+const Q_MAX = 30;
+const Q_STEP = Q_MAX + 8;
 const ARROW = 50;
 const H_ARROW = 58;
 const REACTION = 48;
@@ -266,12 +271,19 @@ export function renderFigure(result, resolved, options = {}) {
   const nearSupport = 22 / layout.scale;
   const slots = supportSlots(resolved.supports, nearSupport);
   const qLevels = assignQLevels(resolved.qloads, slots);
+  const qMax = Math.max(0, ...resolved.qloads.map((q) => Math.abs(q.value) || 0));
+  const qHeight = (q) => (qMax > 0 ? Math.min(Q_MAX, Math.max(Q_MIN, (Q_MAX * Math.abs(q.value || 0)) / qMax)) : Q_MAX);
   const reactionsReady = !!(result && result.ok);
   // Zeichnen im Massstab (Haken „Massstab“): Pfeillängen nach dem Kräftemassstab, Masse in cm auf dem Blatt
   const paper = options.paper && options.paper.length > 0 && options.paper.force > 0 ? options.paper : null;
   const pxPerCm = paper ? layout.scale * paper.length : 0;
   const paperCm = (value) => (paper ? Math.abs(value) / paper.force : 0);
-  const forceLength = (value, fallback) => (paper ? Math.min(420, Math.max(8, paperCm(value) * pxPerCm)) : fallback);
+  // Ohne Massstab: Pfeillänge nach dem Betrag, im Verhältnis zur grössten Last bzw. Lagerkraft im Bild (gleiche
+  // Kräfte gleich lang); mindestens 45 %, damit auch kleine Kräfte lesbar bleiben
+  const pointMax = Math.max(0, ...resolved.points.map((p) => Math.abs(p.value) || 0));
+  const reactionMax = result && result.ok ? Math.max(0, ...result.reactions.flatMap((s) => [Math.abs(s.Rz || 0), Math.abs(s.Rx || 0)])) : 0;
+  const relative = (value, max) => (max > 0 ? Math.min(1, Math.max(0.45, Math.abs(value) / max)) : 1);
+  const forceLength = (value, fallback, max = pointMax) => (paper ? Math.min(420, Math.max(8, paperCm(value) * pxPerCm)) : fallback * relative(value, max));
   const cmText = (value) => (paper ? `  ·  ${label(paperCm(value), 2)} cm` : '');
   const reactionOf = (s) => (reactionsReady ? result.reactions.find((item) => item.name === s.name) : null);
 
@@ -281,7 +293,7 @@ export function renderFigure(result, resolved, options = {}) {
     let bottom = 0;
     resolved.qloads.forEach((q, i) => {
       const qSide = q.dir === 'up' ? 'up' : 'down';
-      if (qSide === side && x >= q.x1 - tolerance && x <= q.x2 + tolerance) bottom = Math.max(bottom, Q_GAP + qLevels[i] * Q_STEP + Q_HEIGHT);
+      if (qSide === side && x >= q.x1 - tolerance && x <= q.x2 + tolerance) bottom = Math.max(bottom, Q_GAP + qLevels[i] * Q_STEP + qHeight(q));
     });
     if (side === 'up') for (const slot of slots) if (x >= slot.x1 && x <= slot.x2) bottom = Math.max(bottom, slot.bottom);
     return bottom;
@@ -322,14 +334,14 @@ export function renderFigure(result, resolved, options = {}) {
   resolved.qloads.forEach((q, i) => {
     const down = q.dir !== 'up';
     const z = axisExtremeZ(resolved.axis, q.x1, q.x2, down);
-    const extent = Q_GAP + qLevels[i] * Q_STEP + Q_HEIGHT + 22;
+    const extent = Q_GAP + qLevels[i] * Q_STEP + qHeight(q) + 22;
     if (down) needUp(z, extent);
     else needDown(z, extent);
   });
   for (const s of resolved.supports) {
     if (!isNum(s.x)) continue;
     const hanging = s.z > s.axisZ + 1e-9;
-    const extent = supportBase(s) + (reactionsReady ? forceLength((reactionOf(s) || {}).Rz || 0, REACTION) + 30 : 0);
+    const extent = supportBase(s) + (reactionsReady ? forceLength((reactionOf(s) || {}).Rz || 0, REACTION, reactionMax) + 30 : 0);
     if (hanging) needUp(s.z, extent);
     else needDown(s.z, extent);
   }
@@ -379,17 +391,23 @@ export function renderFigure(result, resolved, options = {}) {
     const xTo = layout.xmin + (layout.width - layout.offsetX) / layout.scale;
     const zFrom = layout.zmax - (height - top) / layout.scale;
     const zTo = layout.zmax + (top - viewTop) / layout.scale;
+    // dezent wie Millimeterpapier: Punkte an den Kreuzungen (Muster), nur ganze Meter als feine Linien
     const isMajor = (v) => Math.abs(v - Math.round(v)) < 1e-7;
+    const cell = step * layout.scale;
     const lines = [];
     for (let k = Math.ceil(xFrom / step); k * step <= xTo && lines.length < 900; k++) {
       const v = k * step;
-      lines.push(`<line x1="${r(X(v))}" y1="${r(viewTop)}" x2="${r(X(v))}" y2="${r(height)}" class="${isMajor(v) ? 'grid-major' : 'grid-minor'}"/>`);
+      if (isMajor(v)) lines.push(`<line x1="${r(X(v))}" y1="${r(viewTop)}" x2="${r(X(v))}" y2="${r(height)}" class="grid-major"/>`);
     }
     for (let k = Math.ceil(zFrom / step); k * step <= zTo && lines.length < 1800; k++) {
       const v = k * step;
-      lines.push(`<line x1="0" y1="${r(Y(v))}" x2="${layout.width}" y2="${r(Y(v))}" class="${isMajor(v) ? 'grid-major' : 'grid-minor'}"/>`);
+      if (isMajor(v)) lines.push(`<line x1="0" y1="${r(Y(v))}" x2="${layout.width}" y2="${r(Y(v))}" class="grid-major"/>`);
     }
-    gridParts.push(`<g class="grid" stroke-width="1" shape-rendering="crispEdges">${lines.join('')}</g>`);
+    const dot = (cx, cy) => `<circle class="grid-dot" cx="${cx}" cy="${cy}" r="1"/>`;
+    gridParts.push(`<defs><pattern id="sc-grid-dots" patternUnits="userSpaceOnUse" x="${r(X(0))}" y="${r(Y(0))}" width="${r(cell)}" height="${r(cell)}">`
+      + `${dot(0, 0)}${dot(r(cell), 0)}${dot(0, r(cell))}${dot(r(cell), r(cell))}</pattern></defs>`
+      + `<g class="grid"><rect x="0" y="${r(viewTop)}" width="${layout.width}" height="${r(height - viewTop)}" fill="url(#sc-grid-dots)"/>`
+      + `<g stroke-width="1" shape-rendering="crispEdges">${lines.join('')}</g></g>`);
   }
 
   // Trägerachse
@@ -453,11 +471,12 @@ export function renderFigure(result, resolved, options = {}) {
     const x2 = X(q.x2);
     const zEdge = axisExtremeZ(resolved.axis, q.x1, q.x2, down);
     const yAxis = Y(zEdge);
+    const qh = qHeight(q);
     const yNear = down ? yAxis - Q_GAP - level * Q_STEP : yAxis + Q_GAP + level * Q_STEP;
-    const yFar = down ? yNear - Q_HEIGHT : yNear + Q_HEIGHT;
+    const yFar = down ? yNear - qh : yNear + qh;
     const yTop = Math.min(yNear, yFar);
     const source = q.source ?? i;
-    shapes.push(`<g class="drag" data-drag="q:${source}" data-ref="L:${source}"><rect x="${r(x1)}" y="${r(yTop)}" width="${r(x2 - x1)}" height="${Q_HEIGHT}" fill="${COLORS.qFill}" stroke="${COLORS.q}" stroke-width="1"/>`);
+    shapes.push(`<g class="drag" data-drag="q:${source}" data-ref="L:${source}"><rect x="${r(x1)}" y="${r(yTop)}" width="${r(x2 - x1)}" height="${r(qh)}" fill="${COLORS.qFill}" stroke="${COLORS.q}" stroke-width="1"/>`);
     const count = Math.max(2, Math.round((x2 - x1) / 34));
     for (let k = 0; k <= count; k++) {
       const x = x1 + ((x2 - x1) * k) / count;
@@ -466,11 +485,11 @@ export function renderFigure(result, resolved, options = {}) {
     shapes.push('</g>');
     // Griffe an beiden Enden: unsichtbar, beim Überfahren oder Anwählen der Streckenlast sichtbar
     const grip = (kind, x) => `<g class="drag edge" data-drag="${kind}:${source}" data-ref="L:${source}">`
-      + `<rect x="${r(x - 6)}" y="${r(yTop - 3)}" width="12" height="${Q_HEIGHT + 6}" fill="transparent"/>`
-      + `<rect class="grip" x="${r(x - 3.5)}" y="${r(yTop + Q_HEIGHT / 2 - 8)}" width="7" height="16" rx="2.5"/></g>`;
+      + `<rect x="${r(x - 6)}" y="${r(yTop - 3)}" width="12" height="${r(qh + 6)}" fill="transparent"/>`
+      + `<rect class="grip" x="${r(x - 3.5)}" y="${r(yTop + qh / 2 - 8)}" width="7" height="16" rx="2.5"/></g>`;
     handles.push(grip('q1', x1), grip('q2', x2));
-    placer.box(x1, yTop, x2, yTop + Q_HEIGHT, 1.5, 4);
-    qBlocks.push({ q, x1, x2, yTop, down });
+    placer.box(x1, yTop, x2, yTop + qh, 1.5, 4);
+    qBlocks.push({ q, x1, x2, yTop, down, h: qh });
   });
 
   // Einzellasten (Pfeile)
@@ -541,7 +560,7 @@ export function renderFigure(result, resolved, options = {}) {
       if (hasZ) {
         // positiv = nach oben; der Pfeil zeigt in die tatsächliche Richtung
         const towardSupport = (rx.Rz > 0) !== hanging;
-        const far = corner + dirSign * forceLength(rx.Rz, REACTION);
+        const far = corner + dirSign * forceLength(rx.Rz, REACTION, reactionMax);
         const tail = towardSupport ? far : corner;
         const tip = towardSupport ? corner : far;
         shapes.push(`<g data-ref="${ref}">${arrowSvg(x, tail, x, tip, COLORS.reaction, 1.9, 10)}</g>`);
@@ -551,7 +570,7 @@ export function renderFigure(result, resolved, options = {}) {
       if (hasX) {
         // auf Höhe der Ecke, wenn es keine Vertikalkomponente gibt, sonst gleich daneben
         const yh = hasZ ? corner + dirSign * 6 : corner;
-        const outerX = x + outerSide * forceLength(rx.Rx, 66);
+        const outerX = x + outerSide * forceLength(rx.Rx, 66, reactionMax);
         const pointsOutward = (rx.Rx > 0) === (outerSide > 0);
         const tail = pointsOutward ? x : outerX;
         const tip = pointsOutward ? outerX : x;
@@ -610,7 +629,9 @@ export function renderFigure(result, resolved, options = {}) {
   }
   const focused = focus.size > 0;
   const isFocused = (kind, item, i) => focus.has(`${kind}:${item.source ?? i}`);
-  const dimColor = focused ? COLORS.pivot : COLORS.dim;
+  // Masszahlen: dunkelgrau wie im Bauplan, die Masse der Auswahl blau
+  const dimColor = focused ? COLORS.pivot : DIM_STYLE.text;
+  const dimClass = focused ? '' : ' class="dim-text"';
 
   // Masskette in x (unten): Achsenden und alle Punkte bzw. nur die Auswahl
   const dimXs = [];
@@ -640,12 +661,13 @@ export function renderFigure(result, resolved, options = {}) {
   // Im Massstab-Modus Längen in cm auf dem Blatt
   const dimText = (d) => (paper ? `${measure(d / paper.length)} cm` : measure(d));
   const dimTexts = [];
-  // Bauplan-Stil: Masshilfslinien vom Bauteil (mit kleinem Abstand) bis knapp über die Masslinie,
-  // Schrägstriche als Begrenzung, Masslinie etwas überstehend, Masszahl über der Linie.
-  const DIM_GAP = 5;
-  const DIM_OVER = 6;
-  const tick = (x, y) => `<line x1="${r(x - 5)}" y1="${r(y + 5)}" x2="${r(x + 5)}" y2="${r(y - 5)}" stroke="${COLORS.dim}" stroke-width="1.4" stroke-linecap="round"/>`;
-  const extension = (x1, y1, x2, y2) => `<line x1="${r(x1)}" y1="${r(y1)}" x2="${r(x2)}" y2="${r(y2)}" stroke="${COLORS.dim}" stroke-width="0.8" stroke-opacity="0.75" shape-rendering="crispEdges"/>`;
+  // Bauplan-Stil (dimension.js, überall gleich): Masshilfslinien vom Bauteil (mit Abstand) bis über die
+  // Masslinie, kräftige Schrägstriche, Masslinie überstehend, Masszahl über der Linie.
+  const DIM_GAP = DIM_STYLE.gap;
+  const DIM_OVER = DIM_STYLE.lineOver;
+  const EXT_OVER = DIM_STYLE.extOver;
+  const tick = (x, y, vertical = false) => dimSlash(x, y, vertical);
+  const extension = (x1, y1, x2, y2) => extLine(x1, y1, x2, y2);
   // Unterkante dessen, was an der Stelle x gezeichnet ist: Achse, Lager samt Reaktionspfeil,
   // Lastpfeile, Lastblöcke. Dort beginnt die Masshilfslinie.
   const lowestAt = (xm) => {
@@ -661,7 +683,7 @@ export function renderFigure(result, resolved, options = {}) {
       if (a.kind === 'x' && (near(a.x1) || near(a.x2))) take(a.y + 2);
     }
     for (const a of pointArrows) if (near(a.tip.x) || near(a.tail.x)) take(Math.max(a.tail.y, a.tip.y));
-    for (const q of qBlocks) if (near(q.x1) || near(q.x2)) take(q.yTop + Q_HEIGHT);
+    for (const q of qBlocks) if (near(q.x1) || near(q.x2)) take(q.yTop + q.h);
     return y;
   };
   if (dimXs.length >= 2) {
@@ -669,15 +691,15 @@ export function renderFigure(result, resolved, options = {}) {
     const b = X(dimXs[dimXs.length - 1]);
     // Gesamtmass nur, wenn die Kette aus mehreren Stücken besteht (sonst stünde dasselbe Mass zweimal da)
     const withTotal = dimXs.length > 2;
-    const totalY = height - 20;
-    shapes.push(`<line x1="${r(a - DIM_OVER)}" y1="${r(dimY)}" x2="${r(b + DIM_OVER)}" y2="${r(dimY)}" stroke="${COLORS.dim}" stroke-width="1" shape-rendering="crispEdges"/>`);
+    const totalY = dimY + DIM_STYLE.chainGap;
+    shapes.push(dimLine(a - DIM_OVER, dimY, b + DIM_OVER, dimY));
     placer.segment(a, dimY, b, dimY, 1, 2);
     dimXs.forEach((xm, i) => {
       const px = X(xm);
       const low = lowestAt(xm);
       const outer = withTotal && (i === 0 || i === dimXs.length - 1);
       const from = low === null ? dimY - 12 : Math.min(low + DIM_GAP, dimY - 6);
-      shapes.push(extension(px, from, px, (outer ? totalY : dimY) + 4));
+      shapes.push(extension(px, from, px, (outer ? totalY : dimY) + EXT_OVER));
       placer.segment(px, from, px, dimY, 0.4, 1);
       shapes.push(tick(px, dimY));
     });
@@ -703,19 +725,19 @@ export function renderFigure(result, resolved, options = {}) {
       const attrs = focused && !paper
         ? ` data-dim="x" data-a="${ownerAt(xOwners, dimXs[i - 1])}" data-b="${ownerAt(xOwners, dimXs[i])}" data-va="${dimXs[i - 1]}" data-vb="${dimXs[i]}"`
         : '';
-      dimTexts.push({ candidates, text: dimText(dimXs[i] - dimXs[i - 1]), size: xb - xa < 42 ? 10.5 : 11.5, color: focused ? dimColor : null, attrs });
+      dimTexts.push({ candidates, text: dimText(dimXs[i] - dimXs[i - 1]), size: xb - xa < 42 ? 11 : DIM_STYLE.size, color: focused ? dimColor : null, attrs });
     }
     if (withTotal) {
-      shapes.push(`<line x1="${r(a - DIM_OVER)}" y1="${r(totalY)}" x2="${r(b + DIM_OVER)}" y2="${r(totalY)}" stroke="${COLORS.dim}" stroke-width="1" shape-rendering="crispEdges"/>`);
+      shapes.push(dimLine(a - DIM_OVER, totalY, b + DIM_OVER, totalY));
       for (const x of [a, b]) shapes.push(tick(x, totalY));
-      dimTexts.push({ x: (a + b) / 2, y: totalY - 5, text: dimText(dimXs[dimXs.length - 1] - dimXs[0]), size: 11.5 });
+      dimTexts.push({ x: (a + b) / 2, y: totalY - DIM_STYLE.textGap, text: dimText(dimXs[dimXs.length - 1] - dimXs[0]), size: DIM_STYLE.size });
     }
   }
 
   for (const t of dimTexts) {
     // Masse der Auswahl blau und fett
     const candidates = t.candidates || [{ x: t.x, y: t.y, anchor: t.anchor || 'middle' }];
-    labels.push(placer.place(t.text, candidates, { size: t.color ? t.size + 0.5 : t.size, color: t.color || COLORS.dim, weight: t.color ? 700 : undefined, attrs: t.attrs }));
+    labels.push(placer.place(t.text, candidates, { size: t.color ? t.size + 0.5 : t.size, color: t.color || DIM_STYLE.text, weight: t.color ? 700 : undefined, attrs: `${t.attrs || ''}${t.color ? '' : ' class="dim-text"'}` }));
   }
 
   // ---------- Beschriftungen ----------
@@ -778,8 +800,8 @@ export function renderFigure(result, resolved, options = {}) {
     const content = `${b.q.label} = ${label(b.q.value, decimals)} kN/m`;
     const center = (b.x1 + b.x2) / 2;
     const above = b.yTop - 6;
-    const belowY = b.yTop + Q_HEIGHT + 15;
-    const inside = b.yTop + Q_HEIGHT / 2 + 4;
+    const belowY = b.yTop + b.h + 15;
+    const inside = b.yTop + b.h / 2 + 4;
     // mehrere Stellen entlang des Blocks, damit die Beschriftung zwischen Lastpfeilen Platz findet
     const along = [0.5, 0.3, 0.7, 0.18, 0.82, 0.4, 0.6].map((f) => b.x1 + (b.x2 - b.x1) * f);
     const rowY = b.down ? above : belowY;
@@ -912,27 +934,27 @@ export function renderFigure(result, resolved, options = {}) {
       }
       return x;
     };
-    shapes.push(`<line x1="${r(dx)}" y1="${r(zTop - DIM_OVER)}" x2="${r(dx)}" y2="${r(zBottom + DIM_OVER)}" stroke="${COLORS.dim}" stroke-width="1" shape-rendering="crispEdges"/>`);
+    shapes.push(dimLine(dx, zTop - DIM_OVER, dx, zBottom + DIM_OVER));
     placer.segment(dx, zTop, dx, zBottom, 1, 2);
     for (const z of dimZs) {
       const right = rightmostAt(z);
       const from = right === null ? dx - 12 : Math.min(right + DIM_GAP, dx - 6);
-      shapes.push(extension(from, Y(z), dx + 4, Y(z)));
-      shapes.push(tick(dx, Y(z)));
+      shapes.push(extension(from, Y(z), dx + EXT_OVER, Y(z)));
+      shapes.push(tick(dx, Y(z), true));
       // Masshilfslinie für die Platzierung der Masszahlen merken (nichts darf sie überdecken)
-      placer.segment(from, Y(z), dx + 4, Y(z), 1, 1);
+      placer.segment(from, Y(z), dx + EXT_OVER, Y(z), 1, 1);
     }
     const shortDims = [];
     for (let i = 1; i < dimZs.length; i++) {
       const ya = Y(dimZs[i - 1]);
       const yb = Y(dimZs[i]);
-      const tx = dx - 5;
+      const tx = dx - DIM_STYLE.textGap;
       const ty = (ya + yb) / 2;
-      const editAttrs = focused && !paper
+      const editAttrs = (focused && !paper
         ? ` data-dim="z" data-a="${ownerAt(zOwners, dimZs[i - 1])}" data-b="${ownerAt(zOwners, dimZs[i])}" data-va="${dimZs[i - 1]}" data-vb="${dimZs[i]}"`
-        : '';
+        : '') + dimClass;
       const content = dimText(dimZs[i - 1] - dimZs[i]);
-      const size = focused ? 11.5 : 11;
+      const size = focused ? DIM_STYLE.size + 0.5 : DIM_STYLE.size;
       const weight = focused ? 700 : undefined;
       if (yb - ya < 26) {
         shortDims.push({ ya, yb, ty, content, size, weight, editAttrs });
@@ -941,7 +963,7 @@ export function renderFigure(result, resolved, options = {}) {
       // gedrehte Zahl belegt einen schmalen, hohen Streifen links der Masslinie; ist dort schon eine
       // Beschriftung, rechts der Linie; ist beides belegt, waagrecht mit Ausweichen (wie kurze Masse)
       const half = textWidth(content, size, weight) / 2 + 2;
-      const sides = [tx, dx + 4 + size].map((x) => ({ x, box: [x - size, ty - half, x + 2, ty + half] }));
+      const sides = [tx, dx + DIM_STYLE.textGap + size].map((x) => ({ x, box: [x - size, ty - half, x + 2, ty + half] }));
       const side = sides.find((sd) => placer.free(...sd.box));
       if (!side) {
         shortDims.push({ ya, yb, ty, content, size, weight, editAttrs });
@@ -955,10 +977,10 @@ export function renderFigure(result, resolved, options = {}) {
     // zuerst rechts auf halber Höhe, sonst links oder über bzw. unter dem Mass.
     for (const s of shortDims) {
       labels.push(placer.place(s.content, [
-        { x: dx + 7, y: s.ty + 4, anchor: 'start' },
+        { x: dx + 10, y: s.ty + 4, anchor: 'start' },
         { x: dx - 7, y: s.ty + 4, anchor: 'end' },
-        { x: dx + 7, y: s.ya - 5, anchor: 'start' },
-        { x: dx + 7, y: s.yb + 13, anchor: 'start' },
+        { x: dx + 10, y: s.ya - 5, anchor: 'start' },
+        { x: dx + 10, y: s.yb + 13, anchor: 'start' },
         { x: dx - 7, y: s.ya - 5, anchor: 'end' },
         { x: dx - 7, y: s.yb + 13, anchor: 'end' },
       ], { size: s.size, color: dimColor, weight: s.weight, attrs: s.editAttrs }));
