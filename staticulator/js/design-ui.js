@@ -137,11 +137,19 @@ const ok = (good) => (good ? '\\ {\\color{#15803d}\\checkmark}' : '\\ {\\color{#
 // Vergleichszeichen eines Nachweises: erfüllt ≤, sonst >
 const rel = (good) => (good ? '\\le' : '>');
 
+// Ausnutzung in Prozent: ganze Zahlen, nur knapp um 100 % mit Nachkommastellen – sonst stünde bei einem
+// knapp verfehlten Nachweis „100 %“ neben dem ✕
+function pctText(eta) {
+  const v = Math.max(0, eta * 100);
+  const off = Math.abs(v - 100);
+  return f(v, off < 1e-6 ? 0 : off < 0.05 ? 2 : off < 0.5 ? 1 : 0);
+}
+
 function bar(eta) {
   if (!Number.isFinite(eta)) return '<span class="d-bar bad"><span style="width:100%"></span></span><strong class="d-eta bad">– %</strong>';
   const pct = Math.max(0, eta * 100);
   const cls = eta > 1 + 1e-9 ? 'bad' : eta > 0.9 ? 'tight' : 'good';
-  return `<span class="d-bar ${cls}" title="Ausnutzung ${f(pct, 0)} %"><span style="width:${Math.min(100, pct).toFixed(1)}%"></span></span><strong class="d-eta ${cls}">${f(pct, 0)} %</strong>`;
+  return `<span class="d-bar ${cls}" title="Ausnutzung ${pctText(eta)} %"><span style="width:${Math.min(100, pct).toFixed(1)}%"></span></span><strong class="d-eta ${cls}">${pctText(eta)} %</strong>`;
 }
 
 // ---------- Formular ----------
@@ -319,7 +327,7 @@ function explanation(title) {
   if (!explainOn || !exp) return '';
   const t = String(title).replace(/<[^>]+>/g, '');
   const x = exp;
-  const pct = (eta) => `${f(eta * 100, 0)} %`;
+  const pct = (eta) => `${pctText(eta)} %`;
   if (t.startsWith('Stütze auf Lager') && x.input && x.input.column) {
     const col = x.input.column;
     return why('Warum ist die Auflagerkraft die Normalkraft?', [
@@ -815,16 +823,67 @@ function candidateTable(results, chosen, kind, extra = {}) {
     const p = r.profile;
     const good = fits(r);
     const cells = kind === 'beam'
-      ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(r.W, 1)}</td><td class="num">${f(r.mRd, 1)}</td><td class="num">${f(r.etaM * 100, 0)} %</td><td class="num">${r.etaV !== null ? `${f(r.etaV * 100, 0)} %` : '–'}</td><td class="num">${governingDeflection(r.sls) ? `${f(governingDeflection(r.sls).w * 1000, 1)}${governingDeflection(r.sls).cantilever ? ' K' : ''}` : '–'}</td>`
+      ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(r.W, 1)}</td><td class="num">${f(r.mRd, 1)}</td><td class="num">${pctText(r.etaM)} %</td><td class="num">${r.etaV !== null ? `${pctText(r.etaV)} %` : '–'}</td><td class="num">${governingDeflection(r.sls) ? `${f(governingDeflection(r.sls).w * 1000, 1)}${governingDeflection(r.sls).cantilever ? ' K' : ''}` : '–'}</td>`
       : kind === 'tension'
-        ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(p.A, 2)}</td><td class="num">${f(r.nRd, 0)}</td><td class="num">${f(etaOf(r) * 100, 0)} %</td>`
-        : `<td class="num">${f(p.g, 1)}</td><td class="num">${f(p.A, 1)}</td><td class="num">${f(r.y.nRd, 0)}</td><td class="num">${f(r.z.nRd, 0)}</td><td class="num">${f(etaOf(r) * 100, 0)} %</td>`;
+        ? `<td class="num">${f(p.g, 1)}</td><td class="num">${f(p.A, 2)}</td><td class="num">${f(r.nRd, 0)}</td><td class="num">${pctText(etaOf(r))} %</td>`
+        : `<td class="num">${f(p.g, 1)}</td><td class="num">${f(p.A, 1)}</td><td class="num">${f(r.y.nRd, 0)}</td><td class="num">${f(r.z.nRd, 0)}</td><td class="num">${pctText(etaOf(r))} %</td>`;
     const cls = [r === chosen ? 'chosen' : '', good ? '' : 'fail'].filter(Boolean).join(' ');
     return `<tr data-profile="${escapeHtml(p.n)}" class="${cls}" tabindex="0" aria-selected="${r === chosen}"><td>${escapeHtml(p.n)}</td>${cells}<td class="c ${good ? 'yes' : 'no'}">${good ? '✓' : '✕'}</td></tr>`;
   }).join('');
-  return `<details class="sol-details d-candidates${onlyFit ? ' only-fit' : ''}" open><summary>Profilreihe (Zeile anklicken = dieses Profil nehmen)</summary>`
-    + `<div class="d-cand-tools"><label class="check"><input type="checkbox" data-only-fit${onlyFit ? ' checked' : ''}> nur passende zeigen</label><span class="d-cand-count">${count} von ${results.length} passen</span></div>`
+  return candidateBox('Profilreihe (Zeile anklicken = dieses Profil nehmen)', head, body, count, results.length);
+}
+
+function candidateBox(summary, head, body, count, total) {
+  return `<details class="sol-details d-candidates${onlyFit ? ' only-fit' : ''}" open><summary>${summary}</summary>`
+    + `<div class="d-cand-tools"><label class="check"><input type="checkbox" data-only-fit${onlyFit ? ' checked' : ''}> nur passende zeigen</label><span class="d-cand-count">${count} von ${total} passen</span></div>`
     + `<div class="d-cand-scroll"><table class="sol-table d-table"><thead>${head}</thead><tbody>${body}</tbody></table></div></details>`;
+}
+
+// Holz hat keine Profilreihe: stattdessen eine Liste der Masse in den Rundungsschritten der automatischen
+// Wahl, vom kleinsten passenden Mass aus ein paar Schritte darunter und darüber, das gewählte markiert.
+// rows: [{ value, label, good, cells }]; pick: Pfad der Eingabe, die ein Klick auf die Zeile setzt
+function sizeTable(summary, head, rows, current, pick) {
+  const body = rows.map((row) => {
+    const chosen = Math.abs(row.value - current) < 1e-9;
+    const cls = [chosen ? 'chosen' : '', row.good ? '' : 'fail'].filter(Boolean).join(' ');
+    return `<tr data-pick="${pick}" data-value="${row.value}" class="${cls}" tabindex="0" aria-selected="${chosen}"><td>${row.label}</td>${row.cells}<td class="c ${row.good ? 'yes' : 'no'}">${row.good ? '✓' : '✕'}</td></tr>`;
+  }).join('');
+  return candidateBox(`${summary} (Zeile anklicken = dieses Mass nehmen)`, head, body, rows.filter((row) => row.good).length, rows.length);
+}
+
+// Werte von lo bis hi in Schritten: das kleinste passende Mass suchen und rundherum auflisten; das
+// gewählte Mass ist immer dabei (auch wenn es von Hand ausserhalb des Rasters liegt)
+function sizeRows(lo, hi, stepMm, current, fitsAt, rowAt) {
+  let first = null;
+  for (let v = lo, guard = 0; v <= hi + 1e-9 && guard < 400; v += stepMm, guard++) {
+    if (fitsAt(v)) { first = v; break; }
+  }
+  const low = first === null ? current : Math.min(first, current);
+  const high = first === null ? current : Math.max(first, current);
+  const from = Math.max(lo, roundUp(low, stepMm) - 4 * stepMm);
+  const to = Math.min(Math.max(hi, current), roundUp(high, stepMm) + 5 * stepMm);
+  const values = [];
+  for (let v = from; v <= to + 1e-9 && values.length < 40; v += stepMm) values.push(v);
+  if (current > 0 && !values.some((v) => Math.abs(v - current) < 1e-9)) values.push(current);
+  return values.sort((a, b) => a - b).map(rowAt);
+}
+
+// Liste für Holzstütze und Holz-Zugstab: was variiert, hängt davon ab, welche Masse eingegeben sind
+function timberMemberList(c, stepMm, chosen, fits, cellsOf, head) {
+  const round = c.shape === 'round';
+  const square = !round && ((!(c.b > 0) && !(c.h > 0)) || (c.b > 0 && c.h > 0 && Math.abs(c.b - c.h) < 1e-9));
+  const mode = round ? 'd' : square ? 'square' : !(c.b > 0) ? 'b' : 'h';
+  const size = (v) => (mode === 'd' ? [0, 0, v] : mode === 'square' ? [v, v, 0] : mode === 'h' ? [chosen.bw, v, 0] : [v, chosen.hw, 0]);
+  const current = mode === 'd' ? chosen.dw : mode === 'h' ? chosen.hw : chosen.bw;
+  const lo = mode === 'h' ? roundUp(Math.max(chosen.bw, stepMm), stepMm) : roundUp(60, stepMm);
+  const hi = mode === 'b' ? chosen.hw : mode === 'h' ? 8 * chosen.bw : 2000;
+  const rows = sizeRows(lo, hi, stepMm, current, (v) => fits(...size(v)), (v) => {
+    const [bb, hh, dd] = size(v);
+    return { value: v, label: mode === 'd' ? `Ø ${f(v, 0)}` : `${f(bb, 0)}/${f(hh, 0)}`, good: fits(bb, hh, dd), cells: cellsOf(bb, hh, dd) };
+  });
+  const summary = { d: 'Durchmesser', square: 'Quadratische Querschnitte', h: `Höhen bei b = ${f(chosen.bw, 0)} mm`, b: `Breiten bei h = ${f(chosen.hw, 0)} mm` }[mode];
+  const pick = { d: 'column.d', square: 'column.square', h: 'column.h', b: 'column.b' }[mode];
+  return sizeTable(summary, head.replace('{label}', mode === 'd' ? 'd [mm]' : 'b/h [mm]'), rows, current, pick);
 }
 
 // gewähltes Profil in der scrollbaren Liste sichtbar machen (ohne die Seite zu scrollen)
@@ -928,7 +987,26 @@ function timberBeamResult(d, last, decimals) {
   }
   if (b.limit) html += deflectionStep(n++, r.sls, `E_{0,mean} \\cdot I_y = ${f(material.E, 0)}\\,\\text{N/mm}^2 \\cdot \\frac{${f(b.b, 0)} \\cdot ${f(h, 0)}^3}{12} = ${f(EIof(h), 0)}${unit('kNm^2')}`, b.limit, 'timber', actions.gamma);
   if (b.qSpan > 0) html += spanStep(n++, b.qSpan, r.mRd, r.vRd);
-  return { top: resultTop(top, '', timberSectionSvg({ shape: 'rect', b: b.b, h }), `b/h = ${f(b.b, 0)}/${f(h, 0)} mm`), steps: html };
+  // Höhenliste wie die Profilreihe beim Stahl: je Höhe Biegung, Schub und Durchbiegung
+  const evaluateH = (hh) => {
+    const x = timberBeam({ material, b: b.b, h: hh, Md: actions.Md, Vd: actions.Vd, etaW });
+    const sls = b.limit ? serviceability(actions, EIof(hh), b.limit) : null;
+    return { x, sls, good: x.ok && (!sls || sls.good) };
+  };
+  const rows = sizeRows(stepMm, Math.max(8 * b.b, 3000), stepMm, h, (hh) => evaluateH(hh).good, (hh) => {
+    const { x, sls, good: fit } = evaluateH(hh);
+    const w = governingDeflection(sls);
+    return {
+      value: hh,
+      label: `${f(b.b, 0)}/${f(hh, 0)}`,
+      good: fit,
+      cells: `<td class="num">${f(x.mRd, 1)}</td><td class="num">${f(x.vRd, 1)}</td><td class="num">${pctText(x.etaM)} %</td><td class="num">${pctText(x.etaV)} %</td><td class="num">${w ? `${f(w.w * 1000, 1)}${w.cantilever ? ' K' : ''}` : '–'}</td>`,
+    };
+  });
+  const list = sizeTable(`Höhen bei b = ${f(b.b, 0)} mm`,
+    '<tr><th>b/h [mm]</th><th class="num">M<sub>Rd</sub> [kNm]</th><th class="num">V<sub>Rd</sub> [kN]</th><th class="num">η<sub>M</sub></th><th class="num">η<sub>V</sub></th><th class="num" title="massgebende Durchbiegung, K = am Kragarm">w [mm]</th><th class="c"></th></tr>',
+    rows, h, 'beam.h');
+  return { top: resultTop(top, list, timberSectionSvg({ shape: 'rect', b: b.b, h }), `b/h = ${f(b.b, 0)}/${f(h, 0)} mm`), steps: html };
 }
 
 // ---------- Stütze ----------
@@ -1130,12 +1208,18 @@ function timberTensionResult(c, input, decimals) {
     const bend = bendingAt(bb, hh, dd);
     return calc(bb, hh, dd).ok && (!bend || bend.enough);
   };
-  const { bw, hw, dw, auto } = searchTimberSection(c, timberStep(c.step, material, false), fits);
+  const stepMm = timberStep(c.step, material, false);
+  const { bw, hw, dw, auto } = searchTimberSection(c, stepMm, fits);
   const r = calc(bw, hw, dw);
   exp.r = r;
   const name = round ? `Ø ${f(dw, 0)} mm` : `b/h = ${f(bw, 0)}/${f(hw, 0)} mm`;
   const bending = bendingAt(bw, hw, dw);
   const bendEta = bending ? bending.M / bending.mRd : 0;
+  const list = timberMemberList(c, stepMm, { bw, hw, dw }, fits, (bb, hh, dd) => {
+    const x = calc(bb, hh, dd);
+    const bend = bendingAt(bb, hh, dd);
+    return `<td class="num">${f(x.section.A / 100, 1)}</td><td class="num">${f(x.nRd, 0)}</td><td class="num">${pctText(Math.max(x.eta, bend ? bend.M / bend.mRd : 0))} %</td>`;
+  }, '<tr><th>{label}</th><th class="num">A [cm²]</th><th class="num">N<sub>t,Rd</sub> [kN]</th><th class="num">η</th><th class="c"></th></tr>');
   const part = `${col.below ? 'Zugstab' : 'Hänger'} in Holz (Zug)`;
   const top = head(`${material.text.split(' ')[0]} · ${name}${auto ? ` <span class="d-auto">${auto}</span>` : ''}`, Math.max(r.eta, bendEta), r.ok && (!bending || bending.enough),
     `N<sub>t,Rd</sub> = ${f(r.nRd, 1)} kN · N<sub>d</sub> = ${kn(Nd)} kN Zug · ${columnLabel(col)}, L = ${f(input.L, 2)} m${bending ? `<br><span class="d-caution">${bending.text}</span>` : ''}`
@@ -1158,7 +1242,7 @@ function timberTensionResult(c, input, decimals) {
     + eq(`N_{t,Rd} = f_{t,0,d} \\cdot A = ${f(r.ft0d, 2)} \\cdot ${f(r.section.A, 0)} = ${f(r.nRd, 1)}${unit('kN')}`)
     + `<div class="d-check-line">${tex(`N_d = ${kn(Nd)} ${rel(r.ok)} N_{t,Rd} = ${f(r.nRd, 1)}${unit('kN')}${ok(r.ok)}`)} ${bar(r.eta)}</div>`
     + note('Bruttoquerschnitt. Bohrungen, Einschnitte und Verbindungsmittel schwächen das Holz: Am Anschluss mit dem Nettoquerschnitt nachweisen – dort entscheidet sich ein Zugstab aus Holz meistens.')));
-  return { top: resultTop(top, '', timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }), name), steps: html, part };
+  return { top: resultTop(top, list, timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }), name), steps: html, part };
 }
 
 function steelColumnResult(d, last, decimals) {
@@ -1286,12 +1370,18 @@ function timberColumnResult(d, last, decimals) {
     const bend = bendingAt(bb, hh, dd);
     return calc(bb, hh, dd).ok && (!bend || bend.enough);
   };
-  const { bw, hw, dw, auto } = searchTimberSection(c, timberStep(c.step, material, false), fits);
+  const stepMm = timberStep(c.step, material, false);
+  const { bw, hw, dw, auto } = searchTimberSection(c, stepMm, fits);
   const r = calc(bw, hw, dw);
   exp.r = r;
   const name = round ? `Ø ${f(dw, 0)} mm` : `b/h = ${f(bw, 0)}/${f(hw, 0)} mm`;
   const bending = bendingAt(bw, hw, dw);
   const bendEta = bending ? bending.M / bending.mRd : 0;
+  const list = timberMemberList(c, stepMm, { bw, hw, dw }, fits, (bb, hh, dd) => {
+    const x = calc(bb, hh, dd);
+    const bend = bendingAt(bb, hh, dd);
+    return `<td class="num">${f(x.section.A / 100, 1)}</td><td class="num">${f(x.y.nRd, 0)}</td><td class="num">${f(x.z.nRd, 0)}</td><td class="num">${pctText(Math.max(x.eta, bend ? bend.M / bend.mRd : 0))} %</td>`;
+  }, '<tr><th>{label}</th><th class="num">A [cm²]</th><th class="num">N<sub>K,Rd,y</sub> [kN]</th><th class="num">N<sub>K,Rd,z</sub> [kN]</th><th class="num">η</th><th class="c"></th></tr>');
   const sameAxes = round || Math.abs(r.y.nRd - r.z.nRd) < 1e-9;
   const top = head(`${material.text.split(' ')[0]} · ${name}${auto ? ` <span class="d-auto">${auto}</span>` : ''}`, Math.max(r.eta, bendEta), r.ok && (!bending || bending.enough),
     `N<sub>K,Rd</sub> = ${f(r.nRd, 1)} kN${sameAxes ? '' : ` (Knicken um ${r.governing.axis})`} · N<sub>d</sub> = ${kn(Nd)} kN${input.column ? ` · ${columnLabel(input.column)}, L = ${f(input.L, 2)} m` : ''}${bending ? `<br><span class="d-caution">${bending.text}</span>` : ''}`
@@ -1338,7 +1428,7 @@ function timberColumnResult(d, last, decimals) {
   }
   body += `<div class="d-check-line">${tex(`N_d = ${kn(Nd)} ${rel(r.ok)} N_{K,Rd} = ${f(r.nRd, 1)}${unit('kN')}${ok(r.ok)}`)} ${bar(r.eta)}</div>`;
   html += step(n++, 'Knickwiderstand und Nachweis', `${escapeHtml(material.text)}, HBT 2021`, body);
-  return { top: resultTop(top, '', timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }, { buckling: sameAxes ? null : r.governing.axis }), sameAxes ? name : `${name} · <b class="d-sec-red">rot</b>: knickt um ${r.governing.axis}`), steps: html };
+  return { top: resultTop(top, list, timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }, { buckling: sameAxes ? null : r.governing.axis }), sameAxes ? name : `${name} · <b class="d-sec-red">rot</b>: knickt um ${r.governing.axis}`), steps: html };
 }
 
 // ---------- Aktualisieren ----------
@@ -1507,7 +1597,7 @@ export function initDesign(context) {
   });
   // Tastatur: Profilzeile mit Enter/Leertaste wählen, Tabs mit Pfeil links/rechts wechseln
   card.addEventListener('keydown', (event) => {
-    const row = event.target.closest('tr[data-profile]');
+    const row = event.target.closest('tr[data-profile], tr[data-pick]');
     if (row && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
       row.click();
@@ -1551,6 +1641,21 @@ export function initDesign(context) {
     const takeButton = event.target.closest('[data-take]');
     if (takeButton) {
       setPath('column.N', Math.round(Number(takeButton.dataset.take) * 1000) / 1000);
+      renderDesignForm();
+      updateDesign();
+      ctx.onChange();
+      return;
+    }
+    // Holz: Zeile der Massliste übernimmt das Mass (quadratisch: Breite und Höhe)
+    const pickRow = event.target.closest('tr[data-pick]');
+    if (pickRow) {
+      const value = Number(pickRow.dataset.value);
+      if (pickRow.dataset.pick === 'column.square') {
+        setPath('column.b', value);
+        setPath('column.h', value);
+      } else {
+        setPath(pickRow.dataset.pick, value);
+      }
       renderDesignForm();
       updateDesign();
       ctx.onChange();
