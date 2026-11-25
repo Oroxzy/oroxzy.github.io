@@ -845,6 +845,7 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .photo-dialog .help { margin: 0 0 12px; color: var(--muted); }
 .photo-pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 120px; padding: 12px; border: 1.5px dashed #b8c2cc; border-radius: 10px; background: var(--soft); color: var(--accent); font-weight: 600; text-align: center; cursor: pointer; }
 .photo-pick:hover { border-color: var(--accent); }
+.photo-pick.dragging { border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
 .photo-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .photo-pick img { display: block; max-width: 100%; max-height: 38vh; border-radius: 6px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18); }
 .photo-hint { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; color: var(--muted); font-size: 13px; }

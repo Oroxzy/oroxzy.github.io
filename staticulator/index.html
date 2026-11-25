@@ -199,11 +199,11 @@
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="photoDialog" class="photo-dialog" aria-labelledby="photoTitle">
   <h2 id="photoTitle">Aufgabe aus Foto</h2>
-  <p class="help">Foto der Trägeraufgabe wählen oder aufnehmen. Die KI überträgt Träger, Lager und Lasten in die Eingabe; danach bitte alle Masse und Werte prüfen.</p>
-  <label class="photo-pick">
+  <p class="help">Foto der Trägeraufgabe wählen, aufnehmen, hineinziehen oder einen Bildschirmausschnitt mit Strg+V einfügen. Die KI überträgt Träger, Lager und Lasten in die Eingabe; danach bitte alle Masse und Werte prüfen.</p>
+  <label class="photo-pick" id="photoPick">
     <input type="file" id="photoInput" accept="image/*" class="visually-hidden">
     <img id="photoPreview" alt="Gewähltes Foto" hidden>
-    <span id="photoPickText">Foto wählen oder aufnehmen …</span>
+    <span id="photoPickText">Foto wählen, hineinziehen oder mit Strg+V einfügen …</span>
   </label>
   <label class="photo-hint">Hinweis an die KI (optional)
     <input type="text" id="photoHint" maxlength="300" placeholder="z. B. nur Aufgabe 2, Masse in cm">

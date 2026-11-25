@@ -18,6 +18,7 @@ const JPEG_QUALITY = 0.86;
 const TIMEOUT_MS = 180000;
 
 const $ = (id) => document.getElementById(id);
+const PICK_TEXT = 'Foto wählen, hineinziehen oder mit Strg+V einfügen …';
 
 function stored(key) {
   try {
@@ -46,25 +47,47 @@ export function initPhotoImport({ apply }) {
   if (!button) return;
   button.hidden = !photoEndpoint();
   const dialog = $('photoDialog');
-  button.addEventListener('click', () => {
+  const open = () => {
+    if (dialog.open) return;
     setStatus('');
     updateRun();
     dialog.showModal();
     // Bot-Schutz schon beim Öffnen starten: bis das Foto gewählt ist, liegt der Nachweis meist vor
     ensureTurnstile().catch(() => {});
-  });
-  $('photoInput').addEventListener('change', async (event) => {
+  };
+  button.addEventListener('click', open);
+  $('photoInput').addEventListener('change', (event) => {
     const file = event.target.files[0];
     event.target.value = '';
+    useFile(file);
+  });
+  // Bild aus der Zwischenablage (Strg+V): im Dialog direkt, sonst öffnet es den Dialog –
+  // ausser beim Tippen in einem Eingabefeld der Seite
+  document.addEventListener('paste', (event) => {
+    if (button.hidden || running) return;
+    const file = clipboardImage(event.clipboardData);
     if (!file) return;
-    setStatus('Foto wird vorbereitet …');
-    try {
-      setImage(await prepareImage(file));
-      setStatus('');
-    } catch (error) {
-      setImage(null);
-      setStatus('Dieses Bild kann der Browser nicht lesen. Bitte als JPG oder PNG versuchen.', 'error');
-    }
+    if (!dialog.open && event.target.closest && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    open();
+    useFile(file);
+  });
+  // Bild ins Fotofeld ziehen (z. B. aus dem Explorer)
+  const pick = $('photoPick');
+  pick.addEventListener('dragover', (event) => {
+    if (running || !event.dataTransfer || ![...event.dataTransfer.types].includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    pick.classList.add('dragging');
+  });
+  pick.addEventListener('dragleave', () => pick.classList.remove('dragging'));
+  pick.addEventListener('drop', (event) => {
+    pick.classList.remove('dragging');
+    if (running || !event.dataTransfer) return;
+    event.preventDefault();
+    const file = [...event.dataTransfer.files].find((f) => f.type.startsWith('image/'));
+    if (file) useFile(file);
+    else setStatus('Bitte eine Bilddatei hineinziehen (JPG oder PNG).', 'error');
   });
   $('photoRun').addEventListener('click', () => run(apply));
   $('photoCancel').addEventListener('click', () => {
@@ -75,6 +98,29 @@ export function initPhotoImport({ apply }) {
   $('importClose').addEventListener('click', hideImportNotice);
 }
 
+async function useFile(file) {
+  if (!file || running) return;
+  if (file.type && !file.type.startsWith('image/')) {
+    setStatus('Das ist kein Bild. Bitte ein Foto oder einen Bildschirmausschnitt (JPG oder PNG) verwenden.', 'error');
+    return;
+  }
+  setStatus('Foto wird vorbereitet …');
+  try {
+    setImage(await prepareImage(file));
+    setStatus('');
+  } catch (error) {
+    setImage(null);
+    setStatus('Dieses Bild kann der Browser nicht lesen. Bitte als JPG oder PNG versuchen.', 'error');
+  }
+}
+
+function clipboardImage(data) {
+  if (!data) return null;
+  const item = [...(data.items || [])].find((entry) => entry.kind === 'file' && entry.type.startsWith('image/'));
+  if (item) return item.getAsFile();
+  return [...(data.files || [])].find((file) => file.type.startsWith('image/')) || null;
+}
+
 function setImage(next) {
   if (image && image.url) URL.revokeObjectURL(image.url);
   image = next;
@@ -82,7 +128,7 @@ function setImage(next) {
   preview.hidden = !image;
   if (image) preview.src = image.url;
   else preview.removeAttribute('src');
-  $('photoPickText').textContent = image ? 'Anderes Foto wählen …' : 'Foto wählen oder aufnehmen …';
+  $('photoPickText').textContent = image ? 'Anderes Foto wählen, hineinziehen oder einfügen …' : PICK_TEXT;
   updateRun();
 }
 
