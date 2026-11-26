@@ -1566,7 +1566,7 @@ function renderBeamLine(d, last) {
   const layout = ctx.getLayout ? ctx.getLayout() : null;
   const ok = d.tab === 'beam' && beamLine && layout && last && last.result && last.result.ok;
   const events = last.forces && last.forces.ok ? last.forces.events.map((e) => e.x) : [];
-  const html = ok ? renderDeflection(beamLine, layout, last.result.reactions.map((s) => [s.x, s.name]), events) : '';
+  const html = ok ? renderDeflection(beamLine, layout, last.result.reactions.map((s) => [s.x, s.name]), events, ctx.getDecimals ? ctx.getDecimals() : 1) : '';
   if (box.__html !== html) { box.__html = html; box.innerHTML = html; }
   box.hidden = !html;
 }

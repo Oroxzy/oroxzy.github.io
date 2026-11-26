@@ -2359,7 +2359,8 @@ function diagramCursor(event) {
     const list = values[kind] || [];
     const unit = { V: 'kN', M: 'kNm', W: 'mm' }[kind] || '';
     const name = kind === 'W' ? 'w' : kind;
-    const fmt = kind === 'W' ? (v) => label(Math.abs(v) < 1e-9 ? 0 : v, 1) : f;
+    // auch die Durchbiegung (mm) mit den eingestellten Dezimalstellen, wie V und M
+    const fmt = f;
     // Herleitung: beim Zeigen in die M-Fläche die Querkraftflächen bis zum Cursor in der V-Fläche,
     // in der M-Fläche die Tangente mit der Steigung V (dM/dx = V)
     const extra = derive && max > 0

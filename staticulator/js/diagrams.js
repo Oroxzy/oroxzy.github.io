@@ -283,7 +283,7 @@ function diagram(forces, layout, kind, decimals, supportsByX, band = 0) {
 // Biegelinie des gewählten Trägers (aus der Bemessung), im gleichen Stil wie V- und M-Fläche:
 // positive Werte (Senkung) unten, Schraffur und Verlauf, Werte an den massgebenden Stellen.
 // data: { line: { points: [[x, w]] (w in m), max }, checks: [{ what, w, x, up, allowed }], name, EI }
-export function renderDeflection(data, layout, supportsByX, eventXs = []) {
+export function renderDeflection(data, layout, supportsByX, eventXs = [], decimals = 1) {
   const { X } = layout;
   const pts = data.line.points.map(([x, w]) => [x, w * 1000]); // mm
   const maxAbs = Math.max(1e-9, ...pts.map(([, w]) => Math.abs(w)));
@@ -328,8 +328,8 @@ export function renderDeflection(data, layout, supportsByX, eventXs = []) {
     const sign = w >= 0 ? 'pos' : 'neg';
     parts.push(`<circle cx="${r(x)}" cy="${r(y)}" r="3.5" class="dg-mark dg-${sign}" fill="${w >= 0 ? POS_LINE : NEG_LINE}" stroke="#ffffff" stroke-width="1.5"/>`);
     const name = c.what === 'Feld' ? 'w' : 'w Kragarm';
-    const limit = Number.isFinite(c.allowed) ? ` ${bad ? '>' : '≤'} ${(c.allowed * 1000).toFixed(1)}` : '';
-    const content = `${name} = ${label(w, 1)}${limit} mm`;
+    const limit = Number.isFinite(c.allowed) ? ` ${bad ? '>' : '≤'} ${label(c.allowed * 1000, decimals)}` : '';
+    const content = `${name} = ${label(w, decimals)}${limit} mm`;
     const ty = w >= 0 ? y + 17 : y - 8;
     const away = w >= 0 ? 13 : -13;
     const style = { size: 12, weight: 700, color: bad ? '#dc2626' : w >= 0 ? POS_LINE : NEG_LINE, cls: bad ? 'dg-val bad' : `dg-val dg-${sign}` };

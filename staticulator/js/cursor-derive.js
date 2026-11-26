@@ -314,7 +314,7 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
   const parts = deflectionParts(model, last, EI).map((p) => ({ ...p, w: lineAt(p.points, x) * 1000 }));
   const total = parts.reduce((s, p) => s + p.w, 0);
   // kleine Durchbiegungen mit einer Stelle mehr, damit die Summe auch gerundet aufgeht
-  const wd = Math.max(Math.abs(total), ...parts.map((p) => Math.abs(p.w))) < 1 ? 3 : 2;
+  const wd = Math.max(decimals, Math.max(Math.abs(total), ...parts.map((p) => Math.abs(p.w))) < 1 ? 3 : 2);
   const shown = parts.filter((p) => Math.abs(p.w) >= 0.5 * 10 ** -wd);
   const biggest = Math.max(1e-9, ...shown.map((p) => Math.abs(p.w)));
   const len = (v) => length(v, decimals);
