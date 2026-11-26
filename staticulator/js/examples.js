@@ -215,6 +215,30 @@ export const EXAMPLES = [
     },
     expect: { A: { x: 0, z: 26.11 }, B: { z: 108.89 }, moments: [[6, -68.33]], mMax: 31.07, mMin: -68.33 },
   },
+  {
+    id: 'trapez2',
+    title: 'Übungsaufgabe – Zwei Kragarme mit Trapez- und Dreieckslast',
+    source: 'Handrechnung: q1 = 12 → 24 kN/m als Rechteck 72 kN (Hebel 3.00 m) und Dreieck 36 kN (4.00 m), q2 = 10 → 0 kN/m als Dreieck 7.5 kN (6.50 m) um A',
+    model: {
+      axis: beam(9),
+      supports: [{ name: 'A', type: 'fest', x: 1.5 }, { name: 'B', type: 'rolle', x: 7.5 }],
+      loads: [F('down', 30, 0), { ...Q('down', 12, 1.5, 7.5), value2: 24 }, { ...Q('down', 10, 7.5, 9), value2: 0 }],
+      pivot: 'A',
+    },
+    expect: { A: { x: 0, z: 84.88 }, B: { z: 60.63 }, moments: [[1.5, -45], [7.5, -3.75]] },
+  },
+  {
+    id: 'trapez3',
+    title: 'Übungsaufgabe – Einfeldträger mit zwei Trapezlasten und Einzellast',
+    source: 'Handrechnung: q1 = 20 → 10 kN/m als Rechteck 40 kN (bei 2.00 m) und Dreieck 20 kN (bei 1.33 m), q2 = 0 → 15 kN/m als Dreieck 30 kN (bei 6.67 m)',
+    model: {
+      axis: beam(8),
+      supports: [{ name: 'A', type: 'fest', x: 0 }, { name: 'B', type: 'rolle', x: 8 }],
+      loads: [{ ...Q('down', 20, 0, 4), value2: 10 }, { ...Q('down', 0, 4, 8), value2: 15 }, F('down', 25, 6)],
+      pivot: 'B',
+    },
+    expect: { A: { x: 0, z: 57.92 }, B: { z: 57.08 }, moments: [[4, 98.33]] },
+  },
 ];
 
 export function exampleById(id) {
