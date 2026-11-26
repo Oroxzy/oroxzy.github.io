@@ -18,35 +18,36 @@
   })();
 </script>
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
-<link rel="stylesheet" href="css/app.css?v=202611260726">
+<link rel="stylesheet" href="css/app.css?v=202611260750">
 <script defer src="vendor/katex/katex.min.js"></script>
 <!-- version:start (tools/stamp-web-version.mjs) -->
 <script type="importmap">
 {
   "imports": {
-    "./js/app.js": "./js/app.js?v=202611260726",
-    "./js/bemessung.js": "./js/bemessung.js?v=202611260726",
-    "./js/design-terms.js": "./js/design-terms.js?v=202611260726",
-    "./js/design-ui.js": "./js/design-ui.js?v=202611260726",
-    "./js/diagrams.js": "./js/diagrams.js?v=202611260726",
-    "./js/dimension.js": "./js/dimension.js?v=202611260726",
-    "./js/examples.js": "./js/examples.js?v=202611260726",
-    "./js/export-image.js": "./js/export-image.js?v=202611260726",
-    "./js/figure.js": "./js/figure.js?v=202611260726",
-    "./js/format.js": "./js/format.js?v=202611260726",
-    "./js/photo-import.js": "./js/photo-import.js?v=202611260726",
-    "./js/section-svg.js": "./js/section-svg.js?v=202611260726",
-    "./js/self-check.js": "./js/self-check.js?v=202611260726",
-    "./js/solution.js": "./js/solution.js?v=202611260726",
-    "./js/statik.js": "./js/statik.js?v=202611260726",
-    "./js/step-list.js": "./js/step-list.js?v=202611260726",
-    "./data/c4.js": "./data/c4.js?v=202611260726",
-    "./data/profiles.js": "./data/profiles.js?v=202611260726"
+    "./js/app.js": "./js/app.js?v=202611260750",
+    "./js/bemessung.js": "./js/bemessung.js?v=202611260750",
+    "./js/cursor-derive.js": "./js/cursor-derive.js?v=202611260750",
+    "./js/design-terms.js": "./js/design-terms.js?v=202611260750",
+    "./js/design-ui.js": "./js/design-ui.js?v=202611260750",
+    "./js/diagrams.js": "./js/diagrams.js?v=202611260750",
+    "./js/dimension.js": "./js/dimension.js?v=202611260750",
+    "./js/examples.js": "./js/examples.js?v=202611260750",
+    "./js/export-image.js": "./js/export-image.js?v=202611260750",
+    "./js/figure.js": "./js/figure.js?v=202611260750",
+    "./js/format.js": "./js/format.js?v=202611260750",
+    "./js/photo-import.js": "./js/photo-import.js?v=202611260750",
+    "./js/section-svg.js": "./js/section-svg.js?v=202611260750",
+    "./js/self-check.js": "./js/self-check.js?v=202611260750",
+    "./js/solution.js": "./js/solution.js?v=202611260750",
+    "./js/statik.js": "./js/statik.js?v=202611260750",
+    "./js/step-list.js": "./js/step-list.js?v=202611260750",
+    "./data/c4.js": "./data/c4.js?v=202611260750",
+    "./data/profiles.js": "./data/profiles.js?v=202611260750"
   }
 }
 </script>
 <!-- version:end -->
-<script type="module" src="js/app.js?v=202611260726"></script>
+<script type="module" src="js/app.js?v=202611260750"></script>
 </head>
 <body>
 <header class="topbar">
@@ -195,9 +196,13 @@
     </section>
     <section class="card" id="diagramCard">
       <div class="card-head"><h2>Querkraft- und Momentenfläche</h2>
+        <div class="diagram-tools">
+        <label class="check" title="Senkrechte Linie mit den Werten an der Stelle unter dem Mauszeiger"><input type="checkbox" id="cursorCheck" checked> Cursor</label>
+        <label class="check" title="Zeigt am Cursor, wie V (Schnittprinzip) und M (Querkraftflächen) an dieser Stelle zustande kommen"><input type="checkbox" id="deriveCheck"> Herleitung</label>
         <label class="diagram-scheme" title="Farben der Flächen">Farben <select id="schemeSelect">
           <option value="family">je Fläche (plus kühl, minus warm)</option><option value="sign">nach Vorzeichen (blau/rot)</option><option value="six">6 Farben</option>
         </select></label>
+        </div>
       </div>
       <div id="diagrams" class="figure-box" data-scheme="family"></div>
       <div id="deflectionDiagram" class="figure-box deflection-box" hidden></div>
@@ -281,5 +286,6 @@
 </dialog>
 <div id="termTip" class="term-tip" role="tooltip" hidden></div>
 <div id="figurePeek" class="figure-peek" aria-hidden="true" hidden></div>
+<div id="derivePanel" class="derive-panel" aria-hidden="true" hidden></div>
 </body>
 </html>

@@ -11,6 +11,7 @@ import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js
 import { initPhotoImport, resetImport } from './photo-import.js';
 import { exportImage } from './export-image.js';
 import { initSelfCheck, updateSelfCheck, clearSelfCheck } from './self-check.js';
+import { shearDerivation, momentDerivation, shearAreas } from './cursor-derive.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
 const DIRECTION_OPTIONS = {
@@ -22,7 +23,7 @@ const state = {
   model: null,
   decimals: 2,
   exampleId: '',
-  view: { snap: true, snapPoints: true, grid: false, step: 0.05, angles: true, highlight: 'frame', dim: true, coords: false, scale: null, scheme: 'family', scaleMode: false, explain: false, lever: true, design: false },
+  view: { snap: true, snapPoints: true, grid: false, step: 0.05, angles: true, highlight: 'frame', dim: true, coords: false, scale: null, scheme: 'family', scaleMode: false, explain: false, lever: true, design: false, cursor: true, derive: false },
   guide: null,
   // Auswahl und Hover als Verweise "S:i" (Lager), "L:i" (Last), "P:i" (Achspunkt)
   selection: [],
@@ -125,6 +126,8 @@ function restoreSettings(stored) {
       scaleMode: v.scaleMode === true,
       explain: v.explain === true,
       lever: v.lever !== false,
+      cursor: v.cursor !== false,
+      derive: v.derive === true,
       design: v.design === true,
       scheme: ['family', 'sign', 'six'].includes(v.scheme) ? v.scheme : 'family',
       scale: v.scale && typeof v.scale === 'object' && [v.scale.length, v.scale.force, v.scale.moment].every((n) => typeof n === 'number' && n > 0)
@@ -2250,7 +2253,7 @@ function diagramCursor(event) {
   const svg = event.target.closest && event.target.closest('#diagrams svg.diagram, #deflectionDiagram svg.diagram');
   const forces = state.last && state.last.forces;
   const layout = state.layout;
-  if (!svg || !forces || !forces.ok || !layout || drag) {
+  if (!state.view.cursor || !svg || !forces || !forces.ok || !layout || drag) {
     hideDiagramCursor();
     return;
   }
@@ -2285,6 +2288,8 @@ function diagramCursor(event) {
   const f = (v) => label(Math.abs(v) < 1e-9 ? 0 : v, state.decimals);
   const px = X(x);
   const svgs = cursorSvgs();
+  const hoverKind = svg.dataset.kind;
+  const derive = state.view.derive;
   // Mass im Streifen unter der untersten Fläche (data-band), sonst in der letzten Fläche
   const dimSvg = [...svgs].reverse().find((s) => Number(s.dataset.band) > 0) || svgs[svgs.length - 1];
   svgs.forEach((s) => {
@@ -2303,7 +2308,12 @@ function diagramCursor(event) {
     const unit = { V: 'kN', M: 'kNm', W: 'mm' }[kind] || '';
     const name = kind === 'W' ? 'w' : kind;
     const fmt = kind === 'W' ? (v) => label(Math.abs(v) < 1e-9 ? 0 : v, 1) : f;
-    const parts = [`<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY + DIM_STYLE.extOver : base + amp + 16)}"/>`];
+    // Herleitung: beim Zeigen in die M-Fläche die Querkraftflächen bis zum Cursor in der V-Fläche,
+    // in der M-Fläche die Tangente mit der Steigung V (dM/dx = V)
+    const extra = derive && max > 0
+      ? (kind === 'V' && hoverKind === 'M' ? shearAreaMarks(forces, x, X, base, Yv, r1) : kind === 'M' ? tangentMarks(values, x, forces, X, px, Yv, max, amp, r1) : { svg: '', boxes: [] })
+      : { svg: '', boxes: [] };
+    const parts = [extra.svg, `<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY + DIM_STYLE.extOver : base + amp + 16)}"/>`];
     for (const v of list) parts.push(`<circle class="dc-dot" cx="${r1(px)}" cy="${r1(Yv(v))}" r="4"/>`);
     // Wert als Plakette neben dem Punkt: erste Lage, die keine Beschriftung der Fläche und keinen Punkt überdeckt
     const content = `${name} = ${list.map(fmt).join(' → ')} ${unit}`;
@@ -2311,7 +2321,7 @@ function diagramCursor(event) {
     const right = px < width / 2;
     const yMid = list.length ? Yv(list[list.length - 1]) : base;
     if (list.length) {
-      const obstacles = [...diagramTextBoxes(s), ...list.map((v) => ({ x: px - 6, y: Yv(v) - 6, width: 12, height: 12 }))];
+      const obstacles = [...diagramTextBoxes(s), ...extra.boxes, ...list.map((v) => ({ x: px - 6, y: Yv(v) - 6, width: 12, height: 12 }))];
       const sides = right ? [px + 10, px - 10 - w] : [px - 10 - w, px + 10];
       // zuerst neben dem Punkt; ist dort alles belegt (lange Zahlen), auch mittig über/unter dem Punkt und weiter weg
       const candidates = [];
@@ -2407,6 +2417,188 @@ function diagramCursor(event) {
     }
     layer.innerHTML = parts.join('');
   });
+  if (derive) showDerivePanel(hoverKind, x, snap, values, event);
+  else hideDerivePanel();
+}
+
+// Querkraftflächen vom Trägeranfang bis x in der V-Fläche: blau (+, M nimmt zu), rot (−, M nimmt ab),
+// jede mit ihrer Nummer A1, A2 … wie im Herleitungsfenster
+function shearAreaMarks(forces, x, X, base, Yv, r1) {
+  const parts = [];
+  const boxes = [];
+  for (const p of shearAreas(forces, x)) {
+    const xa = X(p.a);
+    const xb = X(p.b);
+    parts.push(`<polygon class="dc-area ${p.area > 0 ? 'pos' : 'neg'}" points="${r1(xa)},${r1(base)} ${r1(xa)},${r1(Yv(p.va))} ${r1(xb)},${r1(Yv(p.vb))} ${r1(xb)},${r1(base)}"/>`);
+    if (xb - xa < 18) continue;
+    // Nummer mitten in der Fläche; ist sie zu flach, knapp auf der anderen Seite der Nulllinie
+    const far = Yv((p.va + p.vb) / 2);
+    const inside = Math.abs(far - base) >= 20;
+    const cx = (xa + xb) / 2;
+    const cy = inside ? (base + far) / 2 : base + (far > base ? -11 : 11);
+    parts.push(`<g class="dc-area-num"><circle cx="${r1(cx)}" cy="${r1(cy)}" r="8.5"/><text x="${r1(cx)}" y="${r1(cy + 3.6)}" text-anchor="middle">${p.n}</text></g>`);
+    boxes.push({ x: cx - 9, y: cy - 9, width: 18, height: 18 });
+  }
+  return { svg: parts.join(''), boxes };
+}
+
+// Tangente an der M-Linie am Cursor: Steigung = V (an einer Einzelkraft links und rechts verschieden)
+function tangentMarks(values, x, forces, X, px, Yv, max, amp, r1) {
+  const layout = state.layout;
+  const slopes = values.V.length === 2 ? values.V : [values.V[0], values.V[0]];
+  const mLeft = values.M[0];
+  const mRight = values.M[values.M.length - 1];
+  if (![...slopes, mLeft, mRight].every(Number.isFinite)) return { svg: '', boxes: [] };
+  const k = (v) => ((v / max) * amp) / layout.scale; // Bildschirm-y pro Pixel in x
+  const half = 46;
+  const xl = Math.max(X(forces.xmin), px - half);
+  const xr = Math.min(X(forces.xmax), px + half);
+  const parts = [];
+  const boxes = [];
+  const seg = (x1, y1, x2, y2) => {
+    parts.push(`<line class="dc-tangent" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}"/>`);
+    // für die Plakette: die Tangente als Hindernis (in drei Stücken, damit schräge Linien nicht zu viel sperren)
+    for (let i = 0; i < 3; i++) {
+      const ax = x1 + ((x2 - x1) * i) / 3;
+      const ay = y1 + ((y2 - y1) * i) / 3;
+      const bx = x1 + ((x2 - x1) * (i + 1)) / 3;
+      const by = y1 + ((y2 - y1) * (i + 1)) / 3;
+      boxes.push({ x: Math.min(ax, bx) - 2, y: Math.min(ay, by) - 2, width: Math.abs(bx - ax) + 4, height: Math.abs(by - ay) + 4 });
+    }
+  };
+  if (px - xl > 1) seg(xl, Yv(mLeft) + k(slopes[0]) * (xl - px), px, Yv(mLeft));
+  if (xr - px > 1) seg(px, Yv(mRight), xr, Yv(mRight) + k(slopes[1]) * (xr - px));
+  return { svg: parts.join(''), boxes };
+}
+
+// Herleitungsfenster neben dem Mauszeiger: V nach dem Schnittprinzip (mit Skizze, rechts vom Schnitt
+// abgedeckt), M aus den Querkraftflächen. Inhalt nur neu, wenn sich Stelle oder Rechnung ändern.
+let deriveKey = '';
+let deriveSketch = null;
+
+function showDerivePanel(kind, x, snap, values, event) {
+  const panel = $('derivePanel');
+  const result = state.last && state.last.result;
+  const forces = state.last && state.last.forces;
+  if (!(kind === 'V' || kind === 'M') || !result || !result.ok || !forces || !forces.ok) {
+    hideDerivePanel();
+    return;
+  }
+  const atStart = Math.abs(x - forces.xmin) < 1e-9;
+  const side = kind === 'V' && values.V.length === 2 ? 'both' : atStart ? 'right' : 'left';
+  const key = `${kind}|${x}|${side}|${state.decimals}`;
+  if (key !== deriveKey || panel.__last !== state.last) {
+    deriveKey = key;
+    panel.__last = state.last;
+    // mit Skizze breiter, damit ihre Beschriftung lesbar bleibt
+    panel.classList.toggle('wide', kind === 'V');
+    const where = `x = ${length(x, state.decimals)} m`;
+    if (kind === 'V') {
+      panel.innerHTML = `<div class="dp-head"><b>Querkraft V</b> bei ${where} · Schnitt, alle Kräfte links davon</div><div class="dp-sketch figure-box"></div>`
+        + `<div class="dp-body">${shearDerivation(result, forces, x, side, state.decimals)}</div>`;
+      panel.querySelector('.dp-sketch').appendChild(deriveSketchAt(x, side));
+    } else {
+      const slopes = values.V.length === 2 ? values.V : [values.V[0]];
+      const { html } = momentDerivation(result, forces, x, atStart, state.decimals, slopes);
+      const jump = values.M.length === 2
+        ? `<p class="dp-note">An der Stelle wirkt ein Einzelmoment: rechts davon ist M = ${label(values.M[1], state.decimals)} kNm.</p>`
+        : '';
+      panel.innerHTML = `<div class="dp-head"><b>Moment M</b> bei ${where} · Fläche unter der Querkraft bis zum Schnitt (in der V-Fläche: <span class="dp-pos">blau +</span>, <span class="dp-neg">rot −</span>)</div>`
+        + `<div class="dp-body">${html}${jump}</div>`;
+    }
+  }
+  panel.hidden = false;
+  placeDerivePanel(panel, kind, event);
+}
+
+// Kopie der Skizze, rechts vom Schnitt abgedeckt; die Kopie wird nur bei einer neuen Skizze neu gemacht
+function deriveSketchAt(x, side) {
+  const source = $('figure').querySelector('svg');
+  const layout = state.layout;
+  if (!source || !layout) return document.createElement('div');
+  if (!deriveSketch || deriveSketch.source !== source) {
+    const copy = source.cloneNode(true);
+    copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
+    copy.removeAttribute('id');
+    copy.setAttribute('aria-hidden', 'true');
+    copy.querySelectorAll('.hl-layer, .hit-layer, .lever-layer, .drag-ghost, .grip, .vertex').forEach((element) => element.remove());
+    // nur der Träger mit Lasten, Lagern und Lagerkräften (ohne Vermassung und Kopfzeile): so wird er grösser
+    let y1 = Infinity;
+    let y2 = -Infinity;
+    for (const element of source.querySelectorAll('[data-ref]')) {
+      if (element.closest('.hit-layer, .hl-layer, .lever-layer')) continue;
+      let box;
+      try { box = element.getBBox(); } catch (error) { continue; }
+      if (!(box.width > 0 || box.height > 0)) continue;
+      y1 = Math.min(y1, box.y);
+      y2 = Math.max(y2, box.y + box.height);
+    }
+    const full = source.viewBox.baseVal;
+    if (Number.isFinite(y1) && y2 - y1 < full.height - 30) copy.setAttribute('viewBox', `${full.x} ${Math.round(y1 - 16)} ${full.width} ${Math.round(y2 - y1 + 26)}`);
+    const cut = document.createElementNS(SVG_NS, 'g');
+    cut.setAttribute('class', 'dp-cut');
+    cut.innerHTML = '<rect class="dp-fade"/><line class="dp-cut-line"/><text class="dp-cut-text" text-anchor="middle">Schnitt</text>';
+    copy.appendChild(cut);
+    deriveSketch = { source, copy };
+  }
+  const { copy } = deriveSketch;
+  const vb = copy.viewBox.baseVal;
+  const cx = layout.X(x) + (side === 'right' ? 3 : -3);
+  const beamY = state.top + (layout.zmax - state.last.forces.z0) * layout.scale;
+  const rect = copy.querySelector('.dp-fade');
+  rect.setAttribute('x', cx);
+  rect.setAttribute('y', vb.y);
+  rect.setAttribute('width', Math.max(0, vb.x + vb.width - cx));
+  rect.setAttribute('height', vb.height);
+  const cutLine = copy.querySelector('.dp-cut-line');
+  cutLine.setAttribute('x1', cx);
+  cutLine.setAttribute('x2', cx);
+  cutLine.setAttribute('y2', Math.min(vb.y + vb.height, beamY + 44));
+  const cutText = copy.querySelector('.dp-cut-text');
+  cutText.setAttribute('x', cx);
+  cutText.setAttribute('y', Math.max(vb.y + 11, beamY - 50));
+  cutLine.setAttribute('y1', Math.max(vb.y + 14, beamY - 44));
+  return copy;
+}
+
+// Das Fenster soll nichts verdecken, was zur Herleitung gehört: bei M die V-Fläche (mit den Teilflächen) und
+// die M-Fläche, bei V die V-Fläche. Zuerst darüber oder darunter (wo mehr Platz ist), waagrecht beim Zeiger;
+// reicht das nicht, rechts neben dem Zeiger mit Abstand (Plakette und Tangente frei), sonst gegenüber dem Zeiger.
+function placeDerivePanel(panel, kind, event) {
+  const vw = document.documentElement.clientWidth;
+  const vh = window.innerHeight;
+  const topbar = document.querySelector('.topbar');
+  const top0 = (topbar ? Math.max(0, topbar.getBoundingClientRect().bottom) : 0) + 8;
+  const w = panel.offsetWidth;
+  const h = panel.offsetHeight;
+  const cx = event && Number.isFinite(event.clientX) ? event.clientX : vw / 2;
+  const cy = event && Number.isFinite(event.clientY) ? event.clientY : vh / 2;
+  const kinds = kind === 'M' ? ['V', 'M'] : ['V'];
+  const rects = [...$('diagrams').querySelectorAll('svg.diagram')].filter((s) => kinds.includes(s.dataset.kind)).map((s) => s.getBoundingClientRect());
+  const keepTop = rects.length ? Math.min(...rects.map((r) => r.top)) : cy;
+  const keepBottom = rects.length ? Math.max(...rects.map((r) => r.bottom)) : cy;
+  const above = keepTop - 8 - top0;
+  const below = vh - 8 - keepBottom - 8;
+  const nearX = Math.min(Math.max(8, cx - w / 2), Math.max(8, vw - w - 8));
+  let left;
+  let top;
+  if (Math.max(above, below) >= h) {
+    left = nearX;
+    top = below >= h && (below >= above || above < h) ? keepBottom + 8 : keepTop - 8 - h;
+  } else if (vw - cx - 80 >= w) {
+    left = cx + 70;
+    top = Math.min(Math.max(top0, cy - h / 2), Math.max(top0, vh - h - 8));
+  } else {
+    left = Math.max(8, vw - w - 14);
+    top = cy > vh / 2 ? top0 : Math.max(top0, vh - h - 12);
+  }
+  panel.style.left = `${Math.round(left)}px`;
+  panel.style.top = `${Math.round(top)}px`;
+}
+
+function hideDerivePanel() {
+  const panel = $('derivePanel');
+  if (panel && !panel.hidden) panel.hidden = true;
 }
 
 // Überdeckungsfläche zweier Rechtecke (mit Sicherheitsabstand)
@@ -2427,6 +2619,7 @@ function diagramTextBoxes(svg) {
 
 function hideDiagramCursor() {
   document.querySelectorAll('g.diagram-cursor').forEach((g) => g.remove());
+  hideDerivePanel();
 }
 
 function initDiagramCursor() {
@@ -2757,6 +2950,21 @@ function init() {
   $('dimCheck').checked = state.view.dim;
   $('coordCheck').checked = state.view.coords;
   $('leverCheck').checked = state.view.lever;
+  // Cursor in den Flächen und die Herleitung dazu (V: Schnittprinzip, M: Querkraftflächen)
+  $('cursorCheck').checked = state.view.cursor;
+  $('deriveCheck').checked = state.view.derive;
+  $('deriveCheck').disabled = !state.view.cursor;
+  $('cursorCheck').addEventListener('change', (event) => {
+    state.view.cursor = event.target.checked;
+    $('deriveCheck').disabled = !state.view.cursor;
+    storeModel();
+    if (!state.view.cursor) hideDiagramCursor();
+  });
+  $('deriveCheck').addEventListener('change', (event) => {
+    state.view.derive = event.target.checked;
+    storeModel();
+    if (!state.view.derive) hideDerivePanel();
+  });
   $('scaleCheck').checked = state.view.scaleMode;
   // Alle Schritte des Lösungswegs auf- oder zuklappen
   $('stepsToggle').addEventListener('click', () => setAllSteps(anyClosed()));

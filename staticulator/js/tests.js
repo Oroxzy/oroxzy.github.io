@@ -2,6 +2,7 @@
 import { EXAMPLES } from './examples.js';
 import { solve, internalForces } from './statik.js';
 import { runDesignTests } from './tests-bemessung.js';
+import { cutForces, shearAreas } from './cursor-derive.js';
 
 const TOLERANCE = 0.02; // kN bzw. kNm, Musterlösungen runden auf 2 Stellen
 
@@ -43,10 +44,30 @@ export function runTests() {
           if (expect.mMin !== undefined) checks.push({ ok: close(forces.mMin.m, expect.mMin, 0.1), text: `Mmin = ${forces.mMin.m.toFixed(2)} bei x = ${forces.mMin.x.toFixed(3)} (soll ${expect.mMin})` });
         }
       }
+      if (forces.ok) checks.push(deriveCheck(result, forces));
     }
     results.push({ example, checks });
   }
   return results;
+}
+
+// Herleitung am Cursor: V als Summe der Kräfte links vom Schnitt, M als Summe der Querkraftflächen (plus
+// Einzelmomente) und als Momentensumme links müssen an jeder Stelle mit den Schnittgrössen übereinstimmen
+function deriveCheck(result, forces) {
+  let worst = 0;
+  const n = 60;
+  for (let k = 0; k <= n; k++) {
+    const x = forces.xmin + ((forces.xmax - forces.xmin) * k) / n;
+    const at = forces.valueAt(x);
+    // am Trägeranfang gilt der Wert rechts der Stelle (wie in valueAt und am Cursor)
+    const { items, couples } = cutForces(result, forces, x, k === 0);
+    const coupleSum = couples.reduce((s, c) => s + c.c, 0);
+    const v = items.reduce((s, i) => s + i.fz, 0);
+    const mAreas = shearAreas(forces, x).reduce((s, p) => s + p.area, 0) + coupleSum;
+    const mSum = items.reduce((s, i) => s + i.fz * (x - i.x), 0) + coupleSum;
+    worst = Math.max(worst, Math.abs(v - at.v), Math.abs(mAreas - at.m), Math.abs(mSum - at.m));
+  }
+  return { ok: worst < 1e-6, text: `Herleitung am Cursor: V aus den Kräften links, M aus den Querkraftflächen und als Momentensumme an ${n + 1} Stellen, grösste Abweichung ${worst.toExponential(1)}` };
 }
 
 export function renderTests(target) {
