@@ -1536,9 +1536,20 @@ export function deflectionBasis() {
   return { EI: beamLine.EI, name: beamLine.name };
 }
 
+// Markierte Stellen der Biegelinie (Feld, Kragarme) wie in der Grafik: x und w (m, nach unten positiv)
+export function deflectionMarks() {
+  const box = $('deflectionDiagram');
+  if (!beamLine || !box || box.hidden) return [];
+  const marks = beamLine.checks.length ? beamLine.checks : [{ w: beamLine.line.max.w, x: beamLine.line.max.x, up: false }];
+  return marks.filter((c) => c.w > 1e-7).map((c) => ({ x: c.x, w: c.up ? -c.w : c.w }));
+}
+
 export function deflectionAt(x) {
   const box = $('deflectionDiagram');
   if (!beamLine || !box || box.hidden) return null;
+  // an einer Marke genau ihr Wert (die Linie für die Grafik ist gröber abgetastet)
+  const mark = deflectionMarks().find((m) => Math.abs(m.x - x) < 1e-9);
+  if (mark) return mark.w;
   const pts = beamLine.line.points;
   if (!pts || pts.length < 2 || x < pts[0][0] - 1e-9 || x > pts[pts.length - 1][0] + 1e-9) return null;
   for (let i = 1; i < pts.length; i++) {

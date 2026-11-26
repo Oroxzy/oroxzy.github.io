@@ -6,7 +6,7 @@ import { renderDiagrams } from './diagrams.js';
 import { renderSolution, renderMessages } from './solution.js';
 import { EXAMPLES, exampleById, emptyModel } from './examples.js';
 import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
-import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt, deflectionBasis } from './design-ui.js';
+import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt, deflectionBasis, deflectionMarks } from './design-ui.js';
 import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js';
 import { initPhotoImport, resetImport } from './photo-import.js';
 import { exportImage } from './export-image.js';
@@ -2271,7 +2271,23 @@ function diagramCursor(event) {
   // auf cm gerundet (wie man es abliest), an Ereignisstellen eingerastet
   let x = Math.min(forces.xmax, Math.max(forces.xmin, Math.round(toX(point.x) * 100) / 100));
   const snap = forces.events.find((e) => Math.abs(X(e.x) - point.x) <= 6);
-  if (snap) x = snap.x;
+  if (snap) {
+    x = snap.x;
+  } else {
+    // auch an den markierten Werten der Fläche unter dem Zeiger: V = 0 in der V-Fläche, Mmax/Mmin (und V = 0)
+    // in der M-Fläche, die Werte der Biegelinie (Feld, Kragarme) – dann zeigt der Cursor genau diesen Wert
+    const kind = svg.dataset.kind;
+    const zeros = forces.zeroCrossings.filter((z) => z.inSegment).map((z) => z.x);
+    const marks = kind === 'V' ? zeros
+      : kind === 'M' ? [...zeros, forces.mMax.x, forces.mMin.x]
+        : kind === 'W' ? deflectionMarks().map((m) => m.x) : [];
+    let near = null;
+    for (const mx of marks) {
+      const distance = Math.abs(X(mx) - point.x);
+      if (Number.isFinite(mx) && distance <= 6 && (!near || distance < near.distance)) near = { x: mx, distance };
+    }
+    if (near) x = near.x;
+  }
   const at = forces.valueAt(x);
   const w = deflectionAt(x);
   const values = {
