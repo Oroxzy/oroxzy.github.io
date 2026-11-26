@@ -44,6 +44,9 @@ button, input, select { font: inherit; color: inherit; }
 .brand h1 { margin: 0; font-size: 19px; letter-spacing: 0.2px; }
 .brand h1 span { color: #2563eb; }
 .brand .credit { white-space: nowrap; }
+.brand .home-link { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.brand .home-link:hover { text-decoration: underline; }
+@media print { .brand .home-wrap { display: none; } }
 .brand p { margin: 0; color: var(--muted); font-size: 12.5px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .example-picker { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }

@@ -7,6 +7,21 @@
 <meta name="description" content="Auflagerreaktionen, Querkraft- und Momentenfläche für Träger auf zwei Auflagern – mit Lösungsweg Schritt für Schritt (ΣH, ΣM, ΣV).">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="author" content="Jeremy Meile">
+<!-- Link-Vorschau (WhatsApp, Teams, Mail, soziale Netzwerke) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StatiCulator">
+<meta property="og:title" content="StatiCulator – Träger auf zwei Auflagern">
+<meta property="og:description" content="Auflagerreaktionen, Querkraft- und Momentenfläche mit Lösungsweg Schritt für Schritt, Bemessung in Stahl und Holz – direkt im Browser.">
+<meta property="og:url" content="https://oroxzy.github.io/staticulator/">
+<meta property="og:image" content="https://oroxzy.github.io/staticulator/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="de_CH">
+<meta name="twitter:card" content="summary_large_image">
+<!-- als App installierbar und offline nutzbar (manifest.webmanifest, sw.js) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d4ed8">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <script>
   // Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen): auto, hell oder dunkel
   (function () {
@@ -18,36 +33,36 @@
   })();
 </script>
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
-<link rel="stylesheet" href="css/app.css?v=202611261029">
+<link rel="stylesheet" href="css/app.css?v=202611261220">
 <script defer src="vendor/katex/katex.min.js"></script>
 <!-- version:start (tools/stamp-web-version.mjs) -->
 <script type="importmap">
 {
   "imports": {
-    "./js/app.js": "./js/app.js?v=202611261029",
-    "./js/bemessung.js": "./js/bemessung.js?v=202611261029",
-    "./js/cursor-derive.js": "./js/cursor-derive.js?v=202611261029",
-    "./js/design-terms.js": "./js/design-terms.js?v=202611261029",
-    "./js/design-ui.js": "./js/design-ui.js?v=202611261029",
-    "./js/diagrams.js": "./js/diagrams.js?v=202611261029",
-    "./js/dimension.js": "./js/dimension.js?v=202611261029",
-    "./js/examples.js": "./js/examples.js?v=202611261029",
-    "./js/export-image.js": "./js/export-image.js?v=202611261029",
-    "./js/figure.js": "./js/figure.js?v=202611261029",
-    "./js/format.js": "./js/format.js?v=202611261029",
-    "./js/photo-import.js": "./js/photo-import.js?v=202611261029",
-    "./js/section-svg.js": "./js/section-svg.js?v=202611261029",
-    "./js/self-check.js": "./js/self-check.js?v=202611261029",
-    "./js/solution.js": "./js/solution.js?v=202611261029",
-    "./js/statik.js": "./js/statik.js?v=202611261029",
-    "./js/step-list.js": "./js/step-list.js?v=202611261029",
-    "./data/c4.js": "./data/c4.js?v=202611261029",
-    "./data/profiles.js": "./data/profiles.js?v=202611261029"
+    "./js/app.js": "./js/app.js?v=202611261220",
+    "./js/bemessung.js": "./js/bemessung.js?v=202611261220",
+    "./js/cursor-derive.js": "./js/cursor-derive.js?v=202611261220",
+    "./js/design-terms.js": "./js/design-terms.js?v=202611261220",
+    "./js/design-ui.js": "./js/design-ui.js?v=202611261220",
+    "./js/diagrams.js": "./js/diagrams.js?v=202611261220",
+    "./js/dimension.js": "./js/dimension.js?v=202611261220",
+    "./js/examples.js": "./js/examples.js?v=202611261220",
+    "./js/export-image.js": "./js/export-image.js?v=202611261220",
+    "./js/figure.js": "./js/figure.js?v=202611261220",
+    "./js/format.js": "./js/format.js?v=202611261220",
+    "./js/photo-import.js": "./js/photo-import.js?v=202611261220",
+    "./js/section-svg.js": "./js/section-svg.js?v=202611261220",
+    "./js/self-check.js": "./js/self-check.js?v=202611261220",
+    "./js/solution.js": "./js/solution.js?v=202611261220",
+    "./js/statik.js": "./js/statik.js?v=202611261220",
+    "./js/step-list.js": "./js/step-list.js?v=202611261220",
+    "./data/c4.js": "./data/c4.js?v=202611261220",
+    "./data/profiles.js": "./data/profiles.js?v=202611261220"
   }
 }
 </script>
 <!-- version:end -->
-<script type="module" src="js/app.js?v=202611261029"></script>
+<script type="module" src="js/app.js?v=202611261220"></script>
 </head>
 <body>
 <header class="topbar">
@@ -55,7 +70,7 @@
     <img class="logo" src="favicon.svg" alt="" width="45" height="36">
     <div>
       <h1>Stati<span>Culator</span></h1>
-      <p>Träger auf zwei Auflagern · Auflagerreaktionen mit Lösungsweg · <span class="credit">© 2026 Jeremy Meile</span></p>
+      <p><span class="home-wrap"><a class="home-link" href="../" title="Zur Übersicht aller Tools">← Alle Tools</a> · </span>Träger auf zwei Auflagern · Auflagerreaktionen mit Lösungsweg · <span class="credit">© 2026 Jeremy Meile</span></p>
     </div>
   </div>
   <nav class="actions">
@@ -174,7 +189,7 @@
             <label class="check"><input type="checkbox" id="angleCheck" checked> Winkel anzeigen</label>
             <label class="check" title="Zeigt die Lage des Mauszeigers in Metern"><input type="checkbox" id="coordCheck"> Koordinaten</label>
             <label>Markierung <select id="highlightSelect" title="Wie angewählte Elemente hervorgehoben werden">
-              <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Schein</option><option value="none">ohne</option>
+              <option value="frame">Rahmen</option><option value="color">Farbe</option><option value="glow">Leuchten</option><option value="none">ohne</option>
             </select></label>
             <label class="check" title="Nicht gewählte Elemente treten zurück, solange etwas ausgewählt ist"><input type="checkbox" id="dimCheck" checked> Rest abblenden</label>
           </div>
@@ -190,15 +205,15 @@
         <span id="selectionHint" class="selection-hint is-hidden">Masse nur für die Auswahl · blaues Mass anklicken zum Ändern · Esc zeigt alle</span>
       </div>
       <details class="drag-help"><summary>Bedienung: ziehen, wählen, Tasten</summary>
-      <p class="drag-hint">Lager, Lasten, Streckenlasten und Achse mit der Maus oder dem Finger ziehen. Gewählte Stäbe zeigen Griffe: Quadrat = Stabende (Länge, Knoten), Kreis = ganzen Stab verschieben. Umschalttaste: nur waagrecht/senkrecht, Alt: ohne Einrasten, Pfeiltasten: Auswahl um einen Rasterschritt verschieben, Esc bricht ab. Ein Klick wählt ein Element aus (Strg+Klick: mehrere), die Masse zeigen dann nur noch die Auswahl. Strg+Z macht rückgängig, Strg+Y wiederholt. Im Lösungsweg zeigt das Zeigen auf ein Glied (auf dem Handy: Antippen) die Last und den Hebelarm in der Skizze. Mit „Massstab“ zeichnet die Skizze nach Längen- und Kräftemassstab (Werte in cm fürs Blatt).</p>
+      <p class="drag-hint">Lager, Lasten, Streckenlasten und Achse mit der Maus oder dem Finger ziehen. Gewählte Stäbe zeigen Griffe: Quadrat = Stabende (Länge, Knoten), Kreis = ganzen Stab verschieben. Umschalttaste: nur waagrecht/senkrecht, Alt: ohne Einrasten, Pfeiltasten: Auswahl um einen Rasterschritt verschieben, Esc bricht ab. Ein Klick wählt ein Element aus (Strg+Klick: mehrere), die Masse zeigen dann nur noch die Auswahl. Strg+Z macht rückgängig, Strg+Y wiederholt. Fährt man im Lösungsweg mit der Maus über ein Glied einer Gleichung (auf dem Handy: antippen), zeigt die Skizze die Last und ihren Hebelarm. Mit „Massstab“ zeichnet die Skizze nach Längen- und Kräftemassstab (Werte in cm fürs Blatt).</p>
       </details>
       <div id="figure" class="figure-box"></div>
     </section>
     <section class="card" id="diagramCard">
       <div class="card-head"><h2>Querkraft- und Momentenfläche</h2>
         <div class="diagram-tools">
-        <label class="check" title="Senkrechte Linie mit den Werten an der Stelle unter dem Mauszeiger"><input type="checkbox" id="cursorCheck" checked> Cursor</label>
-        <label class="check" title="Zeigt am Cursor, wie V (Schnittprinzip) und M (Querkraftflächen) an dieser Stelle zustande kommen"><input type="checkbox" id="deriveCheck"> Herleitung</label>
+        <label class="check" title="Beim Darüberfahren mit der Maus eine senkrechte Linie mit den Werten an dieser Stelle zeigen"><input type="checkbox" id="cursorCheck" checked> Werte ablesen</label>
+        <label class="check" title="Beim Darüberfahren mit der Maus zeigen, wie V (Schnittprinzip), M (Querkraftflächen) und die Durchbiegung w an dieser Stelle zustande kommen"><input type="checkbox" id="deriveCheck"> Herleitung zeigen</label>
         <label class="diagram-scheme" title="Farben der Flächen">Farben <select id="schemeSelect">
           <option value="family">je Fläche (plus kühl, minus warm)</option><option value="sign">nach Vorzeichen (blau/rot)</option><option value="six">6 Farben</option>
         </select></label>
@@ -232,7 +247,7 @@
           <button type="button" role="tab" data-tab="column" aria-controls="designForm">Stütze / Hänger</button>
         </div>
       </div>
-      <p class="help d-help">Träger: M und V kommen aus dem System oben. Stütze: ein Lager in der Skizze nach unten ziehen, Hänger: nach oben – Länge und Normalkraft kommen dann von dort, Druck wird auf Knicken, Zug mit dem Zugnachweis bemessen. Der Rechenweg steht unten im Lösungsweg.</p>
+      <p class="help d-help">Träger: M und V kommen aus dem System oben. Stütze: ein Lager in der Skizze nach unten ziehen, Hänger: nach oben – Länge und Normalkraft kommen dann von dort, Druck wird auf Knicken, Zug mit dem Zugnachweis bemessen. Die Rechnung steht unten im Lösungsweg.</p>
       <div id="designForm" class="d-form" role="tabpanel"></div>
       <div id="designResult" class="d-result"></div>
     </section>
@@ -263,7 +278,7 @@
 <footer class="footer">
   <p class="footer-credit">© 2026 Jeremy Meile · StatiCulator</p>
   <p>Starrkörper-Gleichgewicht mit ΣH = 0, ΣM = 0 und ΣV = 0. Querkraft- und Momentenfläche für gerade Träger, positive Werte unten. Ohne Gewähr – Ergebnisse bitte selbst prüfen.</p>
-  <p><a href="tests.html">Rechenkern-Tests mit den Musterlösungen</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz) · Anonyme Besucherstatistik mit Cloudflare Web Analytics, ohne Cookies</p>
+  <p><a href="tests.html">Selbsttest: alle Beispiele mit den Musterlösungen nachgerechnet</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz) · Anonyme Besucherstatistik mit Cloudflare Web Analytics, ohne Cookies</p>
 </footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="photoDialog" class="photo-dialog" aria-labelledby="photoTitle">
@@ -287,9 +302,11 @@
 <div id="termTip" class="term-tip" role="tooltip" hidden></div>
 <div id="figurePeek" class="figure-peek" aria-hidden="true" hidden></div>
 <div id="derivePanel" class="derive-panel" aria-hidden="true" hidden></div>
-<!-- Cloudflare Web Analytics: anonyme Besucherstatistik ohne Cookies, nur auf der Website (lokal nicht) -->
+<!-- Nur auf der Website (lokal stört es beim Entwickeln): Offline-Speicher (sw.js) und
+     Cloudflare Web Analytics (anonyme Besucherstatistik ohne Cookies) -->
 <script>
   if (location.hostname === 'oroxzy.github.io') {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     const beacon = document.createElement('script');
     beacon.type = 'module';
     beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js';

@@ -14,7 +14,7 @@ export const CURVE_ALPHA = { a0: 0.13, a: 0.21, b: 0.34, c: 0.49, d: 0.76 };
 export const EULER_CASES = [
   { id: 2, beta: 1, short: 'gelenkig – gelenkig', text: 'Fall 2: beidseitig gelenkig, β = 1' },
   { id: 1, beta: 2, short: 'eingespannt – frei', text: 'Fall 1: unten eingespannt, oben frei, β = 2' },
-  { id: 3, beta: 0.7, short: 'eingespannt – gelenkig', text: 'Fall 3: unten eingespannt, oben gelenkig, β = 0.7 (Musterlösungen teils 0.71)' },
+  { id: 3, beta: 0.7, short: 'eingespannt – gelenkig', text: 'Fall 3: unten eingespannt, oben gelenkig, β = 0.7 (in manchen Lösungen 0.71)' },
   { id: 4, beta: 0.5, short: 'eingespannt – eingespannt', text: 'Fall 4: beidseitig eingespannt, β = 0.5' },
 ];
 
@@ -180,9 +180,9 @@ for (const [id, ft0d] of Object.entries(TIMBER_FT0D)) TIMBER[id].ft0d = ft0d;
 
 // Feuchteklassen nach SIA 265: Abminderung eta_w der Festigkeiten
 export const TIMBER_EXPOSURE = [
-  { id: 'dry', factor: 1.0, text: 'Feuchteklasse 1: vor Witterung geschützt (η_w = 1.0)' },
-  { id: 'partial', factor: 0.8, text: 'Feuchteklasse 2: teilweise geschützt oder bewittert (η_w = 0.8)' },
-  { id: 'wet', factor: 0.6, text: 'Feuchteklasse 3: feucht oder unter Wasser (η_w = 0.6)' },
+  { id: 'dry', factor: 1.0, text: 'Feuchteklasse 1: vor Witterung geschützt (ηw = 1.0)' },
+  { id: 'partial', factor: 0.8, text: 'Feuchteklasse 2: teilweise geschützt oder bewittert (ηw = 0.8)' },
+  { id: 'wet', factor: 0.6, text: 'Feuchteklasse 3: feucht oder unter Wasser (ηw = 0.6)' },
 ];
 
 // Ablesen wie im Unterricht aus der Tabelle HBT S. 52 (Schritt 0.02): lambda_rel auf zwei Stellen runden,

@@ -340,7 +340,7 @@ export function internalForces(result) {
   if (!result || !result.ok) return { ok: false, reason: 'Keine gültigen Auflagerreaktionen.' };
   const { axis, points, qloads } = result.resolved;
   if (!isStraightAxis(axis)) {
-    return { ok: false, reason: 'Querkraft- und Momentenfläche werden nur für gerade, waagrechte Träger gezeichnet. Bei geknickten oder abgestuften Trägern sind die Auflagerreaktionen gesucht.' };
+    return { ok: false, reason: 'Querkraft- und Momentenfläche werden nur für gerade, waagrechte Träger gezeichnet. Bei geknickten oder abgestuften Trägern berechnet die App nur die Auflagerreaktionen.' };
   }
   const z0 = axis[0].z;
   const { xmin, xmax } = axisRange(axis);

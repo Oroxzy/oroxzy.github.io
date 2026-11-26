@@ -179,8 +179,8 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
   // Steigung: die gestrichelte Tangente an der M-Linie hat die Steigung V
   if (slopes && slopes.length) {
     html += slopes.length === 2
-      ? `<p class="dp-note">Gestrichelte Tangente: Die M-Linie knickt hier, weil V springt. Steigung links ${tex(`V = ${fixed(slopes[0], decimals)}`)}, rechts ${tex(`V = ${fixed(slopes[1], decimals)}`)}.</p>`
-      : `<p class="dp-note">Gestrichelte Tangente: Steigung der M-Linie ${tex(`\\tfrac{dM}{dx} = V = ${fixed(slopes[0], decimals)}`)} kNm pro m. ${Math.abs(slopes[0]) < 1e-6 ? 'V = 0: Hier hat M einen Extremwert.' : 'Wo V = 0 ist, wird die Tangente waagrecht: dort liegt M<sub>max</sub> bzw. M<sub>min</sub>.'}</p>`;
+      ? `<p class="dp-note">Gestrichelte Tangente: Die Momentenlinie knickt hier, weil V springt. Steigung links ${tex(`V = ${fixed(slopes[0], decimals)}`)}, rechts ${tex(`V = ${fixed(slopes[1], decimals)}`)}.</p>`
+      : `<p class="dp-note">Gestrichelte Tangente: Steigung der Momentenlinie ${tex(`\\tfrac{dM}{dx} = V = ${fixed(slopes[0], decimals)}`)} kNm pro m. ${Math.abs(slopes[0]) < 1e-6 ? 'V = 0: Hier hat M einen Extremwert.' : 'Wo V = 0 ist, wird die Tangente waagrecht: dort liegt M<sub>max</sub> bzw. M<sub>min</sub>.'}</p>`;
   }
   return { html, pieces };
 }
@@ -301,7 +301,7 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
     const formulaHtml = fits
       ? `<tr class="dp-formula"><td></td><td colspan="3">${tex(`= ${formula.symbolic} = ${formula.numbers} \\cdot 1000`)}</td></tr>`
       : '';
-    return `<tr><td>${tex(`w_{${texName(p.label)}}`)}</td><td class="dp-shape">${what}${fits ? ` · Tabelle${formula.where ? `, ${formula.where}` : ''}` : ''}</td>`
+    return `<tr><td>${tex(`w_{${texName(p.label)}}`)}</td><td class="dp-shape">${what}${fits ? ` · nach Tabellenformel${formula.where ? ` (${formula.where})` : ''}` : ''}</td>`
       + `<td><span class="dp-bar ${p.w >= 0 ? 'down' : 'up'}"><i style="width:${Math.max(3, share)}%"></i></span></td>`
       + `<td class="dp-num">${tex(`${fixed(p.w, 2)}${unit('mm')}`)}</td></tr>${formulaHtml}`;
   });
@@ -309,6 +309,6 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
   const terms = shown.map((p) => ({ sign: Math.sign(p.w), body: `w_{${texName(p.label)}}`, v: p.w }));
   const numbers = joinSigned(terms.map((t) => ({ sign: t.sign, body: fixed(Math.abs(t.v), 2) })));
   html += line(`w = ${joinSigned(terms)}${terms.length > 1 ? ` = ${numbers}` : ''} = ${fixed(total, 2)}${unit('mm')}`);
-  html += '<p class="dp-note">Jede Last für sich mit ihren eigenen Lagerkräften, zusammengezählt ergibt das die Biegelinie. Lasten ohne Lastbeiwert, w nach unten positiv, x ab Lager links. Ohne Tabellenformel (Kragarm, Teil-Streckenlast): aus EI · w″ = −M dieser Last.</p>';
+  html += '<p class="dp-note">Jede Last wird für sich mit ihren eigenen Lagerkräften gerechnet; zusammengezählt ergibt das die Biegelinie. Lasten wie oben eingegeben (ohne zusätzlichen Lastbeiwert), w nach unten positiv, x ab dem linken Lager. Wo keine Tabellenformel passt (Kragarm, Streckenlast nur über einen Teil), rechnet die App numerisch aus EI · w″ = −M.</p>';
   return html;
 }

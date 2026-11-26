@@ -171,7 +171,7 @@ function segmented(path, options, value) {
   return `<div class="d-seg" role="radiogroup">${options.map(([v, t]) => `<button type="button" role="radio" aria-checked="${v === value}" data-set="${path}" data-value="${v}" class="${v === value ? 'on' : ''}">${t}</button>`).join('')}</div>`;
 }
 
-const gradeOptions = () => Object.keys(STEEL_GRADES).map((g) => [g, `${g} (f_y = ${STEEL_GRADES[g]} N/mm²)`]);
+const gradeOptions = () => Object.keys(STEEL_GRADES).map((g) => [g, `${g} (fy = ${STEEL_GRADES[g]} N/mm²)`]);
 const timberOptions = () => Object.entries(TIMBER).map(([id, t]) => [id, t.text]);
 const exposureOptions = () => TIMBER_EXPOSURE.map((e) => [e.id, e.text]);
 
@@ -227,13 +227,13 @@ function beamForm(d) {
   const b = d.beam;
   const rows = [];
   rows.push(`<div class="d-row"><span class="d-label">Werkstoff</span>${segmented('beam.material', [['steel', 'Stahl'], ['timber', 'Holz']], b.material)}</div>`);
-  rows.push(`<div class="d-row">${selectField('beam.source', 'Schnittgrössen', [['system', 'aus dem System oben (M_max, V_max)'], ['manual', 'von Hand eingeben']], b.source)}`
+  rows.push(`<div class="d-row">${selectField('beam.source', 'Schnittgrössen', [['system', 'aus dem System oben (grösstes M und V)'], ['manual', 'von Hand eingeben']], b.source)}`
     + (b.source === 'manual'
       ? inputField('beam.M', 'M<sub>d</sub>', b.M, { unit: 'kNm' }) + inputField('beam.V', 'V<sub>d</sub>', b.V, { unit: 'kN' })
       : `${inputField('beam.gamma', 'Lastbeiwert γ<sub>F</sub>', b.gamma, { placeholder: '1.0' })}<span class="d-hint">1.0 = Lasten oben sind Bemessungswerte (q<sub>d</sub>, F<sub>d</sub>)</span>`)
     + '</div>');
   if (b.material === 'steel') {
-    rows.push(`<div class="d-row">${selectField('beam.family', 'Profilreihe', STEEL_FAMILIES.map((x) => [x.id, x.text]), b.family)}${selectField('beam.grade', 'Stahlsorte', gradeOptions(), b.grade)}${selectField('beam.plastic', 'Widerstand', [['true', 'plastisch (W_pl)'], ['false', 'elastisch (W_el)']], String(b.plastic))}</div>`);
+    rows.push(`<div class="d-row">${selectField('beam.family', 'Profilreihe', STEEL_FAMILIES.map((x) => [x.id, x.text]), b.family)}${selectField('beam.grade', 'Stahlsorte', gradeOptions(), b.grade)}${selectField('beam.plastic', 'Widerstand', [['true', 'plastisch (Wpl)'], ['false', 'elastisch (Wel)']], String(b.plastic))}</div>`);
     rows.push(`<div class="d-row">${selectField('beam.profile', 'Profil', profileOptions(b.family), b.profile)}${limitSelect(b)}${checkField('beam.sls', 'Profil auch nach Durchbiegung wählen', b.sls)}</div>`);
   } else {
     rows.push(`<div class="d-row">${selectField('beam.timber', 'Holzklasse', timberOptions(), b.timber)}${selectField('beam.exposure', 'Feuchte', exposureOptions(), b.exposure)}</div>`);
@@ -263,7 +263,7 @@ function columnForm(d) {
   const sources = [['system', 'aus der Skizze (Stütze oder Hänger)'], ['direct', 'N und L von Hand'], ['area', 'N aus Flächenlasten, L von Hand']];
   let sourceFields = '';
   if (fromSystem) {
-    sourceFields = (columns.length > 1 ? selectField('column.support', 'an Lager', [['auto', 'automatisch (Druck zuerst)'], ['A', 'Lager A'], ['B', 'Lager B']], c.support) : '')
+    sourceFields = (columns.length > 1 ? selectField('column.support', 'an Lager', [['auto', 'automatisch (Stütze vor Hänger)'], ['A', 'Lager A'], ['B', 'Lager B']], c.support) : '')
       + inputField('column.gamma', 'Lastbeiwert γ<sub>F</sub>', c.gamma, { placeholder: '1.0' })
       + '<span id="designColumnInfo" class="d-take"></span>';
   } else if (c.source === 'area') {
@@ -271,13 +271,13 @@ function columnForm(d) {
   } else {
     sourceFields = `${inputField('column.N', 'N', c.N, { unit: 'kN', placeholder: 'Druck' })}${inputField('column.gamma', 'Lastbeiwert γ<sub>F</sub>', c.gamma, { placeholder: '1.0' })}<span id="designReactions" class="d-take"></span>`;
   }
-  rows.push(`<div class="d-row">${selectField('column.source', 'Stab', sources, c.source)}${sourceFields}</div>`);
+  rows.push(`<div class="d-row">${selectField('column.source', 'Normalkraft und Länge', sources, c.source)}${sourceFields}</div>`);
   if (!tension) {
     rows.push(`<div class="d-row">${fromSystem ? '' : inputField('column.L', 'Stützenlänge L', c.L, { unit: 'm' })}${eulerPicker('column.euler', c.euler)}${inputField('column.beta', 'eigenes β', c.beta, { placeholder: 'optional' })}</div>`);
     rows.push(`<div class="d-row">${checkField('column.zOwn', 'um die schwache Achse z anders gehalten', c.zOwn, 'z. B. Riegel oder Wand in halber Höhe: eigene Länge und Lagerung für das Knicken um z')}`
       + (c.zOwn
         ? inputField('column.Lz', 'Länge L<sub>z</sub>', c.Lz, { unit: 'm', placeholder: plain(systemL) })
-          + selectField('column.eulerZ', 'Fall z', EULER_CASES.map((e) => [e.id, `Fall ${e.id} (β = ${e.beta})`]), c.eulerZ)
+          + selectField('column.eulerZ', 'Eulerfall um z', EULER_CASES.map((e) => [e.id, `Fall ${e.id} (β = ${e.beta})`]), c.eulerZ)
           + inputField('column.betaZ', 'eigenes β<sub>z</sub>', c.betaZ, { placeholder: 'optional' })
         : '')
       + '</div>');
@@ -285,7 +285,7 @@ function columnForm(d) {
   if (c.material === 'steel') {
     rows.push(`<div class="d-row">${selectField('column.family', 'Profilreihe', STEEL_FAMILIES.map((x) => [x.id, x.text]), c.family)}${selectField('column.grade', 'Stahlsorte', gradeOptions(), c.grade)}${selectField('column.profile', 'Profil', profileOptions(c.family), c.profile)}</div>`);
   } else {
-    rows.push(`<div class="d-row">${selectField('column.timber', 'Holzklasse', timberOptions(), c.timber)}${selectField('column.exposure', 'Feuchte', exposureOptions(), c.exposure)}${tension ? '' : checkField('column.kcTable', 'k<sub>c</sub> wie aus der HBT-Tabelle', c.kcTable, 'Wie im Unterricht: λ_rel auf zwei Stellen runden; liegt der Wert zwischen zwei Zeilen (Schritt 0.02), die nächsthöhere nehmen, dann k_c ablesen')}</div>`);
+    rows.push(`<div class="d-row">${selectField('column.timber', 'Holzklasse', timberOptions(), c.timber)}${selectField('column.exposure', 'Feuchte', exposureOptions(), c.exposure)}${tension ? '' : checkField('column.kcTable', 'k<sub>c</sub> wie aus der HBT-Tabelle', c.kcTable, 'Wie an der Bauschule üblich: λrel auf zwei Stellen runden; liegt der Wert zwischen zwei Zeilen (Schritt 0.02), die nächsthöhere nehmen, dann kc ablesen')}</div>`);
     const dims = c.shape === 'round'
       ? inputField('column.d', 'Durchmesser d', c.d, { unit: 'mm', placeholder: 'automatisch' })
       : inputField('column.b', 'Breite b', c.b, { unit: 'mm', placeholder: 'automatisch' }) + inputField('column.h', 'Höhe h', c.h, { unit: 'mm', placeholder: 'automatisch' });
@@ -333,7 +333,7 @@ function explanation(title) {
     return why('Warum ist die Auflagerkraft die Normalkraft?', [
       `Die Stütze steht auf Lager ${escapeHtml(col.name)}. Was der Träger dort abgibt (${col.name}<sub>z</sub> = ${kn(col.Rz)} kN), läuft durch die Stütze in den Boden. Ohne Last entlang der Stütze ist die Normalkraft über die ganze Höhe gleich.`,
       `Die Länge ist der Höhenunterschied zwischen Trägerachse und Stützenfuss: ${f(col.L, 2)} m. Zieht man das Lager in der Skizze tiefer, wird die Stütze länger und knickt leichter.`,
-      'Das Eigengewicht der Stütze ist wie im Unterricht nicht eingerechnet.',
+      'Das Eigengewicht der Stütze ist (wie an der Bauschule üblich) nicht eingerechnet.',
     ]);
   }
   if ((t.startsWith('Hänger an Lager') || t.startsWith('Zugstab an Lager')) && x.input && x.input.column) {
@@ -343,7 +343,7 @@ function explanation(title) {
         ? `Lager ${escapeHtml(col.name)} liegt unter der Achse, aber die Auflagerkraft zeigt nach unten (${col.name}<sub>z</sub> = ${kn(col.Rz)} kN): Der Stab muss den Träger festhalten, damit er nicht abhebt. Er wird gezogen.`
         : `Lager ${escapeHtml(col.name)} liegt über der Achse, und die Auflagerkraft zeigt nach oben (${col.name}<sub>z</sub> = ${kn(col.Rz)} kN): Der Träger hängt an diesem Stab wie an einem Seil. Der Stab wird gezogen.`,
       'Knicken ist ein Ausweichen unter Druck. Ein gezogener Stab wird dagegen gerade gezogen – er kann nicht ausknicken. Darum gibt es keine Knicklänge, und die Länge spielt für die Tragfähigkeit keine Rolle.',
-      'Nachgewiesen wird nur, dass der Querschnitt die Zugkraft aushält: N<sub>d</sub> ≤ N<sub>t,Rd</sub>. Das Eigengewicht des Stabs ist wie im Unterricht nicht eingerechnet.',
+      'Nachgewiesen wird nur, dass der Querschnitt die Zugkraft aushält: N<sub>d</sub> ≤ N<sub>t,Rd</sub>. Das Eigengewicht des Stabs ist (wie an der Bauschule üblich) nicht eingerechnet.',
     ]);
   }
   if (x.kind === 'steelTension') {
@@ -430,13 +430,13 @@ function explanation(title) {
     if (t === 'Schlankheit') {
       return why('Was ist λ<sub>rel</sub>?', [
         `λ = L<sub>K</sub> / i, beide in mm. Grenze λ ≤ 150 (Windverbände 200), daraus b<sub>min</sub> = L<sub>K</sub> / (0.289 · 150) = ${f((x.k.LkZ * 1000) / (0.289 * 150), 0)} mm.`,
-        'λ<sub>rel</sub> = λ/π · √(f<sub>c,0,k</sub>/E<sub>0,05</sub>) vergleicht mit der Euler-Knickspannung. Im Unterricht vereinfacht: λ/57 für Vollholz, λ/60 für Brettschichtholz.',
+        'λ<sub>rel</sub> = λ/π · √(f<sub>c,0,k</sub>/E<sub>0,05</sub>) vergleicht mit der Euler-Knickspannung. Vereinfacht, wie an der Bauschule üblich: λ/57 für Vollholz, λ/60 für Brettschichtholz.',
       ]);
     }
     if (t.startsWith('Knickbeiwert') && x.c && !x.c.kcTable) {
       return why('Woher kommt k<sub>c</sub>?', [
         'Hier exakt nach SIA 265 gerechnet: k = 0.5·[1 + β<sub>c</sub>(λ<sub>rel</sub> − 0.3) + λ<sub>rel</sub>²], dann k<sub>c</sub> = 1 / (k + √(k² − λ<sub>rel</sub>²)). Bis λ<sub>rel</sub> = 0.3 ist k<sub>c</sub> = 1.',
-        'Die Tabelle HBT S. 52 gibt dieselben Werte in Schritten von 0.02 an; mit dem Haken „k<sub>c</sub> wie aus der HBT-Tabelle“ rechnet die App wie im Unterricht mit der Tabellenzeile.',
+        'Die Tabelle HBT S. 52 gibt dieselben Werte in Schritten von 0.02 an; ist „k<sub>c</sub> wie aus der HBT-Tabelle“ angekreuzt, rechnet die App mit der Tabellenzeile, wie an der Bauschule üblich.',
       ]);
     }
     if (t.startsWith('Knickbeiwert')) {
@@ -478,7 +478,7 @@ function explanation(title) {
     if (t === 'Erforderliches Widerstandsmoment' && x.plastic === false) {
       return why('Warum hier W<sub>el</sub>?', [
         'Aus M<sub>d</sub> ≤ M<sub>Rd</sub> = W·f<sub>y</sub>/γ<sub>M1</sub> folgt W<sub>erf</sub> = M<sub>d</sub>·γ<sub>M1</sub>/f<sub>y</sub>. Einheiten: M<sub>d</sub> in kNcm (kNm × 100), f<sub>y</sub> in kN/cm², dann W in cm³.',
-        'Elastisch heisst: Nur die äusserste Faser darf die Fliessgrenze erreichen. Das ist vorsichtiger als W<sub>pl</sub> und gilt für Querschnittsklasse 3 oder wenn die Aufgabe elastisch verlangt. Im Unterricht rechnet man gewalzte I- und H-Profile meist plastisch.',
+        'Elastisch heisst: Nur die äusserste Faser darf die Fliessgrenze erreichen. Das ist vorsichtiger als W<sub>pl</sub> und gilt für Querschnittsklasse 3 oder wenn die Aufgabe elastisch verlangt. Gewalzte I- und H-Profile rechnet man meist plastisch.',
       ]);
     }
     if (t === 'Erforderliches Widerstandsmoment') {
@@ -490,7 +490,7 @@ function explanation(title) {
     if (t.startsWith('Gewählt')) {
       return why('Wie wählt man das Profil?', [
         `In der Profiltabelle (SZS C5) das erste Profil der Reihe suchen, dessen ${x.plastic === false ? 'W<sub>el,y</sub>' : 'W<sub>pl,y</sub>'} ≥ W<sub>erf</sub> ist – es ist auch das leichteste. C5 gibt M<sub>Rd</sub> und V<sub>Rd</sub> direkt an.`,
-        'Die „Profilreihe“ in der Bemessungskarte zeigt alle Profile der Reihe; ein Klick nimmt ein anderes.',
+        'Die Tabelle „Profilreihe“ oben im Bereich Bemessung zeigt alle Profile der Reihe; ein Klick auf eine Zeile wählt ein anderes.',
       ]);
     }
     if (t === 'Querkraft') {
@@ -520,7 +520,7 @@ function explanation(title) {
     }
     if (t.startsWith('Querdruck')) {
       return why('Warum Querdruck?', [
-        'Quer zur Faser ist Holz weich: Am Auflager drückt die Auflagerkraft auf die Fläche b·l<sub>A</sub>. Im Unterricht heisst es: „unbedingt erforderlich“.',
+        'Quer zur Faser ist Holz weich: Am Auflager drückt die Auflagerkraft auf die Fläche b·l<sub>A</sub>. Bei Holzbalken ist dieser Nachweis immer zu führen.',
         'Daraus die nötige Auflagerlänge l<sub>A</sub> = A<sub>d</sub>/(b·f<sub>c,90,d</sub>) – oder bei gegebener Auflagerlänge die Mindestbreite b<sub>min</sub> = A<sub>d</sub>/(l<sub>A</sub>·f<sub>c,90,d</sub>).',
       ]);
     }
@@ -611,7 +611,7 @@ function withSketch(svg, caption, body) {
 
 // weakAxis: Achse mit dem kleineren Trägheitsradius (Stahl meist z, Holz mit b > h aber y)
 function bucklingCaption(axis, weakAxis = 'z') {
-  return `<b class="d-sec-red">Rot</b>: Knicken um ${axis} – die Stütze weicht in Pfeilrichtung aus (${axis === weakAxis ? 'über die schwache Richtung' : 'über die starke Richtung'}). Masse in mm.`;
+  return `<b class="d-sec-red">Rot</b>: Knicken um ${axis} – die Stütze weicht in Pfeilrichtung aus (${axis === weakAxis ? 'das ist die schwache Achse' : 'das ist die starke Achse'}). Masse in mm.`;
 }
 
 // Schnittgrössen für den Träger: aus dem System (mit Lastbeiwert) oder von Hand
@@ -740,7 +740,7 @@ function steelBeamResult(d, last, decimals) {
     // Reicht ein Profil für Biegung und Schub, aber keines für die Durchbiegung, hilft eine höhere Stahlsorte nicht (gleiches E)
     const onlySls = b.sls && results.some((r) => r.ok);
     const detail = onlySls
-      ? `Biegung und Schub gingen, aber kein ${escapeHtml(b.family)} hält die Durchbiegung (l/${b.limit}) ein. Eine höhere Stahlsorte hilft nicht (gleicher E-Modul): andere Profilreihe wählen oder die Grenze prüfen.`
+      ? `Für Biegung und Schub gäbe es passende Profile, aber kein ${escapeHtml(b.family)} hält die Durchbiegung (l/${b.limit}) ein. Eine höhere Stahlsorte hilft nicht (gleicher E-Modul): andere Profilreihe wählen oder die Grenze prüfen.`
       : `Erforderlich ${tex(`${W} \\ge ${f(wErf, 1)}${unit('cm^3')}`)} – andere Profilreihe oder höhere Stahlsorte wählen.`;
     return { top: head(`Kein ${escapeHtml(b.family)} reicht`, 2, false, detail), steps: actionsStep(actions, decimals) };
   }
@@ -1426,7 +1426,7 @@ function timberColumnResult(d, last, decimals) {
   const slender = ax.filter((a) => a.lambda > 150).sort((a, b) => b.lambda - a.lambda); // grösste zuerst
   html += step(n++, 'Schlankheit', '',
     ax.map((a) => eq(`\\lambda${sub(a)} = \\frac{L_{K${c.zOwn ? `,${a.axis}` : ''}}}{i${sub(a)}} = \\frac{${f(a.Lk * 1000, 0)}}{${f(a.i, 1)}} = ${f(a.lambda, 1)},\\qquad \\lambda_{rel${subComma(a)}} = \\frac{\\lambda${sub(a)}}{${material.lambda0}} = ${f(a.lambdaRel, 3)}`)).join('')
-    + note(`λ<sub>rel</sub> = λ / ${material.lambda0} für ${material.glulam ? 'Brettschichtholz' : 'Vollholz'} (wie im Unterricht).${slender.length ? ` <b class="d-warn">λ = ${f(slender[0].lambda, 0)} &gt; 150: zu schlank</b> (Grenze 150, Windverbände 200).` : ' Grenze λ ≤ 150 eingehalten.'}`));
+    + note(`λ<sub>rel</sub> = λ / ${material.lambda0} für ${material.glulam ? 'Brettschichtholz' : 'Vollholz'} (vereinfacht, wie an der Bauschule üblich).${slender.length ? ` <b class="d-warn">λ = ${f(slender[0].lambda, 0)} &gt; 150: zu schlank</b> (Grenze 150, Windverbände 200).` : ' Grenze λ ≤ 150 eingehalten.'}`));
   const kcLine = (a) => {
     if (c.kcTable) {
       const row = `\\lambda_{rel${subComma(a)}} = ${f(a.lambdaRel, 3)} \\;\\rightarrow\\; \\text{Zeile } ${f(a.used, 2)}`;
@@ -1439,8 +1439,8 @@ function timberColumnResult(d, last, decimals) {
   html += step(n++, '<span>Knickbeiwert k<sub>c</sub></span>', c.kcTable ? 'Tabelle HBT S. 52' : `β<sub>c</sub> = ${material.glulam ? '0.1 (Brettschichtholz)' : '0.2 (Vollholz)'}`,
     ax.map(kcLine).join('')
     + note(c.kcTable
-      ? `Wie im Unterricht: λ<sub>rel</sub> auf zwei Stellen runden; liegt der Wert zwischen zwei Tabellenzeilen (Schritt 0.02, also ungerade Hundertstel), die nächsthöhere Zeile nehmen und k<sub>c</sub> ablesen. Die Tabelle folgt k<sub>c</sub> = 1 / (k + √(k² − λ<sub>rel</sub>²)) mit k = 0.5·[1 + β<sub>c</sub>(λ<sub>rel</sub> − 0.3) + λ<sub>rel</sub>²], β<sub>c</sub> = ${material.glulam ? '0.1 (BSH)' : '0.2 (Vollholz)'}.`
-      : 'SIA 265 (265.30/31), exakt ohne Tabellenrundung.'));
+      ? `Wie an der Bauschule üblich: λ<sub>rel</sub> auf zwei Stellen runden; liegt der Wert zwischen zwei Tabellenzeilen (Schritt 0.02, also ungerade Hundertstel), die nächsthöhere Zeile nehmen und k<sub>c</sub> ablesen. Die Tabelle folgt k<sub>c</sub> = 1 / (k + √(k² − λ<sub>rel</sub>²)) mit k = 0.5·[1 + β<sub>c</sub>(λ<sub>rel</sub> − 0.3) + λ<sub>rel</sub>²], β<sub>c</sub> = ${material.glulam ? '0.1 (BSH)' : '0.2 (Vollholz)'}.`
+      : 'Formel nach SIA 265, exakt ohne Tabellenrundung.'));
   const fc0d = r.y.fc0d;
   let body = eq(`f_{c,0,d}${etaW < 1 ? ` \\cdot \\eta_w = ${f(material.fc0d, 1)} \\cdot ${etaW}` : ''} = ${f(fc0d, 2)}${unit('N/mm^2')}`);
   body += ax.map((a) => eq(`N_{K,Rd${subComma(a)}} = k_{c${subComma(a)}} \\cdot f_{c,0,d} \\cdot A = ${f(a.kc, 3)} \\cdot ${f(fc0d, 2)} \\cdot ${f(a.A, 0)} = ${f(a.nRd, 1)}${unit('kN')}`)).join('');
@@ -1508,7 +1508,7 @@ export function updateDesign() {
   const invalid = $('designForm').querySelector('input.invalid');
   if (invalid) {
     const label = invalid.closest('label') ? invalid.closest('label').querySelector('span').textContent : 'Ein Feld';
-    setResult(`<p class="d-empty"><b class="d-warn">„${escapeHtml(label)}“ ist ungültig</b> (rot markiert). ${escapeHtml(invalid.title || 'Bitte eine gültige Zahl eingeben.')}.</p>`);
+    setResult(`<p class="d-empty"><b class="d-warn">„${escapeHtml(label)}“ ist ungültig</b> (rot markiert). ${escapeHtml(invalid.title || 'Bitte eine gültige Zahl eingeben')}.</p>`);
     setSteps('');
     renderBeamLine(d, last);
     return;
@@ -1606,7 +1606,7 @@ function readValue(element) {
   const range = FIELD_RANGES[key] || [1e-9, 1e6];
   const bad = Number.isNaN(value) || (value !== null && (value < range[0] || value > range[1]));
   element.classList.toggle('invalid', bad);
-  element.title = bad ? `Bitte eine Zahl von ${range[0] < 1e-6 && range[0] > 0 ? 'grösser als 0' : range[0]} bis ${range[1]} eingeben` : '';
+  element.title = bad ? `Bitte eine Zahl ${range[0] < 1e-6 && range[0] > 0 ? 'grösser als 0' : `ab ${range[0]}`} und höchstens ${range[1]} eingeben` : '';
   return !bad && Number.isFinite(value) ? value : null;
 }
 

@@ -10,7 +10,7 @@ export const EXAMPLES = [
   {
     id: 'uebung1',
     title: 'Übung 1 – Träger mit Kragarm',
-    source: 'Übungen 1–3, Aufgabe 1 (Lösung RSTAB und Handlösung)',
+    source: 'Übungen 1–3, Aufgabe 1 (Lösung mit Statikprogramm und von Hand)',
     model: {
       axis: beam(8.5),
       supports: [{ name: 'A', type: 'fest', x: 2 }, { name: 'B', type: 'rolle', x: 8.5 }],
@@ -81,8 +81,8 @@ export const EXAMPLES = [
   },
   {
     id: 'la1a1',
-    title: 'LA-1 Aufgabe 1 – Kragträger mit Horizontalkraft am Stiel',
-    source: 'Lernaufgabe 1 (SS24), Aufgabe 1',
+    title: 'Lernaufgabe 1, Aufgabe 1 – Kragträger mit Horizontalkraft am Stiel',
+    source: 'Lernaufgabe 1 (Sommersemester 2024), Aufgabe 1',
     model: {
       axis: beam(8),
       supports: [{ name: 'A', type: 'fest', x: 2 }, { name: 'B', type: 'rolle', x: 8 }],
@@ -93,8 +93,8 @@ export const EXAMPLES = [
   },
   {
     id: 'la1a3',
-    title: 'LA-1 Aufgabe 3 – Kragträger am Hänger',
-    source: 'Lernaufgabe 1 (SS24), Aufgabe 3 (Nutzlast 45 kN/m + Eigengewicht 3 kN/m)',
+    title: 'Lernaufgabe 1, Aufgabe 3 – Kragträger am Hänger',
+    source: 'Lernaufgabe 1 (Sommersemester 2024), Aufgabe 3 (Nutzlast 45 kN/m + Eigengewicht 3 kN/m)',
     model: {
       axis: beam(8.6),
       supports: [{ name: 'A', type: 'fest', x: 2 }, { name: 'B', type: 'rolle', x: 8.6, z: 3 }],
@@ -105,8 +105,8 @@ export const EXAMPLES = [
   },
   {
     id: 'la2a3',
-    title: 'LA-2 Aufgabe 3 – Streckenlasten und Einzellasten',
-    source: 'Lernaufgabe 2 (SS24), Aufgabe 3',
+    title: 'Lernaufgabe 2, Aufgabe 3 – Streckenlasten und Einzellasten',
+    source: 'Lernaufgabe 2 (Sommersemester 2024), Aufgabe 3',
     model: {
       axis: beam(9.8),
       supports: [{ name: 'A', type: 'fest', x: 1.5 }, { name: 'B', type: 'rolle', x: 9 }],
@@ -117,8 +117,8 @@ export const EXAMPLES = [
   },
   {
     id: 'la2a4',
-    title: 'LA-2 Aufgabe 4 – Kragarme auf beiden Seiten',
-    source: 'Lernaufgabe 2 (SS24), Aufgabe 4',
+    title: 'Lernaufgabe 2, Aufgabe 4 – Kragarme auf beiden Seiten',
+    source: 'Lernaufgabe 2 (Sommersemester 2024), Aufgabe 4',
     model: {
       axis: beam(10.65),
       supports: [{ name: 'A', type: 'fest', x: 2.5 }, { name: 'B', type: 'rolle', x: 10 }],
@@ -131,8 +131,8 @@ export const EXAMPLES = [
   },
   {
     id: 'la3a2',
-    title: 'LA-3 Aufgabe 2 – Gleichlast mit zwei Kragarmen',
-    source: 'Lernaufgabe 3 (SS24), Aufgabe 2',
+    title: 'Lernaufgabe 3, Aufgabe 2 – Gleichlast mit zwei Kragarmen',
+    source: 'Lernaufgabe 3 (Sommersemester 2024), Aufgabe 2',
     model: {
       axis: beam(17),
       supports: [{ name: 'A', type: 'fest', x: 3.5 }, { name: 'B', type: 'rolle', x: 14.25 }],
@@ -143,7 +143,7 @@ export const EXAMPLES = [
   },
   {
     id: 'la4a2',
-    title: 'LA-4 Aufgabe 2 – Riegel auf zwei Stützen ungleicher Höhe',
+    title: 'Lernaufgabe 4, Aufgabe 2 – Riegel auf zwei Stützen ungleicher Höhe',
     source: 'Lernaufgabe 4, Aufgabe 2',
     model: {
       axis: beam(15),
@@ -155,8 +155,8 @@ export const EXAMPLES = [
   },
   {
     id: 'ss24a2',
-    title: 'Prüfung SS24 Aufgabe 2 – Abgestufter Träger',
-    source: '1. Semesterprüfung BST HTy-25, 27.05.2024, Aufgabe 2 (Stufenhöhe 2 m abgegriffen)',
+    title: 'Semesterprüfung 2024, Aufgabe 2 – Abgestufter Träger',
+    source: 'Semesterprüfung Baustatik, Mai 2024, Aufgabe 2 (Stufenhöhe 2 m aus der Skizze gemessen)',
     model: {
       axis: [{ x: 0, z: 0 }, { x: 6, z: 0 }, { x: 9, z: -2 }, { x: 13, z: -2 }],
       supports: [{ name: 'A', type: 'rolle', x: 3 }, { name: 'B', type: 'fest', x: 11 }],
@@ -167,8 +167,8 @@ export const EXAMPLES = [
   },
   {
     id: 'ss24a3',
-    title: 'Prüfung SS24 Aufgabe 3 – Träger auf Holzstütze',
-    source: '1. Semesterprüfung BST HTy-25, 27.05.2024, Aufgabe 3 (ohne Musterlösung)',
+    title: 'Semesterprüfung 2024, Aufgabe 3 – Träger auf Holzstütze',
+    source: 'Semesterprüfung Baustatik, Mai 2024, Aufgabe 3 (ohne Musterlösung)',
     model: {
       axis: [{ x: -2, z: 3 }, { x: 8.6, z: 3 }],
       supports: [{ name: 'A', type: 'fest', x: 0, z: 0 }, { name: 'B', type: 'rolle', x: 6.6 }],
@@ -181,8 +181,8 @@ export const EXAMPLES = [
   },
   {
     id: 'ss23a2',
-    title: 'Prüfung SS23 Aufgabe 2 – Träger mit Schräge',
-    source: '1. Semesterprüfung BST HTf-25, SS23, Aufgabe 2 (ohne Musterlösung)',
+    title: 'Semesterprüfung 2023, Aufgabe 2 – Träger mit Schräge',
+    source: 'Semesterprüfung Baustatik, Sommersemester 2023, Aufgabe 2 (ohne Musterlösung)',
     model: {
       axis: [{ x: 0, z: 0 }, { x: 5, z: 0 }, { x: 8, z: 1 }, { x: 11.5, z: 1 }],
       supports: [{ name: 'A', type: 'rolle', x: 2 }, { name: 'B', type: 'fest', x: 10 }],

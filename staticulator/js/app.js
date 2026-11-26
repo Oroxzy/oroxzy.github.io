@@ -217,7 +217,7 @@ function refreshLoadPlaceholders() {
   document.querySelectorAll('#loadTable tr[data-index] input[data-field="name"]').forEach((field) => {
     const label = auto[Number(field.closest('tr').dataset.index)] || '';
     field.placeholder = label;
-    field.title = `Name wie in der Aufgabe, z. B. F_A, G oder Q_1 (Unterstrich = Index). Leer: ${label}`;
+    field.title = `Name wie in der Aufgabe, z. B. F_A, G oder Q_1 (Unterstrich = Index). Leer lassen = ${label}`;
   });
 }
 
@@ -1793,8 +1793,8 @@ function renderScaleCard() {
 
   setHtml($('scaleTables'), [
     table(`Längen (1 cm ≙ ${plain(scales.length)} m)`, ['Punkt', 'x', 'ab Anfang', 'Abstand'], lengthRows),
-    table(`Höhen (1 cm ≙ ${plain(scales.length)} m)`, ['Niveau', 'z', 'über tiefstem'], heightRows),
-    table(`Kräfte (1 cm ≙ ${plain(scales.force)} kN)`, ['Kraft', 'Wert', 'Pfeil'], rows(forceRows)),
+    table(`Höhen (1 cm ≙ ${plain(scales.length)} m)`, ['Niveau', 'z', 'über tiefstem Punkt'], heightRows),
+    table(`Kräfte (1 cm ≙ ${plain(scales.force)} kN)`, ['Kraft', 'Wert', 'Pfeillänge'], rows(forceRows)),
     table(`V- und M-Fläche (1 cm ≙ ${plain(scales.force)} kN bzw. ${plain(scales.moment)} kNm)`, ['Grösse', 'Wert', 'Ordinate'], rows(internalRows)),
   ].join(''));
   updateConverter();

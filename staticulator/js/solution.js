@@ -99,7 +99,7 @@ function explainM(result, decimals) {
     qTerms.length
       ? `Eine Streckenlast ersetzt man durch ihre Resultierende R = q · l in ihrer Mitte: ${qTerms.map((t) => `${htmlName(t.label)}: ${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m = ${fixed(t.force, decimals)} kN bei x = ${measure(t.x)} m`).join('; ')}.`
       : '',
-    'Vorzeichen: im Uhrzeigersinn <span class="cw">↷</span> positiv, dagegen <span class="ccw">↶</span> negativ. <b>Fahre mit der Maus über ein Glied</b> – die Skizze zeigt dann die Kraft und ihren Hebelarm.',
+    'Vorzeichen: im Uhrzeigersinn <span class="cw">↷</span> positiv, dagegen <span class="ccw">↶</span> negativ. <b>Fahre mit der Maus über ein Glied</b> (auf dem Handy: antippen) – die Skizze zeigt dann die Kraft und ihren Hebelarm.',
     `<i>Warum nicht um ${escapeHtml(other)}?</i> Geht genauso – dann rechnet man zuerst ${escapeHtml(m.pivot)}<sub>z</sub> aus. Man wählt einen Punkt, durch den möglichst viele unbekannte Kräfte gehen. `
       + '<i>Typische Fehler:</i> Streckenlast am Rand statt in ihrer Mitte angesetzt, Hebelarm vom falschen Punkt aus gemessen.',
   ]);

@@ -4,16 +4,16 @@
 
 const TERMS = [
   // Einwirkungen
-  { re: /(^|[^A-Za-z\\])M_d(?![A-Za-z{])/, sym: 'M<sub>d</sub>', text: 'Bemessungsmoment: das grösste Biegemoment aus den Lasten, schon mit Lastfaktoren. Index d = „design“, Bemessungswert.' },
-  { re: /(^|[^A-Za-z\\])V_d(?![A-Za-z{])/, sym: 'V<sub>d</sub>', text: 'Bemessungsquerkraft: die grösste Querkraft mit Lastfaktoren, meist direkt am Auflager.' },
-  { re: /(^|[^A-Za-z\\])N_d(?![A-Za-z{])/, sym: 'N<sub>d</sub>', text: 'Bemessungs-Normalkraft: die Kraft längs des Stabs (Druck in der Stütze, Zug im Hänger), mit Lastfaktoren.' },
+  { re: /(^|[^A-Za-z\\])M_d(?![A-Za-z{])/, sym: 'M<sub>d</sub>', text: 'Bemessungsmoment: das grösste Biegemoment aus den Lasten, schon mit Lastbeiwerten. Index d = „design“, Bemessungswert.' },
+  { re: /(^|[^A-Za-z\\])V_d(?![A-Za-z{])/, sym: 'V<sub>d</sub>', text: 'Bemessungsquerkraft: die grösste Querkraft mit Lastbeiwerten, meist direkt am Auflager.' },
+  { re: /(^|[^A-Za-z\\])N_d(?![A-Za-z{])/, sym: 'N<sub>d</sub>', text: 'Bemessungs-Normalkraft: die Kraft längs des Stabs (Druck in der Stütze, Zug im Hänger), mit Lastbeiwerten.' },
   { re: /\\gamma_F/, sym: 'γ<sub>F</sub>', text: 'Lastbeiwert: macht aus der charakteristischen Last den Bemessungswert (ständig 1.35, Nutzlast 1.5).' },
-  { re: /g_k|q_k/, sym: 'g<sub>k</sub>, q<sub>k</sub>', text: 'Ständige Last (Eigengewicht, Aufbau) und Nutzlast, charakteristisch – also ohne Lastfaktor – in kN/m².' },
+  { re: /g_k|q_k/, sym: 'g<sub>k</sub>, q<sub>k</sub>', text: 'Ständige Last (Eigengewicht, Aufbau) und Nutzlast, charakteristisch – also ohne Lastbeiwert – in kN/m².' },
   { re: /A_E/, sym: 'A<sub>E</sub>', text: 'Einzugsfläche: der Teil der Decke, dessen Last die Stütze trägt.' },
-  { re: /(^|[^A-Za-z\\])q_d/, sym: 'q<sub>d</sub>', text: 'Bemessungslast pro Meter Träger (mit Lastfaktoren), in kN/m.' },
+  { re: /(^|[^A-Za-z\\])q_d/, sym: 'q<sub>d</sub>', text: 'Bemessungslast pro Meter Träger (mit Lastbeiwerten), in kN/m.' },
   // Knicklänge
-  { re: /L_\{K/, sym: 'L<sub>K</sub>', text: 'Knicklänge: so lang ist die Welle, mit der die Stütze ausknickt. Sie hängt davon ab, wie die Enden gehalten sind.' },
-  { re: /\\beta(?![_a-z])|\\beta_z/, sym: 'β', text: 'Knicklängenbeiwert aus dem Eulerfall: 2 (eingespannt – frei), 1 (gelenkig – gelenkig), 0.7, 0.5 (beidseitig eingespannt).' },
+  { re: /L_\{K/, sym: 'L<sub>K</sub>', text: 'Knicklänge: Länge einer halben Sinuswelle der Knickfigur. Sie hängt davon ab, wie die Enden gehalten sind.' },
+  { re: /\\beta(?![_a-z])|\\beta_z/, sym: 'β', text: 'Knicklängenbeiwert aus dem Eulerfall: Fall 1 (eingespannt – frei) β = 2, Fall 2 (gelenkig – gelenkig) β = 1, Fall 3 (eingespannt – gelenkig) β = 0.7, Fall 4 (beidseitig eingespannt) β = 0.5.' },
   // Stahl: Biegung und Schub
   { re: /f_y(?![A-Za-z{])/, sym: 'f<sub>y</sub>', text: 'Fliessgrenze des Stahls: ab dieser Spannung beginnt er zu fliessen (S235: 235 N/mm² = 23.5 kN/cm²).' },
   { re: /\\gamma_\{M1\}/, sym: 'γ<sub>M1</sub>', text: 'Widerstandsbeiwert = 1.05 (SIA 263): die Sicherheit auf der Seite des Materials. Durch ihn wird geteilt.' },
@@ -54,7 +54,7 @@ const TERMS = [
   { re: /f_\{c,0,d\}/, sym: 'f<sub>c,0,d</sub>', text: 'Druckfestigkeit längs zur Faser (Bemessungswert, HBT).' },
   { re: /\\lambda(?:_[yz])?\s*=/, sym: 'λ', text: 'Schlankheit = L<sub>K</sub> / i, beide in mm. Grenze für Holzstützen: 150.' },
   { re: /\\lambda_\{rel/, sym: 'λ<sub>rel</sub>', text: 'Bezogene Schlankheit beim Holz: λ / 57 (Vollholz) bzw. λ / 60 (Brettschichtholz).' },
-  { re: /\\beta_c/, sym: 'β<sub>c</sub>', text: 'Imperfektionsbeiwert Holz: 0.2 Vollholz, 0.1 Brettschichtholz (gerader gewachsen bzw. verleimt).' },
+  { re: /\\beta_c/, sym: 'β<sub>c</sub>', text: 'Imperfektionsbeiwert Holz: 0.2 Vollholz, 0.1 Brettschichtholz (aus verleimten Lamellen, daher gerader und gleichmässiger).' },
   { re: /k_\{?c/, sym: 'k<sub>c</sub>', text: 'Knickbeiwert beim Holz (zwischen 0 und 1), wie χ<sub>K</sub> beim Stahl: so viel der Druckfestigkeit bleibt wegen des Knickens.' },
 ];
 
