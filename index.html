@@ -360,7 +360,8 @@
 
         .category-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            /* zwei Spalten, auf schmalen Bildschirmen eine; auto-fill, damit eine einzelne Karte nicht die ganze Breite füllt */
+            grid-template-columns: repeat(auto-fill, minmax(max(280px, calc((100% - 18px) / 2)), 1fr));
             gap: 18px;
         }
 
@@ -1266,7 +1267,7 @@
                 heading.textContent = category;
 
                 const count = document.createElement('span');
-                count.textContent = `${sortedCategoryItems.length} Einträge`;
+                count.textContent = `${sortedCategoryItems.length} ${sortedCategoryItems.length === 1 ? 'Eintrag' : 'Einträge'}`;
 
                 title.append(heading, count);
                 section.appendChild(title);
