@@ -1007,3 +1007,27 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 @media (max-width: 640px) { .self-check-row { grid-template-columns: 56px 1fr 32px; } .self-check-verdict { grid-column: 1 / -1; } }
 @media print { .self-check { display: none !important; } }
 @media screen { html[data-theme="dark"] .self-check-actions .primary { color: #0f141b; } html[data-theme="dark"] .self-check-verdict.near { color: #fbbf24; } }
+
+/* Druck (A4): Raster weg, Titel nur im Kopf, Lösungsweg kompakt und linksbündig (Ergebnis unter dem Titel,
+   kleinere Schrift, weniger Einzug), damit er zur Grösse von Skizze und Flächen passt */
+@media print {
+  .figure .grid, .figure #sc-grid-dots { display: none !important; }
+  .result-head .task-title { display: none; }
+  .result-head:has(#summary:empty):has(#messages:empty) { display: none; }
+  .sol-summary { gap: 6px; }
+  .chip { min-width: 0; padding: 5px 10px; }
+  .chip-name { font-size: 13px; }
+  .chip span:not(.chip-name) { font-size: 10.5px; }
+  .chip strong { font-size: 12px; }
+  .sol-step { grid-template-columns: minmax(0, 1fr); }
+  .sol-step h3 { padding: 8px 0 1px 26px; font-size: 12.5px; }
+  .sol-num { left: 0; top: 8px; width: 22px; font-size: 12.5px; }
+  .sol-hint { font-size: 10.5px; }
+  .sol-key { align-items: flex-start; padding: 0 0 4px 26px; }
+  .sol-key .d-check-line { justify-content: flex-start; }
+  .sol-body { margin: 0 0 8px 26px; padding: 2px 0 2px 10px; }
+  .sol-eq, .sol-res { padding: 2px 0; font-size: 12.5px; }
+  .sol-res { font-size: 13px; }
+  .sol-note, .sol-list { font-size: 10.5px; }
+  .sol-table { font-size: 10.5px; }
+}

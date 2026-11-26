@@ -538,7 +538,23 @@ function gotoIssue(target) {
 
 // Zeichenbreite = tatsächliche Breite der Karte in CSS-Pixeln: Linien und Schrift erscheinen
 // 1:1 (nicht hochskaliert), Haarlinien bleiben scharf. Sehr schmale Ansichten verkleinern.
+// Beim Drucken: Zeichenbreite der A4-Seite (186 mm Satzspiegel ≈ 700 px), damit Schrift und Linien auf dem
+// Papier nicht verkleinert werden (sonst würde die Bildschirmbreite aufs Blatt gestaucht)
+const PRINT_WIDTH = 700;
+let printing = false;
+
+// Nur die Zeichnungen neu (Skizze, V-/M-Fläche, Biegelinie), ohne Speichern und Rückgängig-Schritt
+function redrawDrawings() {
+  if (!state.last) return;
+  hideDiagramCursor();
+  drawFigure();
+  const { result, forces } = state.last;
+  if (forces && forces.ok) setHtml($('diagrams'), renderDiagrams(forces, state.layout, result, state.decimals));
+  updateDesign();
+}
+
 function figureWidth() {
+  if (printing) return PRINT_WIDTH;
   const box = $('figure');
   const style = getComputedStyle(box);
   const inner = box.clientWidth - parseFloat(style.paddingLeft || '0') - parseFloat(style.paddingRight || '0');
@@ -3049,11 +3065,15 @@ function init() {
       }
     }).observe(figureBox);
   }
-  // Ausdruck immer mit allen Massen und ohne Markierung
+  // Ausdruck immer mit allen Massen und ohne Markierung, Skizze und Flächen in der Breite der Seite
   window.addEventListener('beforeprint', () => {
-    if (!state.selection.length && !state.hover) return;
-    clearSelection();
-    drawFigure();
+    if (state.selection.length || state.hover) clearSelection();
+    printing = true;
+    redrawDrawings();
+  });
+  window.addEventListener('afterprint', () => {
+    printing = false;
+    redrawDrawings();
   });
 
   // Darstellung der Skizze: Einrasten, Raster, Winkel
