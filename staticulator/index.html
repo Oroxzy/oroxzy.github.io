@@ -18,36 +18,36 @@
   })();
 </script>
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
-<link rel="stylesheet" href="css/app.css?v=202611261018">
+<link rel="stylesheet" href="css/app.css?v=202611261029">
 <script defer src="vendor/katex/katex.min.js"></script>
 <!-- version:start (tools/stamp-web-version.mjs) -->
 <script type="importmap">
 {
   "imports": {
-    "./js/app.js": "./js/app.js?v=202611261018",
-    "./js/bemessung.js": "./js/bemessung.js?v=202611261018",
-    "./js/cursor-derive.js": "./js/cursor-derive.js?v=202611261018",
-    "./js/design-terms.js": "./js/design-terms.js?v=202611261018",
-    "./js/design-ui.js": "./js/design-ui.js?v=202611261018",
-    "./js/diagrams.js": "./js/diagrams.js?v=202611261018",
-    "./js/dimension.js": "./js/dimension.js?v=202611261018",
-    "./js/examples.js": "./js/examples.js?v=202611261018",
-    "./js/export-image.js": "./js/export-image.js?v=202611261018",
-    "./js/figure.js": "./js/figure.js?v=202611261018",
-    "./js/format.js": "./js/format.js?v=202611261018",
-    "./js/photo-import.js": "./js/photo-import.js?v=202611261018",
-    "./js/section-svg.js": "./js/section-svg.js?v=202611261018",
-    "./js/self-check.js": "./js/self-check.js?v=202611261018",
-    "./js/solution.js": "./js/solution.js?v=202611261018",
-    "./js/statik.js": "./js/statik.js?v=202611261018",
-    "./js/step-list.js": "./js/step-list.js?v=202611261018",
-    "./data/c4.js": "./data/c4.js?v=202611261018",
-    "./data/profiles.js": "./data/profiles.js?v=202611261018"
+    "./js/app.js": "./js/app.js?v=202611261029",
+    "./js/bemessung.js": "./js/bemessung.js?v=202611261029",
+    "./js/cursor-derive.js": "./js/cursor-derive.js?v=202611261029",
+    "./js/design-terms.js": "./js/design-terms.js?v=202611261029",
+    "./js/design-ui.js": "./js/design-ui.js?v=202611261029",
+    "./js/diagrams.js": "./js/diagrams.js?v=202611261029",
+    "./js/dimension.js": "./js/dimension.js?v=202611261029",
+    "./js/examples.js": "./js/examples.js?v=202611261029",
+    "./js/export-image.js": "./js/export-image.js?v=202611261029",
+    "./js/figure.js": "./js/figure.js?v=202611261029",
+    "./js/format.js": "./js/format.js?v=202611261029",
+    "./js/photo-import.js": "./js/photo-import.js?v=202611261029",
+    "./js/section-svg.js": "./js/section-svg.js?v=202611261029",
+    "./js/self-check.js": "./js/self-check.js?v=202611261029",
+    "./js/solution.js": "./js/solution.js?v=202611261029",
+    "./js/statik.js": "./js/statik.js?v=202611261029",
+    "./js/step-list.js": "./js/step-list.js?v=202611261029",
+    "./data/c4.js": "./data/c4.js?v=202611261029",
+    "./data/profiles.js": "./data/profiles.js?v=202611261029"
   }
 }
 </script>
 <!-- version:end -->
-<script type="module" src="js/app.js?v=202611261018"></script>
+<script type="module" src="js/app.js?v=202611261029"></script>
 </head>
 <body>
 <header class="topbar">
@@ -263,7 +263,7 @@
 <footer class="footer">
   <p class="footer-credit">© 2026 Jeremy Meile · StatiCulator</p>
   <p>Starrkörper-Gleichgewicht mit ΣH = 0, ΣM = 0 und ΣV = 0. Querkraft- und Momentenfläche für gerade Träger, positive Werte unten. Ohne Gewähr – Ergebnisse bitte selbst prüfen.</p>
-  <p><a href="tests.html">Rechenkern-Tests mit den Musterlösungen</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz)</p>
+  <p><a href="tests.html">Rechenkern-Tests mit den Musterlösungen</a> · Formeln mit <a href="https://katex.org" rel="noopener">KaTeX</a> (MIT-Lizenz) · Anonyme Besucherstatistik mit Cloudflare Web Analytics, ohne Cookies</p>
 </footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <dialog id="photoDialog" class="photo-dialog" aria-labelledby="photoTitle">
@@ -287,5 +287,15 @@
 <div id="termTip" class="term-tip" role="tooltip" hidden></div>
 <div id="figurePeek" class="figure-peek" aria-hidden="true" hidden></div>
 <div id="derivePanel" class="derive-panel" aria-hidden="true" hidden></div>
+<!-- Cloudflare Web Analytics: anonyme Besucherstatistik ohne Cookies, nur auf der Website (lokal nicht) -->
+<script>
+  if (location.hostname === 'oroxzy.github.io') {
+    const beacon = document.createElement('script');
+    beacon.type = 'module';
+    beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    beacon.setAttribute('data-cf-beacon', '{"token": "6373fa06aa584f6f83a182a83b758754"}');
+    document.body.appendChild(beacon);
+  }
+</script>
 </body>
 </html>

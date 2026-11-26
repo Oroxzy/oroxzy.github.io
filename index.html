@@ -893,6 +893,13 @@
                 width: 100%;
             }
         }
+
+        .site-note {
+            margin: 0 0 28px;
+            color: var(--muted);
+            font-size: 0.82rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -950,6 +957,7 @@
             <div id="download-list"></div>
             <div class="empty-state is-hidden" id="empty-state">Keine passenden Downloads gefunden.</div>
         </main>
+        <p class="site-note">Anonyme Besucherstatistik mit Cloudflare Web Analytics, ohne Cookies.</p>
     </div>
 
     <div id="popup" role="dialog" aria-modal="true" aria-label="Bildvorschau">
@@ -1591,6 +1599,16 @@
         });
 
         init();
+    </script>
+    <!-- Cloudflare Web Analytics: anonyme Besucherstatistik ohne Cookies, nur auf der Website (lokal nicht) -->
+    <script>
+        if (location.hostname === 'oroxzy.github.io') {
+            const beacon = document.createElement('script');
+            beacon.type = 'module';
+            beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+            beacon.setAttribute('data-cf-beacon', '{"token": "6373fa06aa584f6f83a182a83b758754"}');
+            document.body.appendChild(beacon);
+        }
     </script>
 </body>
 </html>
