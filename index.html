@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools & Downloads</title>
+    <meta name="description" content="Eigenentwickelte Werkzeuge für Baustatik und Bau: BeamSmith, TrigoBro und StatiCulator – Applikationen zum Herunterladen und Web-Apps direkt im Browser.">
+    <!-- Link-Vorschau (WhatsApp, Teams, Mail, soziale Netzwerke) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools & Downloads">
+    <meta property="og:title" content="Apps, Rechner und Tabellen">
+    <meta property="og:description" content="Eigenentwickelte Werkzeuge für Baustatik und Bau: BeamSmith, TrigoBro und StatiCulator.">
+    <meta property="og:url" content="https://oroxzy.github.io/">
+    <meta property="og:image" content="https://oroxzy.github.io/Pictures/Beamsmith.PNG">
+    <meta property="og:locale" content="de_CH">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <style>
         :root {
@@ -942,8 +952,8 @@
                             <span>Applikationen</span>
                         </div>
                         <div class="stat">
-                            <strong id="sheet-count">0</strong>
-                            <span>Excel-Tabellen</span>
+                            <strong id="web-count">0</strong>
+                            <span>Web-Apps</span>
                         </div>
                     </div>
                 </aside>
@@ -955,13 +965,13 @@
             </section>
 
             <div id="download-list"></div>
-            <div class="empty-state is-hidden" id="empty-state">Keine passenden Downloads gefunden.</div>
+            <div class="empty-state is-hidden" id="empty-state">Keine passenden Einträge gefunden.</div>
         </main>
         <p class="site-note">Anonyme Besucherstatistik mit Cloudflare Web Analytics, ohne Cookies.</p>
     </div>
 
     <div id="popup" role="dialog" aria-modal="true" aria-label="Bildvorschau">
-        <button class="popup-close" id="popup-close" type="button" aria-label="Bildvorschau schließen">×</button>
+        <button class="popup-close" id="popup-close" type="button" aria-label="Bildvorschau schliessen">×</button>
         <img id="popup-img" src="" alt="">
     </div>
 
@@ -972,15 +982,15 @@
                     <h3 id="details-title">Details</h3>
                     <p id="details-tagline"></p>
                 </div>
-                <button class="details-close" id="details-close" type="button" aria-label="Details schließen">×</button>
+                <button class="details-close" id="details-close" type="button" aria-label="Details schliessen">×</button>
             </div>
             <div class="details-body" id="details-body"></div>
         </div>
     </div>
 
     <script>
-        const csvFilePath = 'downloads.csv?v=2026-11-25-staticulator-web-2';
-        const detailsFilePath = 'details.json?v=2026-11-25-staticulator-web-2';
+        const csvFilePath = 'downloads.csv?v=2026-11-26-staticulator-web-3';
+        const detailsFilePath = 'details.json?v=2026-11-26-staticulator-web-3';
         const countApiEndpoint = 'https://countapi.maayanlab.cloud/rpc';
         const countApiPrefix = 'oroxzy.github.io-global-downloads';
         const downloadList = document.getElementById('download-list');
@@ -998,7 +1008,7 @@
         const detailsBody = document.getElementById('details-body');
         const toolCount = document.getElementById('tool-count');
         const appCount = document.getElementById('app-count');
-        const sheetCount = document.getElementById('sheet-count');
+        const webCount = document.getElementById('web-count');
         const featuredImage = document.getElementById('featured-image');
         const featuredTitle = document.getElementById('featured-title');
         const featuredMeta = document.getElementById('featured-meta');
@@ -1059,7 +1069,7 @@
 
             toolCount.textContent = items.length;
             appCount.textContent = items.filter(item => item.kategorie === 'Applikationen').length;
-            sheetCount.textContent = items.filter(item => item.kategorie === 'Excel-Tabellen').length;
+            webCount.textContent = items.filter(item => item.kategorie === 'Web-Apps').length;
 
             if (!featured) return;
 
@@ -1143,7 +1153,7 @@
             const link = document.createElement('a');
             link.className = 'download-link';
             link.href = href;
-            link.title = `${label} herunterladen`;
+            link.title = `Für ${label} herunterladen`;
 
             const icon = document.createElement('span');
             icon.className = 'action-icon';
@@ -1298,7 +1308,7 @@
                         const imageButton = document.createElement('button');
                         imageButton.type = 'button';
                         imageButton.className = 'image-button';
-                        imageButton.setAttribute('aria-label', item.webpfad ? `${item.titel} im Browser öffnen` : `${item.titel} vergrößern`);
+                        imageButton.setAttribute('aria-label', item.webpfad ? `${item.titel} im Browser öffnen` : `${item.titel} vergrössern`);
                         if (item.webpfad) imageButton.title = 'Im Browser öffnen';
 
                         const img = document.createElement('img');
@@ -1557,7 +1567,7 @@
             } catch (err) {
                 console.error('Fehler beim Abrufen des Zählers:', err);
                 link.dataset.downloadCount = 0;
-                setDownloadCount(count, 0);
+                count.textContent = ''; // ohne Zahl lieber nichts als „0 Downloads“
             }
         }
 

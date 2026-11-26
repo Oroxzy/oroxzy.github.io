@@ -8,7 +8,7 @@
       "Punktlasten sowie konstante oder linear veränderliche Linienlasten eingeben",
       "Auflagerreaktionen, Querkraft, Moment und Verformung anzeigen",
       "Diagramme mit Zahlenwerten, hervorgehobenen Maximalwerten und glatter Darstellung prüfen",
-      "Querkraftflächen per Mausover auswerten und ihren Beitrag zur Momentenänderung nachvollziehen",
+      "Querkraftflächen mit der Maus abfahren und auswerten und ihren Beitrag zur Momentenänderung nachvollziehen",
       "Mit gedrückter Umschalttaste Werte und Abstände an beliebigen Trägerpositionen prüfen",
       "Lagerpositionen automatisch für kleinere Lagerkräfte, Querkräfte, Biegemomente oder Verformungen optimieren",
       "Ausgangs- und Optimierungsergebnis vergleichen und die neue Lageranordnung erst nach Prüfung übernehmen",
@@ -31,7 +31,7 @@
       "Auflagerreaktionen",
       "Querkraft-, Momenten- und Verformungsdiagramme",
       "Interaktive Positionswerte und Flächenzusammenhänge in den Diagrammen",
-      "Vorher-Nachher-Vergleich optimierter Lagerpositionen und maßgebender Maximalwerte",
+      "Vorher-Nachher-Vergleich optimierter Lagerpositionen und massgebender Maximalwerte",
       "Profil- und Ausnutzungslisten",
       "Träger- und Stützennachweise",
       "A4-PDF-Nachweisblätter"
@@ -68,7 +68,7 @@
       "Bekannte Teilinformationen aus Aufgabenstellungen"
     ],
     "outputs": [
-      "Vollständige Dreieckswerte einschließlich Umfangs- und Kreisgrößen",
+      "Vollständige Dreieckswerte einschliesslich Umfangs- und Kreisgrössen",
       "Rechenschritte",
       "Alternative Lösung bei mehrdeutigen Aufgaben",
       "Hinweise zu unklaren oder unmöglichen Eingaben",
@@ -86,10 +86,13 @@
     "tagline": "Träger auf zwei Auflagern im Browser rechnen und den Lösungsweg Schritt für Schritt verstehen.",
     "features": [
       "Trägerachse, Lager und Lasten in Tabellen eingeben oder direkt in der Skizze ziehen",
-      "Gerade, abgestufte und geknickte Träger, Lager an Stützen oder Hängern",
-      "Auflagerreaktionen mit Lösungsweg wie in den Musterlösungen: ΣH, ΣM um den gewählten Drehpunkt, ΣV und Kontrolle",
+      "Gerade, abgestufte und geknickte Träger (Querkraft- und Momentenfläche nur bei geraden), Lager an Stützen oder Hängern",
+      "Auflagerreaktionen mit Lösungsweg wie in einer Musterlösung: ΣH, ΣM um den gewählten Drehpunkt, ΣV und Kontrolle",
       "Erklärmodus mit „Warum?“-Hinweisen zu jedem Schritt und Hebelarmen in der Skizze",
       "Querkraft- und Momentenfläche mit Extremwerten und Nullstellen",
+      "Herleitung zu jedem Wert im Diagramm (Haken „Herleitung zeigen“): Querkraft nach dem Schnittprinzip, Moment aus den Querkraftflächen, Durchbiegung als Summe der Anteile jeder Last",
+      "Aufgabe aus Foto: Skizze oder Aufgabenblatt fotografieren, das System wird übernommen",
+      "Eigene Lösung prüfen: eigene Werte eintippen und sofort sehen, ob sie stimmen",
       "Biegelinie des gewählten Trägers mit Grenzwerten im Feld und an Kragarmen",
       "Bemessung von Stahl- und Holzträgern: Biegung, Querkraft, Querdruck, Durchbiegung, grösste Spannweite",
       "Stützen auf Knicken in Stahl (SIA 263, Vergleich mit SZS C4) und Holz (SIA 265, HBT 2021)",
@@ -113,6 +116,6 @@
       "Träger und Stützen schnell vorbemessen",
       "Skizzen im Massstab fürs Blatt vorbereiten"
     ],
-    "notes": "StatiCulator ist eine Lernhilfe und ersetzt keine fachkundige Prüfung. Läuft ohne Installation in jedem aktuellen Browser."
+    "notes": "StatiCulator ist eine Lernhilfe und ersetzt keine fachkundige Prüfung. Läuft ohne Installation in jedem aktuellen Browser und lässt sich als App auf Handy oder PC installieren, danach auch offline (ausser Foto-Import)."
   }
 }
