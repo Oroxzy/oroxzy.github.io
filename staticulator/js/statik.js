@@ -127,20 +127,42 @@ export function resolveModel(model) {
         warnings.push(`${label}: Die Streckenlast hat keine Länge und wird nicht berücksichtigt.`);
         return;
       }
-      const { direction, magnitude } = normalizeDirection(load.dir === 'up' ? 'up' : 'down', load.value);
-      const qz = direction === 'up' ? magnitude : -magnitude;
-      const xc = (x1 + x2) / 2;
+      // Trapez- bzw. Dreieckslast: value gilt am Anfang (x1 der Eingabe), value2 am Ende (leer = gleichmässig).
+      // Das Vorzeichen des ersten Werts ungleich 0 bestimmt die Richtung (Minus kehrt sie um, wie bisher).
+      const raw1 = load.value;
+      const raw2 = isNum(load.value2) ? load.value2 : load.value;
+      const lead = Math.abs(raw1) > EPS ? raw1 : raw2;
+      const { direction } = normalizeDirection(load.dir === 'up' ? 'up' : 'down', lead);
+      const flip = lead < 0 ? -1 : 1;
+      let m1 = flip * raw1;
+      let m2 = flip * raw2;
+      if (m1 < -EPS || m2 < -EPS) {
+        warnings.push(`${label}: Anfang und Ende zeigen in verschiedene Richtungen; gerechnet wird mit den Beträgen.`);
+        m1 = Math.abs(m1);
+        m2 = Math.abs(m2);
+      }
+      m1 = Math.max(0, m1);
+      m2 = Math.max(0, m2);
+      // „von“ grösser als „bis“: die Werte gehören dann zum anderen Ende
+      if (load.x1 > load.x2) [m1, m2] = [m2, m1];
+      const sign = direction === 'up' ? 1 : -1;
+      const length = x2 - x1;
+      // Resultierende im Schwerpunkt des Trapezes (beim Rechteck in der Mitte)
+      const xc = m1 + m2 > EPS ? x1 + (length * (m1 + 2 * m2)) / (3 * (m1 + m2)) : (x1 + x2) / 2;
       const zc = axisZAt(axis, xc);
       qloads.push({
         source,
         label,
         x1,
         x2,
-        value: magnitude,
+        value: m1,
+        value2: m2,
+        trapez: Math.abs(m1 - m2) > EPS,
         dir: direction,
-        qz,
-        length: x2 - x1,
-        resultant: qz * (x2 - x1),
+        qz: sign * m1,
+        qz2: sign * m2,
+        length,
+        resultant: (sign * (m1 + m2) * length) / 2,
         xc,
         z: isNum(zc) ? zc : 0,
       });
@@ -185,6 +207,21 @@ export function resolveModel(model) {
   });
 
   return { axis, supports, points, qloads, warnings };
+}
+
+// Teile einer Streckenlast für den Lösungsweg (wie im Unterricht): gleichmässig als ein Rechteck,
+// Trapez als Rechteck (kleinerer Wert, Resultierende in der Mitte) plus Dreieck (Differenz, Resultierende
+// im Drittelspunkt auf der Seite des grösseren Werts). force mit Vorzeichen (nach oben positiv).
+export function qParts(q) {
+  const sign = q.dir === 'up' ? 1 : -1;
+  const middle = (q.x1 + q.x2) / 2;
+  if (!q.trapez) return [{ part: 'rect', q: q.value, force: sign * q.value * q.length, x: middle }];
+  const parts = [];
+  const small = Math.min(q.value, q.value2);
+  const diff = Math.abs(q.value2 - q.value);
+  if (small > EPS) parts.push({ part: 'rect', q: small, force: sign * small * q.length, x: middle });
+  parts.push({ part: 'tri', q: diff, force: (sign * diff * q.length) / 2, x: q.value2 > q.value ? q.x1 + (2 * q.length) / 3 : q.x1 + q.length / 3 });
+  return parts;
 }
 
 // Auflagerreaktionen aus ΣH = 0, ΣM = 0 (Drehpunkt) und ΣV = 0, mit allen Schritten.
@@ -244,9 +281,12 @@ export function solve(model) {
     momentTerms.push({ kind: p.horizontal ? 'h' : 'v', label: p.label, force: p.value, dir: p.dir, lever, moment: m, ref: `L:${p.source}`, x: p.x, z: p.z });
   }
   for (const q of qloads) {
-    const lever = Math.abs(q.xc - pivot.x);
-    const m = momentClockwise(q.xc, q.z, 0, q.resultant, pivot.x, pivot.z);
-    momentTerms.push({ kind: 'q', label: q.label, force: Math.abs(q.resultant), q: q.value, length: q.length, dir: q.dir, lever, moment: m, ref: `L:${q.source}`, x: q.xc, z: q.z, x1: q.x1, x2: q.x2 });
+    // Trapezlast: Rechteck und Dreieck je mit eigener Resultierender und eigenem Hebelarm
+    for (const part of qParts(q)) {
+      const lever = Math.abs(part.x - pivot.x);
+      const m = momentClockwise(part.x, q.z, 0, part.force, pivot.x, pivot.z);
+      momentTerms.push({ kind: 'q', part: q.trapez ? part.part : null, label: q.label, force: Math.abs(part.force), q: part.q, half: part.part === 'tri', length: q.length, dir: q.dir, lever, moment: m, ref: `L:${q.source}`, x: part.x, z: q.z, x1: q.x1, x2: q.x2 });
+    }
   }
   const otherReaction = reactions[otherIndex];
   if (otherReaction === hReaction && Math.abs(otherReaction.Rx) > 1e-12) {
@@ -319,7 +359,7 @@ export function solve(model) {
       v: {
         terms: [
           ...points.filter((p) => !p.horizontal).map((p) => ({ label: p.label, value: p.fz, ref: `L:${p.source}` })),
-          ...qloads.map((q) => ({ label: q.label, value: q.resultant, q: q.value, length: q.length, ref: `L:${q.source}`, x: q.xc })),
+          ...qloads.flatMap((q) => qParts(q).map((part) => ({ label: q.label, part: q.trapez ? part.part : null, value: part.force, q: part.q, half: part.part === 'tri', length: q.length, ref: `L:${q.source}`, x: part.x }))),
         ],
         known: otherReaction.Rz,
         knownName: `${other.name}_z`,
@@ -359,11 +399,13 @@ export function internalForces(result) {
     if (Math.abs(r.Rz) > 0) forces.push({ x: r.x, fz: r.Rz, label: `${r.name}_z`, reaction: true });
     if (Math.abs(r.Rx) > 0 && Math.abs(r.z - z0) > 1e-9) couples.push({ x: r.x, c: r.Rx * (r.z - z0), label: `${r.name}_x`, reaction: true });
   }
+  // Streckenlasten linear veränderlich (Trapez): q(x) = q0 + k · (x − a) im Bereich a … b
   const qs = [];
   for (const q of qloads) {
     const a = Math.max(q.x1, xmin);
     const b = Math.min(q.x2, xmax);
-    if (b - a > EPS) qs.push({ a, b, qz: q.qz });
+    const k = q.x2 - q.x1 > EPS ? ((q.qz2 ?? q.qz) - q.qz) / (q.x2 - q.x1) : 0;
+    if (b - a > EPS) qs.push({ a, b, q0: q.qz + k * (a - q.x1), k });
     if (q.x1 < xmin - 1e-7 || q.x2 > xmax + 1e-7) outside.push(q.label);
   }
   if (outside.length) {
@@ -375,7 +417,7 @@ export function internalForces(result) {
     for (const f of forces) if (inclusive ? f.x <= x + 1e-9 : f.x < x - 1e-9) v += f.fz;
     for (const q of qs) {
       const len = Math.min(q.b, x) - q.a;
-      if (len > 0) v += q.qz * len;
+      if (len > 0) v += q.q0 * len + (q.k * len * len) / 2;
     }
     return v;
   };
@@ -384,9 +426,10 @@ export function internalForces(result) {
     for (const f of forces) if (f.x < x - 1e-9) m += f.fz * (x - f.x);
     for (const c of couples) if (inclusive ? c.x <= x + 1e-9 : c.x < x - 1e-9) m += c.c;
     for (const q of qs) {
-      const end = Math.min(q.b, x);
-      const len = end - q.a;
-      if (len > 0) m += q.qz * len * (x - (q.a + end) / 2);
+      // ∫ q(s) · (x − s) ds über a … min(b, x)
+      const len = Math.min(q.b, x) - q.a;
+      const d = x - q.a;
+      if (len > 0) m += q.q0 * (d * len - (len * len) / 2) + q.k * ((d * len * len) / 2 - (len * len * len) / 3);
     }
     return m;
   };
@@ -412,15 +455,37 @@ export function internalForces(result) {
   for (let i = 1; i < events.length; i++) {
     const a = events[i - 1];
     const b = events[i];
+    // im Abschnitt: q(t) = q + k · t (t ab Abschnittsanfang), V quadratisch, M kubisch
     let q = 0;
+    let k = 0;
     const mid = (a.x + b.x) / 2;
-    for (const load of qs) if (mid > load.a && mid < load.b) q += load.qz;
-    const seg = { a: a.x, b: b.x, q, v0: a.vRight, v1: b.vLeft, m0: a.mRight, m1: b.mLeft };
+    for (const load of qs) {
+      if (mid > load.a && mid < load.b) {
+        q += load.q0 + load.k * (a.x - load.a);
+        k += load.k;
+      }
+    }
+    const seg = { a: a.x, b: b.x, q, k, v0: a.vRight, v1: b.vLeft, m0: a.mRight, m1: b.mLeft };
     segments.push(seg);
-    if (Math.abs(q) > EPS && seg.v0 * seg.v1 < 0) {
-      const x = a.x - seg.v0 / q;
-      const t = x - a.x;
-      zeroCrossings.push({ x, m: seg.m0 + seg.v0 * t + (q * t * t) / 2, inSegment: true });
+    const span = b.x - a.x;
+    const mAt = (t) => seg.m0 + seg.v0 * t + (q * t * t) / 2 + (k * t * t * t) / 6;
+    if (Math.abs(k) <= EPS) {
+      if (Math.abs(q) > EPS && seg.v0 * seg.v1 < 0) {
+        const t = -seg.v0 / q;
+        zeroCrossings.push({ x: a.x + t, m: mAt(t), inSegment: true });
+      }
+    } else {
+      // V(t) = v0 + q·t + k·t²/2 = 0: bis zu zwei Nullstellen im Abschnitt
+      const disc = q * q - 2 * k * seg.v0;
+      if (disc >= 0) {
+        const root = Math.sqrt(disc);
+        const ts = [(-q - root) / k, (-q + root) / k].sort((u, w) => u - w);
+        for (const t of ts) {
+          if (t > 1e-9 && t < span - 1e-9 && !zeroCrossings.some((z) => Math.abs(z.x - (a.x + t)) < 1e-9)) {
+            zeroCrossings.push({ x: a.x + t, m: mAt(t), inSegment: true });
+          }
+        }
+      }
     }
   }
   // Vorzeichenwechsel von V an einer Einzelkraft
@@ -456,7 +521,8 @@ export function internalForces(result) {
     const seg = segments.find((s) => x >= s.a - 1e-9 && x <= s.b + 1e-9);
     if (!seg) return { v: 0, m: 0 };
     const t = x - seg.a;
-    return { v: seg.v0 + seg.q * t, m: seg.m0 + seg.v0 * t + (seg.q * t * t) / 2 };
+    const k = seg.k || 0;
+    return { v: seg.v0 + seg.q * t + (k * t * t) / 2, m: seg.m0 + seg.v0 * t + (seg.q * t * t) / 2 + (k * t * t * t) / 6 };
   };
 
   return {

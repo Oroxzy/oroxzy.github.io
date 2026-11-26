@@ -43,13 +43,18 @@ function samples(forces, kind) {
     const start = kind === 'V' ? seg.v0 : seg.m0;
     if (index === 0) pts.push([seg.a, 0]);
     pts.push([seg.a, start]);
-    if (kind === 'V' || Math.abs(seg.q) < 1e-12) {
+    // V gerade (q gleichmässig) oder Parabel (Trapezlast), M Parabel bzw. kubisch: dann fein abtasten
+    const slope = seg.k || 0;
+    const curved = kind === 'V' ? Math.abs(slope) > 1e-12 : Math.abs(seg.q) > 1e-12 || Math.abs(slope) > 1e-12;
+    if (!curved) {
       pts.push([seg.b, kind === 'V' ? seg.v1 : seg.m1]);
     } else {
       const n = 24;
       for (let k = 1; k <= n; k++) {
         const t = ((seg.b - seg.a) * k) / n;
-        pts.push([seg.a + t, seg.m0 + seg.v0 * t + (seg.q * t * t) / 2]);
+        pts.push([seg.a + t, kind === 'V'
+          ? seg.v0 + seg.q * t + (slope * t * t) / 2
+          : seg.m0 + seg.v0 * t + (seg.q * t * t) / 2 + (slope * t * t * t) / 6]);
       }
     }
   });

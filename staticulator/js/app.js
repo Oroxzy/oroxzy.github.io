@@ -47,7 +47,10 @@ function clone(value) {
 const OPPOSITE_DIR = { down: 'up', up: 'down', left: 'right', right: 'left' };
 function positiveLoad(load) {
   if (typeof load.value === 'number' && Number.isFinite(load.value) && load.value < 0) {
-    return { ...load, dir: OPPOSITE_DIR[load.dir] || load.dir, value: -load.value };
+    // Trapezlast: der Wert am Ende kehrt mit um
+    const flipped = { ...load, dir: OPPOSITE_DIR[load.dir] || load.dir, value: -load.value };
+    if (typeof load.value2 === 'number' && Number.isFinite(load.value2)) flipped.value2 = -load.value2;
+    return flipped;
   }
   return load;
 }
@@ -85,7 +88,9 @@ function sanitizeModel(raw) {
   while (supports.length < 2) supports.push({ name: supports.length === 0 ? 'A' : 'B', type: supports.length === 0 ? 'fest' : 'rolle', x: null, z: null });
   const loads = (Array.isArray(raw.loads) ? raw.loads : []).slice(0, 200).map((l) => {
     if (l && l.kind === 'q') {
-      return positiveLoad({ kind: 'q', dir: l.dir === 'up' ? 'up' : 'down', value: numberOrNull(l.value), x1: numberOrNull(l.x1), x2: numberOrNull(l.x2), name: typeof l.name === 'string' ? l.name.slice(0, 20) : '' });
+      // value2: Wert am Ende einer Trapez- oder Dreieckslast (fehlt = gleichmässig)
+      const value2 = numberOrNull(l.value2);
+      return positiveLoad({ kind: 'q', dir: l.dir === 'up' ? 'up' : 'down', value: numberOrNull(l.value), ...(value2 !== null ? { value2 } : {}), x1: numberOrNull(l.x1), x2: numberOrNull(l.x2), name: typeof l.name === 'string' ? l.name.slice(0, 20) : '' });
     }
     const dir = ['down', 'up', 'right', 'left'].includes(l && l.dir) ? l.dir : 'down';
     return positiveLoad({ kind: 'F', dir, value: numberOrNull(l && l.value), x: numberOrNull(l && l.x), z: numberOrNull(l && l.z), name: typeof (l && l.name) === 'string' ? l.name.slice(0, 20) : '' });
@@ -239,7 +244,9 @@ function renderLoadTable() {
     return `<tr data-index="${i}" class="${isQ ? 'is-q' : 'is-f'}">
       <td class="label strong"><input type="text" class="name-input" data-field="name" value="${escapeHtml(l.name || '')}" placeholder="${escapeHtml(auto[i])}" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name der Last ${escapeHtml(auto[i])}" title="Name wie in der Aufgabe, z. B. F_A, G oder Q_1 (Unterstrich = Index). Leer: ${escapeHtml(auto[i])}"></td>
       <td class="dir"><select data-field="dir" title="Richtung" aria-label="Richtung ${escapeHtml(labels[i])}">${options}</select></td>
-      <td><label class="cell"><span>${isQ ? 'kN/m' : 'kN'}</span>${input('value', l.value)}</label></td>
+      ${isQ
+    ? `<td><label class="cell q-values" title="Wert am Anfang („von“) und am Ende („bis“). Ende leer = gleichmässig, anderer Wert = Trapezlast, 0 = Dreieckslast"><span>kN/m</span>${input('value', l.value, `aria-label="Wert am Anfang von ${escapeHtml(labels[i])}"`)}<span class="q-to" aria-hidden="true">→</span>${input('value2', l.value2, `placeholder="gleich" aria-label="Wert am Ende von ${escapeHtml(labels[i])} (leer = gleichmässig)"`)}</label></td>`
+    : `<td><label class="cell"><span>kN</span>${input('value', l.value)}</label></td>`}
       ${position}
       <td class="tools"><button type="button" class="icon" data-action="remove-load" title="Last entfernen" aria-label="Last ${escapeHtml(labels[i])} entfernen">✕</button></td>
     </tr>`;
@@ -463,8 +470,11 @@ function checkInputs(model) {
   const auto = autoLabels();
   model.loads.forEach((l, i) => {
     const name = (l.name || '').trim() || auto[i];
+    // Trapez-/Dreieckslast: Wert am Ende (leer = gleichmässig); 0 am Anfang ist dann eine Dreieckslast
+    const hasEnd = l.kind === 'q' && l.value2 !== null && l.value2 !== undefined;
+    if (hasEnd && !num(l.value2)) add('error', 'load', i, 'value2', `${name}: Wert am Ende ist keine Zahl (leer lassen = gleichmässig).`);
     if (!num(l.value)) add('error', 'load', i, 'value', `${name}: Wert ${missing(l.value)}.`);
-    else if (l.value === 0) add('warn', 'load', i, 'value', `${name}: Der Wert ist 0, die Last wirkt nicht.`);
+    else if (l.value === 0 && !(hasEnd && num(l.value2) && l.value2 !== 0)) add('warn', 'load', i, 'value', `${name}: Der Wert ist 0, die Last wirkt nicht.`);
     if (l.kind === 'q') {
       if (!num(l.x1)) add('error', 'load', i, 'x1', `${name}: Anfang („von“) ${missing(l.x1)}.`);
       if (!num(l.x2)) add('error', 'load', i, 'x2', `${name}: Ende („bis“) ${missing(l.x2)}.`);
@@ -1382,7 +1392,8 @@ function setField(target) {
     return;
   }
   const value = parseNumber(target.value);
-  const optional = field === 'z' && table.id !== 'axisTable';
+  // z (Last neben der Achse) und der Wert am Ende einer Streckenlast dürfen leer sein
+  const optional = (field === 'z' && table.id !== 'axisTable') || field === 'value2';
   if (value === null) {
     target.classList.toggle('invalid', !optional);
     item[field] = optional ? null : NaN;
@@ -1773,7 +1784,7 @@ function renderScaleCard() {
   // Kräfte: Lasten (Streckenlast als Resultierende) und Auflagerkräfte als Pfeillängen
   const forceRows = [
     ...resolved.points.map((p) => [htmlName(p.label), `${fixed(p.value, 2)} kN`, `${toCm(p.value, scales.force)} cm`]),
-    ...resolved.qloads.map((q) => [`${htmlName(q.label)} (Resultierende ${fixed(q.value, 2)} kN/m · ${fixed(q.length, 2)} m)`, `${fixed(Math.abs(q.resultant), 2)} kN`, `${toCm(Math.abs(q.resultant), scales.force)} cm`]),
+    ...resolved.qloads.map((q) => [`${htmlName(q.label)} (Resultierende ${q.trapez ? `(${fixed(q.value, 2)} + ${fixed(q.value2, 2)}) / 2` : fixed(q.value, 2)} kN/m · ${fixed(q.length, 2)} m)`, `${fixed(Math.abs(q.resultant), 2)} kN`, `${toCm(Math.abs(q.resultant), scales.force)} cm`]),
   ];
   if (result && result.ok) {
     for (const r of result.reactions) {
@@ -1859,8 +1870,11 @@ function termInfo(key) {
   }
   if (group === 'm' && m.terms[index]) {
     const t = m.terms[index];
+    // Trapezlast: Rechteck (Resultierende in der Mitte) und Dreieck (im Drittelspunkt) getrennt
     const what = t.kind === 'q'
-      ? `${t.label}: ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(t.force)} kN, Resultierende in der Mitte (x = ${length(t.x, state.decimals)} m)`
+      ? (t.part === 'tri'
+        ? `${t.label} (Dreieck): ½ · ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(t.force)} kN, Resultierende im Drittelspunkt (x = ${length(t.x, state.decimals)} m)`
+        : `${t.label}${t.part ? ' (Rechteck)' : ''}: ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(t.force)} kN, Resultierende in der Mitte (x = ${length(t.x, state.decimals)} m)`)
       : `${name(t.label)} = ${f(t.force)} kN ${dirWord[t.dir] || ''}`;
     return {
       ref: t.ref, ...pivot, x: t.x, z: t.z, vertical: t.kind === 'v' || t.kind === 'q', lever: t.lever, sense: Math.sign(t.moment), resultant: t.kind === 'q',
@@ -1869,7 +1883,9 @@ function termInfo(key) {
   }
   if (group === 'v' && v.terms[index]) {
     const t = v.terms[index];
-    const what = t.q !== undefined ? `${t.label}: ${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(Math.abs(t.value))} kN` : `${name(t.label)} = ${f(Math.abs(t.value))} kN`;
+    const what = t.q !== undefined
+      ? `${t.label}${t.part ? (t.part === 'tri' ? ' (Dreieck)' : ' (Rechteck)') : ''}: ${t.half ? '½ · ' : ''}${f(t.q)} kN/m · ${length(t.length, state.decimals)} m = ${f(Math.abs(t.value))} kN`
+      : `${name(t.label)} = ${f(Math.abs(t.value))} kN`;
     return { ref: t.ref, text: `${what} ${t.value > 0 ? 'nach oben → positiv' : 'nach unten → negativ'} (nach oben positiv)` };
   }
   if (key === 'vu') return { ref: v.unknownRef, text: `${name(v.unknown)} gesucht, nach oben angenommen` };
@@ -2224,6 +2240,14 @@ function drawSelectionLever() {
   const term = result.steps.m.terms[index];
   const info = termInfo(`m:${index}`);
   if (!info) return;
+  // Trapezlast (Rechteck + Dreieck im Lösungsweg): hier die ganze Last mit der Resultierenden im Schwerpunkt
+  const parts = result.steps.m.terms.filter((t) => t.ref === state.selection[0]);
+  const load = parts.length > 1 ? result.resolved.qloads.find((q) => `L:${q.source}` === state.selection[0]) : null;
+  if (load) {
+    const moment = parts.reduce((s, t) => s + t.moment, 0);
+    drawLever({ ...info, x: load.xc, lever: Math.abs(load.xc - info.pivotX), showMoment: true, moment, force: Math.abs(load.resultant), sense: Math.sign(moment) || 1 });
+    return;
+  }
   drawLever({ ...info, showMoment: true, moment: term.moment, force: term.force, sense: Math.sign(term.moment) || 1 });
 }
 

@@ -50,8 +50,20 @@ export function step(number, title, hint, bodyHtml) {
   return `<section class="sol-step"><h3><span class="sol-num">${number}</span>${title}${hint ? `<span class="sol-hint">${hint}</span>` : ''}</h3>${bodyHtml}</section>`;
 }
 
+// Resultierende einer Streckenlast als Produkt: Rechteck (q · l), Dreieck einer Trapezlast (½ · Δq · l)
+function qProduct(term, decimals) {
+  return term.half
+    ? `\\tfrac{1}{2} \\cdot ${n(term.q, decimals)} \\cdot ${n(term.length, decimals)}`
+    : `${n(term.q, decimals)} \\cdot ${n(term.length, decimals)}`;
+}
+
+// Teil einer Trapezlast als Text: „q1 (Rechteck)“ bzw. „q1 (Dreieck)“
+function qLabel(term) {
+  return term.part ? `${htmlName(term.label)} (${term.part === 'tri' ? 'Dreieck' : 'Rechteck'})` : htmlName(term.label);
+}
+
 function forceBody(term, decimals) {
-  if (term.kind === 'q') return `(${n(term.q, decimals)} \\cdot ${n(term.length, decimals)})`;
+  if (term.kind === 'q') return `(${qProduct(term, decimals)})`;
   return n(term.force, decimals);
 }
 
@@ -97,7 +109,7 @@ function explainM(result, decimals) {
     `Um den Drehpunkt <b>${escapeHtml(m.pivot)}</b> dreht die Reaktion in ${escapeHtml(m.pivot)} nicht – ihr Hebelarm ist 0. So bleibt in ΣM = 0 nur <b>${htmlName(m.unknown)}</b> als Unbekannte.`,
     `Hebelarm = senkrechter Abstand der Wirkungslinie zum Drehpunkt: bei senkrechten Kräften der waagrechte Abstand, bei waagrechten Kräften der Höhenunterschied. ${htmlName(m.unknown)} hat hier den Hebelarm ${length(m.unknownLever, decimals)} m.`,
     qTerms.length
-      ? `Eine Streckenlast ersetzt man durch ihre Resultierende R = q · l in ihrer Mitte: ${qTerms.map((t) => `${htmlName(t.label)}: ${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m = ${fixed(t.force, decimals)} kN bei x = ${measure(t.x)} m`).join('; ')}.`
+      ? `Eine Streckenlast ersetzt man durch ihre Resultierende R = q · l in ihrer Mitte${qTerms.some((t) => t.part) ? '; eine Trapezlast teilt man in ein Rechteck (kleinerer Wert, R in der Mitte) und ein Dreieck (Differenz Δq, R = ½ · Δq · l im Drittelspunkt auf der Seite des grösseren Werts)' : ''}: ${qTerms.map((t) => `${qLabel(t)}: ${t.half ? '½ · ' : ''}${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m = ${fixed(t.force, decimals)} kN bei x = ${measure(t.x)} m`).join('; ')}.`
       : '',
     'Vorzeichen: im Uhrzeigersinn <span class="cw">↷</span> positiv, dagegen <span class="ccw">↶</span> negativ. <b>Fahre mit der Maus über ein Glied</b> (auf dem Handy: antippen) – die Skizze zeigt dann die Kraft und ihren Hebelarm.',
     `<i>Warum nicht um ${escapeHtml(other)}?</i> Geht genauso – dann rechnet man zuerst ${escapeHtml(m.pivot)}<sub>z</sub> aus. Man wählt einen Punkt, durch den möglichst viele unbekannte Kräfte gehen. `
@@ -205,7 +217,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
     // Gliedertabelle
     const rows = m.terms.map((t, i) => {
       const dirArrow = { up: '↑', down: '↓', right: '→', left: '←' }[t.dir] || '';
-      const what = t.kind === 'q' ? `${escapeHtml(t.label)} = ${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m` : htmlName(t.label);
+      const what = t.kind === 'q' ? `${qLabel(t)} = ${t.half ? '½ · ' : ''}${fixed(t.q, decimals)} kN/m · ${length(t.length, decimals)} m` : htmlName(t.label);
       const sense = t.lever < 1e-9 || Math.abs(t.moment) < 1e-12 ? '–' : t.moment > 0 ? '<span class="cw">↷</span>' : '<span class="ccw">↶</span>';
       return `<tr data-term="m:${i}"><td>${what}</td><td class="num">${fixed(t.force, decimals)} kN ${dirArrow}</td><td class="num">${length(t.lever, decimals)} m</td><td class="c">${sense}</td><td class="num">${fixed(t.moment, decimals)}</td></tr>`;
     });
@@ -224,7 +236,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
     const items = [
       { sign: 1, body: mark('vu', texName(v.unknown)) },
       { sign: 1, body: mark('vk', texName(v.knownName)) },
-      ...v.terms.map((t, i) => ({ sign: Math.sign(t.value) || 1, body: mark(`v:${i}`, t.q !== undefined ? `${n(t.q, decimals)} \\cdot ${n(t.length, decimals)}` : n(Math.abs(t.value), decimals)) })),
+      ...v.terms.map((t, i) => ({ sign: Math.sign(t.value) || 1, body: mark(`v:${i}`, t.q !== undefined ? qProduct(t, decimals) : n(Math.abs(t.value), decimals)) })),
     ];
     let body = `<div class="sol-eq">${tex(`\\sum V = 0:\\quad ${joinSigned(items)} = 0`)}</div>`;
     const known = v.known;

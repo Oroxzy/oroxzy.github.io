@@ -112,6 +112,10 @@ table.grid td.type { width: 136px; }
 label.cell { display: flex; align-items: center; gap: 4px; }
 label.cell span { color: var(--muted); font-size: 11.5px; min-width: 14px; white-space: nowrap; }
 label.cell input { width: 100%; min-width: 46px; text-align: right; }
+/* Streckenlast: Wert am Anfang → Wert am Ende (leer = gleichmässig) */
+label.cell.q-values input { min-width: 38px; }
+label.cell.q-values .q-to { color: var(--muted); font-size: 12px; }
+label.cell.q-values input[data-field="value2"]::placeholder { color: var(--muted); font-style: italic; }
 #loadTable tr + tr td { border-top: 1px solid var(--soft); }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .options { display: flex; flex-wrap: wrap; gap: 14px; }

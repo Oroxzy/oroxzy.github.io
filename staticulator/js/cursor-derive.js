@@ -47,7 +47,17 @@ export function cutForces(result, forces, x, inclusive) {
   for (const q of qloads) {
     const a = Math.max(q.x1, forces.xmin);
     const b = Math.min(q.x2, x);
-    if (b - a > 1e-9 && Math.abs(q.qz) > EPS) items.push({ kind: 'q', name: q.label, q: q.qz, len: b - a, fz: q.qz * (b - a), x: (a + b) / 2 });
+    if (b - a <= 1e-9) continue;
+    // Trapezlast: q an beiden Enden des Stücks links vom Schnitt, Resultierende im Schwerpunkt des Trapezes
+    const q2 = q.qz2 ?? q.qz;
+    const qAt = (s) => q.qz + ((q2 - q.qz) * (s - q.x1)) / (q.x2 - q.x1);
+    const qa = qAt(a);
+    const qb = qAt(b);
+    const len = b - a;
+    const fz = ((qa + qb) / 2) * len;
+    if (Math.abs(fz) <= EPS) continue;
+    const centroid = Math.abs(qa + qb) > EPS ? a + (len * (qa + 2 * qb)) / (3 * (qa + qb)) : (a + b) / 2;
+    items.push({ kind: 'q', name: q.label, q: qa, qb, trapez: Math.abs(qa - qb) > EPS, len, fz, x: centroid });
   }
   items.sort((u, v) => u.x - v.x);
   // Einzelmomente aus Kräften neben der Achse (Stiel, Konsole, Stütze): wirken nur auf M
@@ -62,9 +72,20 @@ export function shearAreas(forces, x, minArea = 1e-9) {
   for (const s of forces.segments) {
     if (s.a >= x - EPS) break;
     const end = Math.min(s.b, x);
-    const vAt = (t) => s.v0 + s.q * (t - s.a);
+    const k = s.k || 0;
+    // V im Abschnitt: gerade (q gleichmässig) oder Parabel (Trapezlast); F ist die Fläche ab Abschnittsanfang
+    const vAt = (t) => s.v0 + s.q * (t - s.a) + (k * (t - s.a) ** 2) / 2;
+    const F = (t) => s.v0 * (t - s.a) + (s.q * (t - s.a) ** 2) / 2 + (k * (t - s.a) ** 3) / 6;
     const cuts = [s.a];
-    if (Math.abs(s.q) > EPS) {
+    if (Math.abs(k) > EPS) {
+      const disc = s.q * s.q - 2 * k * s.v0;
+      if (disc >= 0) {
+        const root = Math.sqrt(disc);
+        for (const t of [(-s.q - root) / k, (-s.q + root) / k].sort((u, w) => u - w)) {
+          if (s.a + t > s.a + 1e-7 && s.a + t < end - 1e-7) cuts.push(s.a + t);
+        }
+      }
+    } else if (Math.abs(s.q) > EPS) {
       const zero = s.a - s.v0 / s.q;
       if (zero > s.a + 1e-7 && zero < end - 1e-7) cuts.push(zero);
     }
@@ -74,24 +95,28 @@ export function shearAreas(forces, x, minArea = 1e-9) {
       const b = cuts[i];
       const va = vAt(a);
       const vb = vAt(b);
-      const area = ((va + vb) / 2) * (b - a);
+      const vm = vAt((a + b) / 2);
+      const area = F(b) - F(a);
       if (Math.abs(area) < minArea) continue;
-      const shape = Math.abs(va - vb) < 1e-9 ? 'rect' : Math.abs(va) < 1e-9 || Math.abs(vb) < 1e-9 ? 'tri' : 'trap';
-      pieces.push({ a, b, va, vb, area, shape });
+      const shape = Math.abs(k) > EPS ? 'para' : Math.abs(va - vb) < 1e-9 ? 'rect' : Math.abs(va) < 1e-9 || Math.abs(vb) < 1e-9 ? 'tri' : 'trap';
+      pieces.push({ a, b, va, vb, vm, area, shape });
     }
   }
   return pieces.map((p, i) => ({ ...p, n: i + 1 }));
 }
 
 const line = (source) => `<div class="dp-line">${tex(source)}</div>`;
+// Streckenlast links vom Schnitt: gleichmässig q, beim Trapez der Mittelwert (q links + q rechts) / 2
+const qName = (i) => (i.trapez ? `\\overline{${texName(i.name)}}` : texName(i.name));
+const qNumber = (i, decimals) => (i.trapez ? `\\tfrac{${fixed(Math.abs(i.q), decimals)} + ${fixed(Math.abs(i.qb), decimals)}}{2}` : fixed(Math.abs(i.q), decimals));
 // Einzelmoment aus einer Kraft neben der Achse: ΔM mit dem Namen der Kraft
 const coupleName = (c) => `\\Delta M_{${texName(c.label)}}`;
 
 // V links vom Schnitt als Summe (Namen, dann Zahlen)
 function shearSum(items, decimals) {
   const len = (v) => length(v, decimals);
-  const names = joinSigned(items.map((i) => ({ sign: Math.sign(i.fz), body: i.kind === 'q' ? `${texName(i.name)} \\cdot ${len(i.len)}` : texName(i.name) })));
-  const numbers = joinSigned(items.map((i) => ({ sign: Math.sign(i.fz), body: i.kind === 'q' ? `${fixed(Math.abs(i.q), decimals)} \\cdot ${len(i.len)}` : fixed(Math.abs(i.fz), decimals) })));
+  const names = joinSigned(items.map((i) => ({ sign: Math.sign(i.fz), body: i.kind === 'q' ? `${qName(i)} \\cdot ${len(i.len)}` : texName(i.name) })));
+  const numbers = joinSigned(items.map((i) => ({ sign: Math.sign(i.fz), body: i.kind === 'q' ? `${qNumber(i, decimals)} \\cdot ${len(i.len)}` : fixed(Math.abs(i.fz), decimals) })));
   const value = items.reduce((sum, i) => sum + i.fz, 0);
   return { names, numbers, value, single: items.length === 1 && items[0].kind !== 'q' };
 }
@@ -140,12 +165,15 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
     // jede Teilfläche als Betrag mit Formel (Rechteck, Dreieck, Trapez); das Vorzeichen kommt in der Summe dazu
     const rows = pieces.map((p) => {
       const w = len(p.b - p.a);
+      // unter einer Trapezlast ist V eine Parabel: Fläche genau mit der Simpson-Regel (Anfang, 4 · Mitte, Ende)
       const formula = p.shape === 'rect'
         ? `${value(p.va)} \\cdot ${w}`
         : p.shape === 'tri'
           ? `\\tfrac{1}{2} \\cdot ${value(Math.abs(p.va) > Math.abs(p.vb) ? p.va : p.vb)} \\cdot ${w}`
-          : `\\tfrac{${value(p.va)} + ${value(p.vb)}}{2} \\cdot ${w}`;
-      const shape = { rect: 'Rechteck', tri: 'Dreieck', trap: 'Trapez' }[p.shape];
+          : p.shape === 'para'
+            ? `\\tfrac{${w}}{6} \\cdot (${value(p.va)} + 4 \\cdot ${value(p.vm)} + ${value(p.vb)})`
+            : `\\tfrac{${value(p.va)} + ${value(p.vb)}}{2} \\cdot ${w}`;
+      const shape = { rect: 'Rechteck', tri: 'Dreieck', trap: 'Trapez', para: 'Parabelfläche (Simpson-Regel, exakt)' }[p.shape];
       return `<tr><td>${tex(`A_{${p.n}}`)}</td><td>${tex(`= ${formula} = ${value(p.area)}`)}</td><td class="dp-shape">${shape}${p.area < 0 ? ', V negativ: zählt minus' : ''}</td></tr>`;
     });
     for (const c of couples) {
@@ -164,14 +192,14 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
       const arm = len(x - i.x);
       return {
         sign: Math.sign(i.fz),
-        name: i.kind === 'q' ? `${texName(i.name)} \\cdot ${len(i.len)} \\cdot ${arm}` : `${texName(i.name)} \\cdot ${arm}`,
-        number: i.kind === 'q' ? `${value(i.q)} \\cdot ${len(i.len)} \\cdot ${arm}` : `${value(i.fz)} \\cdot ${arm}`,
+        name: i.kind === 'q' ? `${qName(i)} \\cdot ${len(i.len)} \\cdot ${arm}` : `${texName(i.name)} \\cdot ${arm}`,
+        number: i.kind === 'q' ? `${qNumber(i, decimals)} \\cdot ${len(i.len)} \\cdot ${arm}` : `${value(i.fz)} \\cdot ${arm}`,
         v: i.fz * (x - i.x),
       };
     });
     for (const c of couples) terms.push({ sign: Math.sign(c.c), name: coupleName(c), number: value(c.c), v: c.c });
     const total = terms.reduce((s, t) => s + t.v, 0);
-    html += '<div class="dp-control"><p class="dp-sub">Kontrolle: Momente der Kräfte links vom Schnitt um den Schnitt (Streckenlast: Resultierende in ihrer Mitte)</p>'
+    html += '<div class="dp-control"><p class="dp-sub">Kontrolle: Momente der Kräfte links vom Schnitt um den Schnitt (Streckenlast: Resultierende in ihrer Mitte, beim Trapez im Schwerpunkt)</p>'
       + line(`M = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.name })))}`)
       + line(`\\phantom{M} = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.number })))} = ${fixed(total, decimals)}${unit('kNm')}`)
       + '</div>';
@@ -202,7 +230,7 @@ export function deflectionParts(model, last, EI) {
     const q = resolved.qloads.find((p) => p.source === i);
     const item = point || q;
     if (!item) return;
-    const single = { ...model, loads: model.loads.map((l, j) => (j === i ? l : { ...l, value: 0 })) };
+    const single = { ...model, loads: model.loads.map((l, j) => (j === i ? l : { ...l, value: 0, value2: 0 })) };
     const result = solve(single);
     if (!result.ok) return;
     const forces = internalForces(result);
@@ -264,7 +292,7 @@ export function tableDeflection(part, x, forces, supportsX, EI, decimals) {
     };
   }
   const q = part.item;
-  if (Math.abs(q.x1 - xmin) > 1e-6 || Math.abs(q.x2 - forces.xmax) > 1e-6) return null;
+  if (q.trapez || Math.abs(q.x1 - xmin) > 1e-6 || Math.abs(q.x2 - forces.xmax) > 1e-6) return null;
   const qv = -q.qz;
   return {
     value: (qv * xi * (L ** 3 - 2 * L * xi * xi + xi ** 3)) / (24 * EI),

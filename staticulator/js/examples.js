@@ -191,6 +191,30 @@ export const EXAMPLES = [
     },
     expect: null,
   },
+  {
+    id: 'dreieck',
+    title: 'Dreieckslast auf dem Einfeldträger',
+    source: 'Formeln aus der Bautabelle: A = q·l/6, B = q·l/3, Mmax = q·l²/(9·√3) bei x = l/√3',
+    model: {
+      axis: beam(6),
+      supports: [{ name: 'A', type: 'fest', x: 0 }, { name: 'B', type: 'rolle', x: 6 }],
+      loads: [{ ...Q('down', 0, 0, 6), value2: 30 }],
+      pivot: 'B',
+    },
+    expect: { A: { x: 0, z: 30 }, B: { z: 60 }, mMax: 69.28 },
+  },
+  {
+    id: 'trapez',
+    title: 'Trapezlast mit Kragarm und Einzellast',
+    source: 'Handrechnung: Trapez 10 → 20 kN/m als Rechteck (80 kN bei 4.00 m) und Dreieck (40 kN bei 5.33 m)',
+    model: {
+      axis: beam(8),
+      supports: [{ name: 'A', type: 'fest', x: 0 }, { name: 'B', type: 'rolle', x: 6 }],
+      loads: [{ ...Q('down', 10, 0, 8), value2: 20 }, F('down', 15, 8)],
+      pivot: 'B',
+    },
+    expect: { A: { x: 0, z: 26.11 }, B: { z: 108.89 }, moments: [[6, -68.33]], mMax: 31.07, mMin: -68.33 },
+  },
 ];
 
 export function exampleById(id) {

@@ -271,8 +271,11 @@ export function renderFigure(result, resolved, options = {}) {
   const nearSupport = 22 / layout.scale;
   const slots = supportSlots(resolved.supports, nearSupport);
   const qLevels = assignQLevels(resolved.qloads, slots);
-  const qMax = Math.max(0, ...resolved.qloads.map((q) => Math.abs(q.value) || 0));
-  const qHeight = (q) => (qMax > 0 ? Math.min(Q_MAX, Math.max(Q_MIN, (Q_MAX * Math.abs(q.value || 0)) / qMax)) : Q_MAX);
+  // Höhe nach dem Betrag (mindestens Q_MIN); Trapezlast: Höhe an jedem Ende, 0 bleibt 0 (Dreieck)
+  const qMax = Math.max(0, ...resolved.qloads.map((q) => Math.max(Math.abs(q.value) || 0, Math.abs(q.value2 ?? q.value) || 0)));
+  const qEndHeight = (v) => (qMax > 0 ? (Math.abs(v) < 1e-12 ? 0 : Math.min(Q_MAX, Math.max(Q_MIN, (Q_MAX * Math.abs(v)) / qMax))) : Q_MAX);
+  const qEnds = (q) => (q.trapez ? [qEndHeight(q.value), qEndHeight(q.value2)] : [qEndHeight(q.value || 1e-9) || Q_MIN, qEndHeight(q.value || 1e-9) || Q_MIN]);
+  const qHeight = (q) => Math.max(...qEnds(q));
   const reactionsReady = !!(result && result.ok);
   // Zeichnen im Massstab (Haken „Massstab“): Pfeillängen nach dem Kräftemassstab, Masse in cm auf dem Blatt
   const paper = options.paper && options.paper.length > 0 && options.paper.force > 0 ? options.paper : null;
@@ -470,11 +473,19 @@ export function renderFigure(result, resolved, options = {}) {
     const yFar = down ? yNear - qh : yNear + qh;
     const yTop = Math.min(yNear, yFar);
     const source = q.source ?? i;
-    shapes.push(`<g class="drag" data-drag="q:${source}" data-ref="L:${source}"><rect x="${r(x1)}" y="${r(yTop)}" width="${r(x2 - x1)}" height="${r(qh)}" fill="${COLORS.qFill}" stroke="${COLORS.q}" stroke-width="1"/>`);
+    // Trapez (bzw. Rechteck): Grundlinie an der Achse, obere Kante von Höhe h1 nach h2; Pfeile so lang wie q dort
+    const [h1, h2] = qEnds(q);
+    const dirSign = down ? -1 : 1;
+    const farAt = (t) => yNear + dirSign * (h1 + (h2 - h1) * t);
+    // unsichtbare Trefferfläche über das ganze Rechteck, damit auch die flache Seite eines Dreiecks anklickbar bleibt
+    shapes.push(`<g class="drag" data-drag="q:${source}" data-ref="L:${source}"><rect x="${r(x1)}" y="${r(yTop)}" width="${r(x2 - x1)}" height="${r(qh)}" fill="transparent"/>`
+      + `<polygon points="${r(x1)},${r(yNear)} ${r(x1)},${r(farAt(0))} ${r(x2)},${r(farAt(1))} ${r(x2)},${r(yNear)}" fill="${COLORS.qFill}" stroke="${COLORS.q}" stroke-width="1" stroke-linejoin="miter"/>`);
     const count = Math.max(2, Math.round((x2 - x1) / 34));
     for (let k = 0; k <= count; k++) {
-      const x = x1 + ((x2 - x1) * k) / count;
-      shapes.push(arrowSvg(x, yFar, x, yNear, COLORS.q, 1, 5.5));
+      const t = k / count;
+      const x = x1 + (x2 - x1) * t;
+      // zu kurze Pfeile (spitzes Ende eines Dreiecks) weglassen, die Spitze braucht Platz
+      if (Math.abs(farAt(t) - yNear) >= 6.5) shapes.push(arrowSvg(x, farAt(t), x, yNear, COLORS.q, 1, 5.5));
     }
     shapes.push('</g>');
     // Griffe an beiden Enden: unsichtbar, beim Überfahren oder Anwählen der Streckenlast sichtbar
@@ -794,7 +805,10 @@ export function renderFigure(result, resolved, options = {}) {
 
   // Streckenlasten
   for (const b of qBlocks) {
-    const content = `${b.q.label} = ${label(b.q.value, decimals)} kN/m`;
+    // Trapezlast: Wert am Anfang … Wert am Ende
+    const content = b.q.trapez
+      ? `${b.q.label} = ${label(b.q.value, decimals)} … ${label(b.q.value2, decimals)} kN/m`
+      : `${b.q.label} = ${label(b.q.value, decimals)} kN/m`;
     const center = (b.x1 + b.x2) / 2;
     const above = b.yTop - 6;
     const belowY = b.yTop + b.h + 15;
