@@ -294,6 +294,8 @@ function update() {
   const resolved = result.resolved || resolveModel(model);
   const forces = result.ok ? internalForces(result) : null;
   state.last = { result, resolved, forces };
+  // Cursor und Herleitung gehören zur alten Rechnung (Eingabe, Rückgängig, Pfeiltasten ohne Mausbewegung)
+  hideDiagramCursor();
   drawFigure();
 
   if (forces && forces.ok) {
@@ -2311,7 +2313,7 @@ function diagramCursor(event) {
     // Herleitung: beim Zeigen in die M-Fläche die Querkraftflächen bis zum Cursor in der V-Fläche,
     // in der M-Fläche die Tangente mit der Steigung V (dM/dx = V)
     const extra = derive && max > 0
-      ? (kind === 'V' && hoverKind === 'M' ? shearAreaMarks(forces, x, X, base, Yv, r1) : kind === 'M' ? tangentMarks(values, x, forces, X, px, Yv, max, amp, r1) : { svg: '', boxes: [] })
+      ? (kind === 'V' && hoverKind === 'M' ? shearAreaMarks(forces, x, X, base, Yv, r1, s) : kind === 'M' ? tangentMarks(values, x, forces, X, px, Yv, max, amp, r1) : { svg: '', boxes: [] })
       : { svg: '', boxes: [] };
     const parts = [extra.svg, `<line class="dc-line" x1="${r1(px)}" y1="${r1(base - amp - 16)}" x2="${r1(px)}" y2="${r1(withDim ? dimY + DIM_STYLE.extOver : base + amp + 16)}"/>`];
     for (const v of list) parts.push(`<circle class="dc-dot" cx="${r1(px)}" cy="${r1(Yv(v))}" r="4"/>`);
@@ -2422,22 +2424,32 @@ function diagramCursor(event) {
 }
 
 // Querkraftflächen vom Trägeranfang bis x in der V-Fläche: blau (+, M nimmt zu), rot (−, M nimmt ab),
-// jede mit ihrer Nummer A1, A2 … wie im Herleitungsfenster
-function shearAreaMarks(forces, x, X, base, Yv, r1) {
+// jede mit ihrer Nummer A1, A2 … wie im Herleitungsfenster (gerundet 0 zählt nicht als eigene Fläche)
+function shearAreaMarks(forces, x, X, base, Yv, r1, svg) {
   const parts = [];
   const boxes = [];
-  for (const p of shearAreas(forces, x)) {
+  const taken = diagramTextBoxes(svg);
+  const free = (box) => ![...taken, ...boxes].some((o) => overlapArea(box, o, 1) > 0);
+  for (const p of shearAreas(forces, x, 0.5 / 10 ** state.decimals)) {
     const xa = X(p.a);
     const xb = X(p.b);
     parts.push(`<polygon class="dc-area ${p.area > 0 ? 'pos' : 'neg'}" points="${r1(xa)},${r1(base)} ${r1(xa)},${r1(Yv(p.va))} ${r1(xb)},${r1(Yv(p.vb))} ${r1(xb)},${r1(base)}"/>`);
-    if (xb - xa < 18) continue;
-    // Nummer mitten in der Fläche; ist sie zu flach, knapp auf der anderen Seite der Nulllinie
+    const width = xb - xa;
+    if (width < 5) continue;
+    // Nummer mitten in der Fläche; ist sie zu flach oder zu schmal, kleiner und ausserhalb (über der Kurve
+    // oder jenseits der Nulllinie) – nie auf einer Beschriftung oder einer anderen Nummer
     const far = Yv((p.va + p.vb) / 2);
-    const inside = Math.abs(far - base) >= 20;
+    const out = far > base ? 1 : -1; // Richtung der Fläche von der Nulllinie aus
     const cx = (xa + xb) / 2;
-    const cy = inside ? (base + far) / 2 : base + (far > base ? -11 : 11);
-    parts.push(`<g class="dc-area-num"><circle cx="${r1(cx)}" cy="${r1(cy)}" r="8.5"/><text x="${r1(cx)}" y="${r1(cy + 3.6)}" text-anchor="middle">${p.n}</text></g>`);
-    boxes.push({ x: cx - 9, y: cy - 9, width: 18, height: 18 });
+    const big = width >= 18;
+    const radius = big ? 8.5 : 6.5;
+    const spots = [];
+    if (big && Math.abs(far - base) >= 20) spots.push((base + far) / 2);
+    spots.push(base - out * (radius + 3), far + out * (radius + 3));
+    const cy = spots.find((y) => free({ x: cx - radius - 1, y: y - radius - 1, width: 2 * radius + 2, height: 2 * radius + 2 }));
+    if (cy === undefined) continue;
+    parts.push(`<g class="dc-area-num${big ? '' : ' small'}"><circle cx="${r1(cx)}" cy="${r1(cy)}" r="${radius}"/><text x="${r1(cx)}" y="${r1(cy + (big ? 3.6 : 3))}" text-anchor="middle">${p.n}</text></g>`);
+    boxes.push({ x: cx - radius - 1, y: cy - radius - 1, width: 2 * radius + 2, height: 2 * radius + 2 });
   }
   return { svg: parts.join(''), boxes };
 }
@@ -2450,9 +2462,11 @@ function tangentMarks(values, x, forces, X, px, Yv, max, amp, r1) {
   const mRight = values.M[values.M.length - 1];
   if (![...slopes, mLeft, mRight].every(Number.isFinite)) return { svg: '', boxes: [] };
   const k = (v) => ((v / max) * amp) / layout.scale; // Bildschirm-y pro Pixel in x
+  // gleiche Länge (nicht gleiche Breite), damit eine steile Tangente nicht aus der Fläche schiesst
   const half = 46;
-  const xl = Math.max(X(forces.xmin), px - half);
-  const xr = Math.min(X(forces.xmax), px + half);
+  const reach = (v) => half / Math.hypot(1, k(v));
+  const xl = Math.max(X(forces.xmin), px - reach(slopes[0]));
+  const xr = Math.min(X(forces.xmax), px + reach(slopes[1]));
   const parts = [];
   const boxes = [];
   const seg = (x1, y1, x2, y2) => {
@@ -2485,13 +2499,18 @@ function showDerivePanel(kind, x, snap, values, event) {
     return;
   }
   const atStart = Math.abs(x - forces.xmin) < 1e-9;
-  const side = kind === 'V' && values.V.length === 2 ? 'both' : atStart ? 'right' : 'left';
+  // am Trägerende mit Kraft (Lager, Last an der Kragarmspitze): V links und der Sprung zurück auf 0 als Kontrolle
+  const atEnd = Math.abs(x - forces.xmax) < 1e-9 && Math.abs(values.V[0]) > 1e-9;
+  const side = kind === 'V' && (values.V.length === 2 || atEnd) ? 'both' : atStart ? 'right' : 'left';
   const key = `${kind}|${x}|${side}|${state.decimals}`;
-  if (key !== deriveKey || panel.__last !== state.last) {
+  const figureSvg = $('figure').querySelector('svg');
+  if (key !== deriveKey || panel.__last !== state.last || panel.__figure !== figureSvg) {
     deriveKey = key;
     panel.__last = state.last;
+    panel.__figure = figureSvg;
     // mit Skizze breiter, damit ihre Beschriftung lesbar bleibt
     panel.classList.toggle('wide', kind === 'V');
+    panel.classList.remove('compact');
     const where = `x = ${length(x, state.decimals)} m`;
     if (kind === 'V') {
       panel.innerHTML = `<div class="dp-head"><b>Querkraft V</b> bei ${where} · Schnitt, alle Kräfte links davon</div><div class="dp-sketch figure-box"></div>`
@@ -2506,6 +2525,9 @@ function showDerivePanel(kind, x, snap, values, event) {
       panel.innerHTML = `<div class="dp-head"><b>Moment M</b> bei ${where} · Fläche unter der Querkraft bis zum Schnitt (in der V-Fläche: <span class="dp-pos">blau +</span>, <span class="dp-neg">rot −</span>)</div>`
         + `<div class="dp-body">${html}${jump}</div>`;
     }
+    panel.hidden = false;
+    // passt es nicht ganz auf den Bildschirm: Hinweise und Kontrolle weglassen, Skizze kleiner
+    if (panel.scrollHeight > panel.clientHeight + 1) panel.classList.add('compact');
   }
   panel.hidden = false;
   placeDerivePanel(panel, kind, event);
@@ -2521,7 +2543,8 @@ function deriveSketchAt(x, side) {
     copy.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
     copy.removeAttribute('id');
     copy.setAttribute('aria-hidden', 'true');
-    copy.querySelectorAll('.hl-layer, .hit-layer, .lever-layer, .drag-ghost, .grip, .vertex').forEach((element) => element.remove());
+    copy.querySelectorAll('.hl-layer, .hit-layer, .lever-layer, .drag-ghost, .grip, .grip-node, .grip-mid, .vertex, .pivot-toggle').forEach((element) => element.remove());
+    copy.classList.remove('has-sel', 'has-hover', 'dragging', 'lever-focus');
     // nur der Träger mit Lasten, Lagern und Lagerkräften (ohne Vermassung und Kopfzeile): so wird er grösser
     let y1 = Infinity;
     let y2 = -Infinity;
@@ -2555,45 +2578,65 @@ function deriveSketchAt(x, side) {
   cutLine.setAttribute('x2', cx);
   cutLine.setAttribute('y2', Math.min(vb.y + vb.height, beamY + 44));
   const cutText = copy.querySelector('.dp-cut-text');
-  cutText.setAttribute('x', cx);
+  cutText.setAttribute('x', Math.min(vb.x + vb.width - 24, Math.max(vb.x + 24, cx)));
   cutText.setAttribute('y', Math.max(vb.y + 11, beamY - 50));
   cutLine.setAttribute('y1', Math.max(vb.y + 14, beamY - 44));
   return copy;
 }
 
 // Das Fenster soll nichts verdecken, was zur Herleitung gehört: bei M die V-Fläche (mit den Teilflächen) und
-// die M-Fläche, bei V die V-Fläche. Zuerst darüber oder darunter (wo mehr Platz ist), waagrecht beim Zeiger;
-// reicht das nicht, rechts neben dem Zeiger mit Abstand (Plakette und Tangente frei), sonst gegenüber dem Zeiger.
+// die M-Fläche, bei V die V-Fläche – davon nur der Teil links vom Cursor samt Plakette und Tangente, und nie
+// den Zeiger selbst. Mehrere Lagen werden bewertet (verdeckte Fläche), bei Gleichstand gilt die Reihenfolge.
 function placeDerivePanel(panel, kind, event) {
   const vw = document.documentElement.clientWidth;
   const vh = window.innerHeight;
   const topbar = document.querySelector('.topbar');
   const top0 = (topbar ? Math.max(0, topbar.getBoundingClientRect().bottom) : 0) + 8;
-  const w = panel.offsetWidth;
-  const h = panel.offsetHeight;
   const cx = event && Number.isFinite(event.clientX) ? event.clientX : vw / 2;
   const cy = event && Number.isFinite(event.clientY) ? event.clientY : vh / 2;
   const kinds = kind === 'M' ? ['V', 'M'] : ['V'];
   const rects = [...$('diagrams').querySelectorAll('svg.diagram')].filter((s) => kinds.includes(s.dataset.kind)).map((s) => s.getBoundingClientRect());
+  const keep = rects.map((r) => ({ x: r.left, y: r.top, width: Math.max(0, Math.min(r.right, cx + 80) - r.left), height: r.height }));
+  const pointer = { x: cx - 30, y: cy - 30, width: 60, height: 60 };
   const keepTop = rects.length ? Math.min(...rects.map((r) => r.top)) : cy;
   const keepBottom = rects.length ? Math.max(...rects.map((r) => r.bottom)) : cy;
-  const above = keepTop - 8 - top0;
-  const below = vh - 8 - keepBottom - 8;
-  const nearX = Math.min(Math.max(8, cx - w / 2), Math.max(8, vw - w - 8));
-  let left;
-  let top;
-  if (Math.max(above, below) >= h) {
-    left = nearX;
-    top = below >= h && (below >= above || above < h) ? keepBottom + 8 : keepTop - 8 - h;
-  } else if (vw - cx - 80 >= w) {
-    left = cx + 70;
-    top = Math.min(Math.max(top0, cy - h / 2), Math.max(top0, vh - h - 8));
-  } else {
-    left = Math.max(8, vw - w - 14);
-    top = cy > vh / 2 ? top0 : Math.max(top0, vh - h - 12);
+  const bestPlace = () => {
+    const w = panel.offsetWidth;
+    const h = panel.offsetHeight;
+    const nearX = cx - w / 2;
+    const candidates = [
+      [nearX, keepBottom + 8], // unter den Flächen
+      [nearX, keepTop - 8 - h], // darüber
+      [cx + 70, cy - h / 2], // rechts vom Cursor
+      [vw - w - 8, vh - h - 8],
+      [vw - w - 8, top0],
+      [8, vh - h - 8],
+      [8, top0],
+    ];
+    let best = null;
+    for (const [x0, y0] of candidates) {
+      const box = {
+        x: Math.min(Math.max(8, x0), Math.max(8, vw - w - 8)),
+        y: Math.min(Math.max(top0, y0), Math.max(top0, vh - h - 8)),
+        width: w,
+        height: h,
+      };
+      const cost = keep.reduce((sum, r) => sum + overlapArea(box, r), 0) + 50 * overlapArea(box, pointer);
+      if (!best || cost < best.cost - 1) best = { box, cost };
+      if (cost === 0) break;
+    }
+    return best;
+  };
+  let best = bestPlace();
+  // nirgends frei: kompakt (ohne Kontrolle und Hinweise) versuchen und nehmen, wenn es weniger verdeckt
+  if (best.cost > 0 && !panel.classList.contains('compact')) {
+    panel.classList.add('compact');
+    const compact = bestPlace();
+    if (compact.cost < best.cost) best = compact;
+    else panel.classList.remove('compact');
   }
-  panel.style.left = `${Math.round(left)}px`;
-  panel.style.top = `${Math.round(top)}px`;
+  panel.style.left = `${Math.round(best.box.x)}px`;
+  panel.style.top = `${Math.round(best.box.y)}px`;
 }
 
 function hideDerivePanel() {
@@ -2623,11 +2666,22 @@ function hideDiagramCursor() {
 }
 
 function initDiagramCursor() {
-  for (const box of [$('diagrams'), $('deflectionDiagram')]) {
+  const boxes = [$('diagrams'), $('deflectionDiagram')];
+  for (const box of boxes) {
     box.addEventListener('pointermove', diagramCursor);
     box.addEventListener('pointerdown', diagramCursor);
-    box.addEventListener('pointerleave', hideDiagramCursor);
+    // Antippen (Touch): Cursor und Herleitung bleiben stehen, bis woanders hingetippt wird
+    box.addEventListener('pointerleave', (event) => {
+      if (event.pointerType !== 'touch') hideDiagramCursor();
+    });
   }
+  document.addEventListener('pointerdown', (event) => {
+    if (!boxes.some((box) => box.contains(event.target))) hideDiagramCursor();
+  });
+  // beim Scrollen wandern die Flächen unter dem festen Fenster weg: ausblenden, die nächste Bewegung zeigt es neu
+  window.addEventListener('scroll', () => {
+    if (!$('derivePanel').hidden || document.querySelector('g.diagram-cursor')) hideDiagramCursor();
+  }, { passive: true });
 }
 
 function initTermHover() {
@@ -2963,7 +3017,8 @@ function init() {
   $('deriveCheck').addEventListener('change', (event) => {
     state.view.derive = event.target.checked;
     storeModel();
-    if (!state.view.derive) hideDerivePanel();
+    // Flächen und Tangente gehören zur Herleitung: mit dem Fenster weg (die nächste Bewegung zeigt den Cursor neu)
+    hideDiagramCursor();
   });
   $('scaleCheck').checked = state.view.scaleMode;
   // Alle Schritte des Lösungswegs auf- oder zuklappen

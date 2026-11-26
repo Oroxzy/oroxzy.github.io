@@ -2,10 +2,22 @@
 // V nach dem Schnittprinzip: Summe aller Vertikalkräfte links vom Schnitt (nach oben positiv).
 // M als Summe der Querkraftflächen vom Trägeranfang bis zum Schnitt (dM/dx = V), dazu die Momentensumme
 // links vom Schnitt als Kontrolle. Reine Rechnung und HTML, das Zeichnen macht app.js.
-import { tex } from './solution.js';
+import { tex as renderTex } from './solution.js';
 import { fixed, texName, htmlName, length } from './format.js';
 
 const EPS = 1e-9;
+
+// KaTeX zwischenspeichern: beim Fahren mit der Maus ändern sich meist nur die letzte Fläche und die Summe
+const texCache = new Map();
+function tex(source) {
+  let html = texCache.get(source);
+  if (html === undefined) {
+    if (texCache.size > 500) texCache.clear();
+    html = renderTex(source);
+    texCache.set(source, html);
+  }
+  return html;
+}
 const unit = (u) => `\\,\\text{${u}}`;
 
 // Glieder mit Vorzeichen zu einer Summe verbinden: [+a, −b] → „a − b“
@@ -41,8 +53,9 @@ export function cutForces(result, forces, x, inclusive) {
   return { items, couples };
 }
 
-// Querkraftflächen vom Trägeranfang bis x, an Nullstellen von V geteilt (jedes Stück hat ein Vorzeichen)
-export function shearAreas(forces, x) {
+// Querkraftflächen vom Trägeranfang bis x, an Nullstellen von V geteilt (jedes Stück hat ein Vorzeichen).
+// minArea: kleinere Stücke weglassen (für die Anzeige: was gerundet 0 ist, bekommt keine eigene Nummer)
+export function shearAreas(forces, x, minArea = 1e-9) {
   const pieces = [];
   for (const s of forces.segments) {
     if (s.a >= x - EPS) break;
@@ -60,7 +73,7 @@ export function shearAreas(forces, x) {
       const va = vAt(a);
       const vb = vAt(b);
       const area = ((va + vb) / 2) * (b - a);
-      if (Math.abs(area) < 1e-9) continue;
+      if (Math.abs(area) < minArea) continue;
       const shape = Math.abs(va - vb) < 1e-9 ? 'rect' : Math.abs(va) < 1e-9 || Math.abs(vb) < 1e-9 ? 'tri' : 'trap';
       pieces.push({ a, b, va, vb, area, shape });
     }
@@ -103,13 +116,18 @@ export function shearDerivation(result, forces, x, side, decimals) {
     html += line(`V_{\\text{rechts}} = ${fixed(sum.value, decimals)}${sign} = ${fixed(right, decimals)}${unit('kN')}`);
     html += `<p class="dp-note">Hier greift ${jump.map((i) => `<b>${htmlName(i.name)}</b>`).join(', ')} an: V springt um diesen Betrag (Kraft nach oben: V wird grösser).</p>`;
   }
+  if (side === 'both' && Math.abs(x - forces.xmax) < 1e-9) {
+    html += '<p class="dp-note">Am Trägerende muss die Querkraft auf 0 zurückgehen: Das ist die Kontrolle ΣV = 0.</p>';
+  }
   html += '<p class="dp-note">Alle senkrechten Kräfte links vom Schnitt, nach oben positiv; von einer Streckenlast nur das Stück links vom Schnitt (q · Länge).</p>';
   return html;
 }
 
 // Moment an der Stelle x aus den Querkraftflächen; inclusive: Einzelmomente genau an der Stelle mitnehmen
 export function momentDerivation(result, forces, x, inclusive, decimals, slopes) {
-  const pieces = shearAreas(forces, x);
+  // Stücke, die gerundet 0 sind, erscheinen nicht (wie in der V-Fläche); gerechnet wird mit allen
+  const pieces = shearAreas(forces, x, 0.5 / 10 ** decimals);
+  const exact = shearAreas(forces, x).reduce((s, p) => s + p.area, 0);
   const { items, couples } = cutForces(result, forces, x, inclusive);
   const len = (v) => length(v, decimals);
   const value = (v) => fixed(Math.abs(v), decimals);
@@ -133,7 +151,7 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
     }
     html += `<table class="dp-table"><tbody>${rows.join('')}</tbody></table>`;
     const parts = [...pieces.map((p) => ({ sign: Math.sign(p.area), body: `A_{${p.n}}`, v: p.area })), ...couples.map((c) => ({ sign: Math.sign(c.c), body: coupleName(c), v: c.c }))];
-    const total = parts.reduce((s, p) => s + p.v, 0);
+    const total = exact + couples.reduce((s, c) => s + c.c, 0);
     const numbers = joinSigned(parts.map((p) => ({ sign: p.sign, body: value(p.v) })));
     html += line(`M = ${joinSigned(parts)}${parts.length > 1 ? ` = ${numbers}` : ''} = ${fixed(total, decimals)}${unit('kNm')}`);
   }
@@ -151,9 +169,10 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
     });
     for (const c of couples) terms.push({ sign: Math.sign(c.c), name: coupleName(c), number: value(c.c), v: c.c });
     const total = terms.reduce((s, t) => s + t.v, 0);
-    html += '<p class="dp-sub">Kontrolle: Momente der Kräfte links vom Schnitt um den Schnitt (Streckenlast: Resultierende in ihrer Mitte)</p>';
-    html += line(`M = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.name })))}`);
-    html += line(`\\phantom{M} = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.number })))} = ${fixed(total, decimals)}${unit('kNm')}`);
+    html += '<div class="dp-control"><p class="dp-sub">Kontrolle: Momente der Kräfte links vom Schnitt um den Schnitt (Streckenlast: Resultierende in ihrer Mitte)</p>'
+      + line(`M = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.name })))}`)
+      + line(`\\phantom{M} = ${joinSigned(terms.map((t) => ({ sign: t.sign, body: t.number })))} = ${fixed(total, decimals)}${unit('kNm')}`)
+      + '</div>';
   }
   // Steigung: die gestrichelte Tangente an der M-Linie hat die Steigung V
   if (slopes && slopes.length) {

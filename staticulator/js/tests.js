@@ -67,7 +67,19 @@ function deriveCheck(result, forces) {
     const mSum = items.reduce((s, i) => s + i.fz * (x - i.x), 0) + coupleSum;
     worst = Math.max(worst, Math.abs(v - at.v), Math.abs(mAreas - at.m), Math.abs(mSum - at.m));
   }
-  return { ok: worst < 1e-6, text: `Herleitung am Cursor: V aus den Kräften links, M aus den Querkraftflächen und als Momentensumme an ${n + 1} Stellen, grösste Abweichung ${worst.toExponential(1)}` };
+  // an jeder Last- und Lagerstelle: links der Stelle ohne, rechts mit den Kräften und Einzelmomenten dort
+  for (const e of forces.events) {
+    for (const [inclusive, vWant, mWant] of [[false, e.vLeft, e.mLeft], [true, e.vRight, e.mRight]]) {
+      if (!inclusive && e.x <= forces.xmin + 1e-9) continue;
+      if (inclusive && e.x >= forces.xmax - 1e-9) continue;
+      const { items, couples } = cutForces(result, forces, e.x, inclusive);
+      const coupleSum = couples.reduce((s, c) => s + c.c, 0);
+      const v = items.reduce((s, i) => s + i.fz, 0);
+      const mAreas = shearAreas(forces, e.x).reduce((s, p) => s + p.area, 0) + coupleSum;
+      worst = Math.max(worst, Math.abs(v - vWant), Math.abs(mAreas - mWant));
+    }
+  }
+  return { ok: worst < 1e-6, text: `Herleitung am Cursor: V aus den Kräften links, M aus den Querkraftflächen und als Momentensumme an ${n + 1} Stellen und links/rechts jeder Last- und Lagerstelle, grösste Abweichung ${worst.toExponential(1)}` };
 }
 
 export function renderTests(target) {

@@ -822,15 +822,16 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 @media print { .diagram-tools label.check { display: none; } }
 
 /* Herleitung am Cursor: Querkraftflächen bis zum Cursor, Tangente an M, Fenster mit der Rechnung */
-.dc-area { stroke-width: 1.2; }
-.dc-area.pos { fill: rgba(37, 99, 235, 0.2); stroke: #2563eb; }
-.dc-area.neg { fill: rgba(220, 38, 38, 0.17); stroke: #dc2626; }
+.dc-area { stroke-width: 1.6; stroke-linejoin: round; }
+.dc-area.pos { fill: rgba(37, 99, 235, 0.32); stroke: #1d4ed8; }
+.dc-area.neg { fill: rgba(220, 38, 38, 0.28); stroke: #b91c1c; }
 .dc-area-num circle { fill: #ffffff; stroke: #334155; stroke-width: 1; }
 .dc-area-num text { fill: #1f2933; font-size: 10.5px; font-weight: 700; }
+.dc-area-num.small text { font-size: 9px; }
 .dc-tangent { stroke: #ea580c; stroke-width: 1.7; stroke-dasharray: 6 3; stroke-linecap: round; }
 @media screen {
-  html[data-theme="dark"] .dc-area.pos { fill: rgba(96, 165, 250, 0.22); stroke: #60a5fa; }
-  html[data-theme="dark"] .dc-area.neg { fill: rgba(248, 113, 113, 0.2); stroke: #f87171; }
+  html[data-theme="dark"] .dc-area.pos { fill: rgba(96, 165, 250, 0.32); stroke: #60a5fa; }
+  html[data-theme="dark"] .dc-area.neg { fill: rgba(248, 113, 113, 0.3); stroke: #f87171; }
   html[data-theme="dark"] .dc-area-num circle { fill: #171d26; stroke: #cbd5e1; }
   html[data-theme="dark"] .dc-area-num text { fill: #e5e7eb; }
   html[data-theme="dark"] .dc-tangent { stroke: #fb923c; }
@@ -847,13 +848,16 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .dp-sketch :is(.grip, .vertex) { display: none; }
 .dp-fade { fill: var(--card); opacity: 0.84; }
 .dp-cut-line { stroke: #ea580c; stroke-width: 2; stroke-dasharray: 6 4; }
-.dp-cut-text { fill: #ea580c; font-size: 11px; font-weight: 700; }
+.dp-cut-text { fill: #ea580c; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
 .dp-line { margin: 4px 0; overflow-wrap: anywhere; }
 .dp-table { border-collapse: collapse; margin: 2px 0 4px; }
 .dp-table td { padding: 1px 10px 1px 0; vertical-align: baseline; }
 .dp-table td:nth-child(2) { white-space: nowrap; }
 @media (max-width: 520px) { .dp-shape { display: none; } }
-.dp-shape { color: var(--muted); font-size: 12px; }
+.dp-shape { min-width: 9em; color: var(--muted); font-size: 12px; }
+/* zu wenig Platz: Hinweise und Kontrolle weglassen, Skizze kleiner */
+.derive-panel.compact :is(.dp-note, .dp-control) { display: none; }
+.derive-panel.compact .dp-sketch svg { max-height: 18vh; }
 .dp-note, .dp-sub { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
 @media print { .derive-panel { display: none !important; } }
 
