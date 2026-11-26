@@ -408,7 +408,7 @@ export function renderFigure(result, resolved, options = {}) {
   const angleMarks = [];
   if (resolved.axis.length >= 2) {
     const d = resolved.axis.map((p, i) => `${i ? 'L' : 'M'}${r(X(p.x))},${r(Y(p.z))}`).join(' ');
-    shapes.push(`<path class="axis-base" d="${d}" fill="none" stroke="${COLORS.axis}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`);
+    shapes.push(`<path class="axis-base" d="${d}" fill="none" stroke="${COLORS.axis}" stroke-width="2.6" stroke-linejoin="miter" stroke-linecap="butt"/>`);
     for (let i = 1; i < resolved.axis.length; i++) {
       const a = resolved.axis[i - 1];
       const b = resolved.axis[i];
@@ -416,7 +416,7 @@ export function renderFigure(result, resolved, options = {}) {
       // Abschnitt anwählbar: markiert seine beiden Endpunkte (Griffe zum Ziehen)
       const ends = `x1="${r(X(a.x))}" y1="${r(Y(a.z))}" x2="${r(X(b.x))}" y2="${r(Y(b.z))}"`;
       shapes.push(`<g class="seg" data-ref="A:${a.source}" data-ends="P:${a.source},P:${b.source}">`
-        + `<line ${ends} stroke="${COLORS.axis}" stroke-width="2.6" stroke-linecap="round"/>`
+        + `<line ${ends} stroke="${COLORS.axis}" stroke-width="2.6" stroke-linecap="butt"/>`
         + `<line ${ends} stroke="transparent" stroke-width="14"/></g>`);
       // Neigungswinkel schräger Abschnitte gegen die Waagrechte
       const dxModel = b.x - a.x;
@@ -445,13 +445,13 @@ export function renderFigure(result, resolved, options = {}) {
   // Stützen und Hänger zu Lagern neben der Achse
   resolved.supports.forEach((s, i) => {
     if (!isNum(s.x) || Math.abs(s.z - s.axisZ) <= 1e-9) return;
-    shapes.push(`<line data-ref="S:${i}" x1="${r(X(s.x))}" y1="${r(Y(s.axisZ))}" x2="${r(X(s.x))}" y2="${r(Y(s.z))}" stroke="${COLORS.member}" stroke-width="3.6" stroke-linecap="round"/>`);
+    shapes.push(`<line data-ref="S:${i}" x1="${r(X(s.x))}" y1="${r(Y(s.axisZ))}" x2="${r(X(s.x))}" y2="${r(Y(s.z))}" stroke="${COLORS.member}" stroke-width="3.6" stroke-linecap="butt"/>`);
     placer.segment(X(s.x), Y(s.axisZ), X(s.x), Y(s.z), 1, 4);
   });
   // Stiele/Konsolen zu Lasten neben der Achse
   resolved.points.forEach((p, i) => {
     if (Math.abs(p.z - p.axisZ) <= 1e-9) return;
-    shapes.push(`<g data-ref="L:${p.source ?? i}"><line x1="${r(X(p.x))}" y1="${r(Y(p.axisZ))}" x2="${r(X(p.x))}" y2="${r(Y(p.z))}" stroke="${COLORS.member}" stroke-width="2.4" stroke-linecap="round"/>`
+    shapes.push(`<g data-ref="L:${p.source ?? i}"><line x1="${r(X(p.x))}" y1="${r(Y(p.axisZ))}" x2="${r(X(p.x))}" y2="${r(Y(p.z))}" stroke="${COLORS.member}" stroke-width="2.4" stroke-linecap="butt"/>`
       + `<circle cx="${r(X(p.x))}" cy="${r(Y(p.z))}" r="3.5" fill="${COLORS.member}"/></g>`);
     placer.segment(X(p.x), Y(p.axisZ), X(p.x), Y(p.z), 1, 3);
   });
@@ -523,7 +523,7 @@ export function renderFigure(result, resolved, options = {}) {
     // Nur die beiden Seiten des Dreiecks: Die Grundseite liegt immer auf einer waagrechten Linie (Boden bzw.
     // Rollenlinie), und die wird pixelgenau (crispEdges) gezeichnet, sonst verschmiert sie über zwei Pixelreihen.
     const baseY = y + dirSign * 22;
-    parts.push(`<path d="M${r(x - 13)},${r(baseY)} L${r(x)},${r(y)} L${r(x + 13)},${r(baseY)}" fill="#ffffff" stroke="${COLORS.axis}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`);
+    parts.push(`<path d="M${r(x - 13)},${r(baseY)} L${r(x)},${r(y)} L${r(x + 13)},${r(baseY)}" fill="#ffffff" stroke="${COLORS.axis}" stroke-width="1.5" stroke-linejoin="miter" stroke-linecap="butt"/>`);
     if (s.type === 'rolle') {
       parts.push(`<line x1="${r(x - 15)}" y1="${r(baseY)}" x2="${r(x + 15)}" y2="${r(baseY)}" stroke="${COLORS.axis}" stroke-width="1.5" shape-rendering="crispEdges"/>`);
     }

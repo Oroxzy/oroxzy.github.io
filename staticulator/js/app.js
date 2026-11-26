@@ -6,12 +6,12 @@ import { renderDiagrams } from './diagrams.js';
 import { renderSolution, renderMessages } from './solution.js';
 import { EXAMPLES, exampleById, emptyModel } from './examples.js';
 import { parseNumber, plain, escapeHtml, label, fixed, htmlName, length } from './format.js';
-import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt } from './design-ui.js';
+import { initDesign, updateDesign, renderDesignForm, sanitizeDesign, deflectionAt, deflectionBasis } from './design-ui.js';
 import { enhanceSteps, anyClosed, setAllSteps, resetSteps } from './step-list.js';
 import { initPhotoImport, resetImport } from './photo-import.js';
 import { exportImage } from './export-image.js';
 import { initSelfCheck, updateSelfCheck, clearSelfCheck } from './self-check.js';
-import { shearDerivation, momentDerivation, shearAreas } from './cursor-derive.js';
+import { shearDerivation, momentDerivation, shearAreas, deflectionDerivation } from './cursor-derive.js';
 
 const STORAGE_KEY = 'staticulator-web-model-v1';
 const DIRECTION_OPTIONS = {
@@ -2494,7 +2494,8 @@ function showDerivePanel(kind, x, snap, values, event) {
   const panel = $('derivePanel');
   const result = state.last && state.last.result;
   const forces = state.last && state.last.forces;
-  if (!(kind === 'V' || kind === 'M') || !result || !result.ok || !forces || !forces.ok) {
+  const basis = kind === 'W' ? deflectionBasis() : null;
+  if (!(kind === 'V' || kind === 'M' || (kind === 'W' && basis)) || !result || !result.ok || !forces || !forces.ok) {
     hideDerivePanel();
     return;
   }
@@ -2502,20 +2503,24 @@ function showDerivePanel(kind, x, snap, values, event) {
   // am Trägerende mit Kraft (Lager, Last an der Kragarmspitze): V links und der Sprung zurück auf 0 als Kontrolle
   const atEnd = Math.abs(x - forces.xmax) < 1e-9 && Math.abs(values.V[0]) > 1e-9;
   const side = kind === 'V' && (values.V.length === 2 || atEnd) ? 'both' : atStart ? 'right' : 'left';
-  const key = `${kind}|${x}|${side}|${state.decimals}`;
+  const key = `${kind}|${x}|${side}|${state.decimals}|${basis ? basis.EI : ''}`;
   const figureSvg = $('figure').querySelector('svg');
   if (key !== deriveKey || panel.__last !== state.last || panel.__figure !== figureSvg) {
     deriveKey = key;
     panel.__last = state.last;
     panel.__figure = figureSvg;
     // mit Skizze breiter, damit ihre Beschriftung lesbar bleibt
-    panel.classList.toggle('wide', kind === 'V');
+    panel.classList.toggle('wide', kind === 'V' || kind === 'W');
     panel.classList.remove('compact');
     const where = `x = ${length(x, state.decimals)} m`;
     if (kind === 'V') {
       panel.innerHTML = `<div class="dp-head"><b>Querkraft V</b> bei ${where} · Schnitt, alle Kräfte links davon</div><div class="dp-sketch figure-box"></div>`
         + `<div class="dp-body">${shearDerivation(result, forces, x, side, state.decimals)}</div>`;
       panel.querySelector('.dp-sketch').appendChild(deriveSketchAt(x, side));
+    } else if (kind === 'W') {
+      const ei = Math.round(basis.EI).toLocaleString('de-CH');
+      panel.innerHTML = `<div class="dp-head"><b>Durchbiegung w</b> bei ${where} · Anteil jeder Last (Überlagerung)${basis.name ? ` · ${escapeHtml(basis.name)}` : ''}, EI = ${ei} kNm²</div>`
+        + `<div class="dp-body">${deflectionDerivation(state.model, state.last, x, basis.EI, state.decimals)}</div>`;
     } else {
       const slopes = values.V.length === 2 ? values.V : [values.V[0]];
       const { html } = momentDerivation(result, forces, x, atStart, state.decimals, slopes);
@@ -2594,8 +2599,8 @@ function placeDerivePanel(panel, kind, event) {
   const top0 = (topbar ? Math.max(0, topbar.getBoundingClientRect().bottom) : 0) + 8;
   const cx = event && Number.isFinite(event.clientX) ? event.clientX : vw / 2;
   const cy = event && Number.isFinite(event.clientY) ? event.clientY : vh / 2;
-  const kinds = kind === 'M' ? ['V', 'M'] : ['V'];
-  const rects = [...$('diagrams').querySelectorAll('svg.diagram')].filter((s) => kinds.includes(s.dataset.kind)).map((s) => s.getBoundingClientRect());
+  const kinds = kind === 'M' ? ['V', 'M'] : kind === 'W' ? ['W'] : ['V'];
+  const rects = cursorSvgs().filter((s) => kinds.includes(s.dataset.kind)).map((s) => s.getBoundingClientRect());
   const keep = rects.map((r) => ({ x: r.left, y: r.top, width: Math.max(0, Math.min(r.right, cx + 80) - r.left), height: r.height }));
   const pointer = { x: cx - 30, y: cy - 30, width: 60, height: 60 };
   const keepTop = rects.length ? Math.min(...rects.map((r) => r.top)) : cy;

@@ -4,6 +4,8 @@
 // links vom Schnitt als Kontrolle. Reine Rechnung und HTML, das Zeichnen macht app.js.
 import { tex as renderTex } from './solution.js';
 import { fixed, texName, htmlName, length } from './format.js';
+import { solve, internalForces } from './statik.js';
+import { deflection } from './bemessung.js';
 
 const EPS = 1e-9;
 
@@ -181,4 +183,132 @@ export function momentDerivation(result, forces, x, inclusive, decimals, slopes)
       : `<p class="dp-note">Gestrichelte Tangente: Steigung der M-Linie ${tex(`\\tfrac{dM}{dx} = V = ${fixed(slopes[0], decimals)}`)} kNm pro m. ${Math.abs(slopes[0]) < 1e-6 ? 'V = 0: Hier hat M einen Extremwert.' : 'Wo V = 0 ist, wird die Tangente waagrecht: dort liegt M<sub>max</sub> bzw. M<sub>min</sub>.'}</p>`;
   }
   return { html, pieces };
+}
+
+// ---------- Biegelinie: Anteil jeder Last (Überlagerung) ----------
+// Jede Last wird für sich mit ihren eigenen Lagerkräften gerechnet (alle anderen Lasten 0); die Biegelinie
+// ist die Summe der Anteile (linear-elastisch). Gleiche numerische Rechnung wie die Biegelinie selbst
+// (EI·w'' = −M, w an beiden Lagern 0), daher stimmt die Summe genau. Je Rechnung und EI einmal gerechnet.
+const partsCache = new WeakMap();
+
+export function deflectionParts(model, last, EI) {
+  const cached = partsCache.get(last);
+  if (cached && cached.EI === EI) return cached.parts;
+  const parts = [];
+  const resolved = last.result.resolved;
+  const supportsX = last.result.reactions.map((r) => r.x);
+  (model.loads || []).forEach((load, i) => {
+    const point = resolved.points.find((p) => p.source === i);
+    const q = resolved.qloads.find((p) => p.source === i);
+    const item = point || q;
+    if (!item) return;
+    const single = { ...model, loads: model.loads.map((l, j) => (j === i ? l : { ...l, value: 0 })) };
+    const result = solve(single);
+    if (!result.ok) return;
+    const forces = internalForces(result);
+    if (!forces.ok) return;
+    const line = deflection(forces, supportsX, EI);
+    if (!line || !line.points.some(([, w]) => Math.abs(w) > 1e-12)) return;
+    parts.push({ label: item.label, kind: q ? 'q' : 'F', item, points: line.points });
+  });
+  partsCache.set(last, { EI, parts });
+  return parts;
+}
+
+// Wert einer Linie [[x, w], …] an der Stelle x (linear dazwischen, wie die Biegelinie am Cursor)
+export function lineAt(points, x) {
+  if (!points.length) return 0;
+  if (x <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    const [x0, w0] = points[i - 1];
+    const [x1, w1] = points[i];
+    if (x <= x1 + 1e-12) return x1 - x0 < 1e-12 ? w1 : w0 + ((w1 - w0) * (x - x0)) / (x1 - x0);
+  }
+  return points[points.length - 1][1];
+}
+
+// EI als Zahl mit schmalem Leerzeichen als Tausendertrennung (TeX)
+const texInt = (v) => String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '\\,');
+
+// Tabellenformel (Einfeldträger ohne Kragarm): Einzellast an beliebiger Stelle, Gleichlast über die ganze
+// Länge. x ab dem linken Lager, w nach unten positiv, Ergebnis in m. Sonst null (dann nur numerisch).
+export function tableDeflection(part, x, forces, supportsX, EI, decimals) {
+  const xmin = forces.xmin;
+  const L = forces.xmax - xmin;
+  const [s1, s2] = [...supportsX].sort((a, b) => a - b);
+  if (Math.abs(s1 - xmin) > 1e-6 || Math.abs(s2 - forces.xmax) > 1e-6 || !(L > 0)) return null;
+  const xi = x - xmin;
+  const len = (v) => length(v, decimals);
+  const ei = texInt(EI);
+  if (part.kind === 'F') {
+    const p = part.item;
+    if (p.horizontal || Math.abs(p.z - p.axisZ) > 1e-9 || Math.abs(p.fz) < 1e-12) return null;
+    const F = -p.fz;
+    const a = p.x - xmin;
+    const b = L - a;
+    if (a < 1e-9 || b < 1e-9) return null;
+    if (xi <= a + 1e-12) {
+      return {
+        value: (F * b * xi * (L * L - b * b - xi * xi)) / (6 * L * EI),
+        symbolic: '\\dfrac{F\\,b\\,x\\,(L^2 - b^2 - x^2)}{6\\,L\\,EI}',
+        numbers: `\\dfrac{${fixed(F, decimals)} \\cdot ${len(b)} \\cdot ${len(xi)} \\cdot (${len(L)}^2 - ${len(b)}^2 - ${len(xi)}^2)}{6 \\cdot ${len(L)} \\cdot ${ei}}`,
+        where: "x links der Last",
+      };
+    }
+    const xr = L - xi;
+    return {
+      value: (F * a * xr * (L * L - a * a - xr * xr)) / (6 * L * EI),
+      symbolic: "\\dfrac{F\\,a\\,x'\\,(L^2 - a^2 - x'^2)}{6\\,L\\,EI},\\ x' = L - x",
+      numbers: `\\dfrac{${fixed(F, decimals)} \\cdot ${len(a)} \\cdot ${len(xr)} \\cdot (${len(L)}^2 - ${len(a)}^2 - ${len(xr)}^2)}{6 \\cdot ${len(L)} \\cdot ${ei}}`,
+      where: "x rechts der Last",
+    };
+  }
+  const q = part.item;
+  if (Math.abs(q.x1 - xmin) > 1e-6 || Math.abs(q.x2 - forces.xmax) > 1e-6) return null;
+  const qv = -q.qz;
+  return {
+    value: (qv * xi * (L ** 3 - 2 * L * xi * xi + xi ** 3)) / (24 * EI),
+    symbolic: '\\dfrac{q\\,x\\,(L^3 - 2L\\,x^2 + x^3)}{24\\,EI}',
+    numbers: `\\dfrac{${fixed(qv, decimals)} \\cdot ${len(xi)} \\cdot (${len(L)}^3 - 2 \\cdot ${len(L)} \\cdot ${len(xi)}^2 + ${len(xi)}^3)}{24 \\cdot ${ei}}`,
+    where: "",
+  };
+}
+
+// Durchbiegung an der Stelle x als Summe der Anteile; EI in kNm², w in mm (nach unten positiv)
+export function deflectionDerivation(model, last, x, EI, decimals) {
+  const forces = last.forces;
+  const supportsX = last.result.reactions.map((r) => r.x);
+  const parts = deflectionParts(model, last, EI).map((p) => ({ ...p, w: lineAt(p.points, x) * 1000 }));
+  const shown = parts.filter((p) => Math.abs(p.w) >= 0.005);
+  const total = parts.reduce((s, p) => s + p.w, 0);
+  const biggest = Math.max(1e-9, ...shown.map((p) => Math.abs(p.w)));
+  const len = (v) => length(v, decimals);
+  let html = '';
+  if (!shown.length) {
+    html += line(`w = 0${unit('mm')}`);
+    html += `<p class="dp-note">${supportsX.some((s) => Math.abs(s - x) < 1e-6) ? 'Am Lager ist w = 0.' : 'Hier biegt sich der Träger (gerundet) nicht durch.'}</p>`;
+    return html;
+  }
+  const rows = shown.map((p) => {
+    const item = p.item;
+    const what = p.kind === 'q'
+      ? `Streckenlast ${fixed(item.value, decimals)} kN/m, ${len(item.x1)}–${len(item.x2)} m`
+      : `${item.horizontal ? 'Horizontallast' : 'Einzellast'} ${fixed(item.value, decimals)} kN bei x = ${len(item.x)} m`;
+    const share = Math.round((Math.abs(p.w) / biggest) * 100);
+    const formula = tableDeflection(p, x, forces, supportsX, EI, decimals);
+    // Formel nur zeigen, wenn sie die numerische Rechnung bestätigt (Sicherheitsnetz)
+    const fits = formula && Math.abs(formula.value * 1000 - p.w) <= Math.max(0.01, Math.abs(p.w) * 0.005);
+    const formulaHtml = fits
+      ? `<tr class="dp-formula"><td></td><td colspan="3">${tex(`= ${formula.symbolic} = ${formula.numbers} \\cdot 1000`)}</td></tr>`
+      : '';
+    return `<tr><td>${tex(`w_{${texName(p.label)}}`)}</td><td class="dp-shape">${what}${fits ? ` · Tabelle${formula.where ? `, ${formula.where}` : ''}` : ''}</td>`
+      + `<td><span class="dp-bar ${p.w >= 0 ? 'down' : 'up'}"><i style="width:${Math.max(3, share)}%"></i></span></td>`
+      + `<td class="dp-num">${tex(`${fixed(p.w, 2)}${unit('mm')}`)}</td></tr>${formulaHtml}`;
+  });
+  html += `<table class="dp-table dp-wtable"><tbody>${rows.join('')}</tbody></table>`;
+  const terms = shown.map((p) => ({ sign: Math.sign(p.w), body: `w_{${texName(p.label)}}`, v: p.w }));
+  const numbers = joinSigned(terms.map((t) => ({ sign: t.sign, body: fixed(Math.abs(t.v), 2) })));
+  html += line(`w = ${joinSigned(terms)}${terms.length > 1 ? ` = ${numbers}` : ''} = ${fixed(total, 2)}${unit('mm')}`);
+  html += '<p class="dp-note">Jede Last für sich mit ihren eigenen Lagerkräften, zusammengezählt ergibt das die Biegelinie. Lasten ohne Lastbeiwert, w nach unten positiv, x ab Lager links. Ohne Tabellenformel (Kragarm, Teil-Streckenlast): aus EI · w″ = −M dieser Last.</p>';
+  return html;
 }

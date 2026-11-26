@@ -2,7 +2,8 @@
 import { EXAMPLES } from './examples.js';
 import { solve, internalForces } from './statik.js';
 import { runDesignTests } from './tests-bemessung.js';
-import { cutForces, shearAreas } from './cursor-derive.js';
+import { cutForces, shearAreas, deflectionParts, lineAt, tableDeflection } from './cursor-derive.js';
+import { deflection } from './bemessung.js';
 
 const TOLERANCE = 0.02; // kN bzw. kNm, Musterlösungen runden auf 2 Stellen
 
@@ -44,7 +45,7 @@ export function runTests() {
           if (expect.mMin !== undefined) checks.push({ ok: close(forces.mMin.m, expect.mMin, 0.1), text: `Mmin = ${forces.mMin.m.toFixed(2)} bei x = ${forces.mMin.x.toFixed(3)} (soll ${expect.mMin})` });
         }
       }
-      if (forces.ok) checks.push(deriveCheck(result, forces));
+      if (forces.ok) checks.push(deriveCheck(result, forces), deflectionSumCheck(example.model, result, forces));
     }
     results.push({ example, checks });
   }
@@ -53,6 +54,42 @@ export function runTests() {
 
 // Herleitung am Cursor: V als Summe der Kräfte links vom Schnitt, M als Summe der Querkraftflächen (plus
 // Einzelmomente) und als Momentensumme links müssen an jeder Stelle mit den Schnittgrössen übereinstimmen
+// Biegelinie am Cursor: Die Anteile der einzelnen Lasten (jede mit eigenen Lagerkräften) ergeben zusammen
+// die Biegelinie (Überlagerung)
+function deflectionSumCheck(model, result, forces) {
+  const EI = 50000;
+  const supportsX = result.reactions.map((r) => r.x);
+  const total = deflection(forces, supportsX, EI);
+  if (!total) return { ok: true, text: 'Biegelinie: nicht gerechnet (kein gerader Träger zwischen zwei Lagern)' };
+  const parts = deflectionParts(model, { result, forces }, EI);
+  let worst = 0;
+  for (const [x, w] of total.points) worst = Math.max(worst, Math.abs(parts.reduce((s, p) => s + lineAt(p.points, x), 0) - w));
+  return { ok: worst < 1e-9, text: `Biegelinie am Cursor: Summe der Anteile von ${parts.length} ${parts.length === 1 ? 'Last' : 'Lasten'} = Biegelinie, grösste Abweichung ${(worst * 1000).toExponential(1)} mm` };
+}
+
+// Tabellenformeln für den Einfeldträger gegen die numerische Biegelinie
+export function tableDeflectionChecks() {
+  const checks = [];
+  const cases = [
+    { title: 'Einzellast 40 kN bei a = 2.50 m', load: { kind: 'F', dir: 'down', value: 40, x: 2.5, z: null, name: '' } },
+    { title: 'Gleichlast 10 kN/m über die ganze Länge', load: { kind: 'q', dir: 'down', value: 10, x1: 0, x2: 6, name: '' } },
+  ];
+  for (const c of cases) {
+    const model = { axis: [{ x: 0, z: 0 }, { x: 6, z: 0 }], supports: [{ name: 'A', type: 'fest', x: 0 }, { name: 'B', type: 'rolle', x: 6 }], loads: [c.load], pivot: 'B' };
+    const result = solve(model);
+    const forces = internalForces(result);
+    const EI = 20000;
+    const [part] = deflectionParts(model, { result, forces }, EI);
+    let worst = 0;
+    for (const x of [0.7, 1.5, 2.5, 3, 4.2, 5.5]) {
+      const formula = tableDeflection(part, x, forces, [0, 6], EI, 2);
+      worst = Math.max(worst, Math.abs(formula.value - lineAt(part.points, x)) / Math.abs(formula.value));
+    }
+    checks.push({ ok: worst < 0.002, text: `Tabellenformel ${c.title}, L = 6.00 m: grösste Abweichung zur numerischen Biegelinie ${(worst * 100).toFixed(3)} %` });
+  }
+  return checks;
+}
+
 function deriveCheck(result, forces) {
   let worst = 0;
   const n = 60;
@@ -85,6 +122,7 @@ function deriveCheck(result, forces) {
 export function renderTests(target) {
   const results = runTests();
   for (const group of runDesignTests()) results.push({ example: { title: `Bemessung: ${group.title}`, source: group.source }, checks: group.checks });
+  results.push({ example: { title: 'Herleitung am Cursor: Tabellenformeln der Biegelinie', source: 'Einfeldträger, Bautabellen' }, checks: tableDeflectionChecks() });
   let passed = 0;
   let failed = 0;
   const rows = [];

@@ -1529,6 +1529,13 @@ export function updateDesign() {
 
 // Biegelinie unter der M-Fläche: nur mit gewähltem Träger (Reiter „Träger“) und geradem System
 // Durchbiegung w [m] an der Stelle x der gezeigten Biegelinie (linear zwischen den Punkten), sonst null
+// Grundlage der gezeigten Biegelinie (für die Herleitung am Cursor): EI in kNm² und der gewählte Träger
+export function deflectionBasis() {
+  const box = $('deflectionDiagram');
+  if (!beamLine || !box || box.hidden) return null;
+  return { EI: beamLine.EI, name: beamLine.name };
+}
+
 export function deflectionAt(x) {
   const box = $('deflectionDiagram');
   if (!beamLine || !box || box.hidden) return null;

@@ -828,7 +828,7 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .dc-area-num circle { fill: #ffffff; stroke: #334155; stroke-width: 1; }
 .dc-area-num text { fill: #1f2933; font-size: 10.5px; font-weight: 700; }
 .dc-area-num.small text { font-size: 9px; }
-.dc-tangent { stroke: #ea580c; stroke-width: 1.7; stroke-dasharray: 6 3; stroke-linecap: round; }
+.dc-tangent { stroke: #ea580c; stroke-width: 1.7; stroke-dasharray: 6 3; stroke-linecap: butt; }
 @media screen {
   html[data-theme="dark"] .dc-area.pos { fill: rgba(96, 165, 250, 0.32); stroke: #60a5fa; }
   html[data-theme="dark"] .dc-area.neg { fill: rgba(248, 113, 113, 0.3); stroke: #f87171; }
@@ -855,8 +855,16 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .dp-table td:nth-child(2) { white-space: nowrap; }
 @media (max-width: 520px) { .dp-shape { display: none; } }
 .dp-shape { min-width: 9em; color: var(--muted); font-size: 12px; }
-/* zu wenig Platz: Hinweise und Kontrolle weglassen, Skizze kleiner */
-.derive-panel.compact :is(.dp-note, .dp-control) { display: none; }
+/* Biegelinie: Anteil jeder Last als Balken (blau nach unten, orange nach oben) */
+.dp-wtable td { vertical-align: middle; }
+.dp-wtable .dp-num { text-align: right; white-space: nowrap; }
+.dp-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; vertical-align: middle; }
+.dp-bar i { display: block; height: 100%; border-radius: 4px; background: #0284c7; }
+.dp-bar.up i { background: #ea580c; }
+.dp-formula td { padding-bottom: 4px; font-size: 12px; }
+.dp-formula .dp-shape { display: block; }
+/* zu wenig Platz: Hinweise, Kontrolle und Tabellenformeln weglassen, Skizze kleiner */
+.derive-panel.compact :is(.dp-note, .dp-control, .dp-formula) { display: none; }
 .derive-panel.compact .dp-sketch svg { max-height: 18vh; }
 .dp-note, .dp-sub { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
 @media print { .derive-panel { display: none !important; } }
