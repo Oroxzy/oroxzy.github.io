@@ -851,9 +851,9 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .photo-pick.dragging { border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
 .photo-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .photo-pick img { display: block; max-width: 100%; max-height: 38vh; border-radius: 6px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18); }
+.photo-pick img[hidden] { display: none; }
 .photo-hint { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; color: var(--muted); font-size: 13px; }
 .photo-hint input[type="text"] { width: 100%; }
-.photo-privacy { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
 .photo-turnstile:not(:empty) { margin-top: 10px; }
 .photo-status { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--soft); font-size: 13px; }
 .photo-status.busy { color: var(--accent); background: var(--accent-soft); }
