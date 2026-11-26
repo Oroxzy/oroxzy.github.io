@@ -1955,7 +1955,9 @@ function drawLever(info) {
   // Plaketten, Drehpunkt und Drehpfeil dürfen sich nie überdecken: jede Plakette nimmt die erste freie Lage
   const placed = [{ x: px - 13, y: py - 13, width: 26, height: 26 }];
   const momentArc = info.showMoment && info.lever > 1e-9 && Number.isFinite(info.moment) && Math.abs(info.moment) >= 1e-9;
-  if (momentArc) placed.push({ x: px - 32, y: py - 34, width: 64, height: 30 });
+  // beim Überfahren eines ΣM-Terms nur der Drehsinn (ohne Plakette): der Term zeigt Kraft · Hebelarm schon
+  const senseArc = !info.showMoment && info.showArc && info.lever > 1e-9 && Math.abs(info.sense || 0) > 0;
+  if (momentArc || senseArc) placed.push({ x: px - 32, y: py - 34, width: 64, height: 30 });
   const boxOf = (cx, cy, content, anchor = 'middle') => {
     const w = pillWidth(content);
     let left = anchor === 'start' ? cx : anchor === 'end' ? cx - w : cx - w / 2;
@@ -2022,25 +2024,31 @@ function drawLever(info) {
   }
   // Drehpunkt: Hof, Ring und Mittelpunkt
   parts.push(`<circle class="lv-halo" cx="${r1(px)}" cy="${r1(py)}" r="13"/>`, `<circle class="lv-ring" cx="${r1(px)}" cy="${r1(py)}" r="7.5"/>`, `<circle class="lv-fill" cx="${r1(px)}" cy="${r1(py)}" r="2.6"/>`);
-  // Drehsinn um den Drehpunkt (bei gewählter Last): Bogenpfeil über dem Drehpunkt und Moment
+  // Drehsinn um den Drehpunkt: Bogenpfeil über dem Drehpunkt
+  const arc = () => {
+    const radius = 26;
+    const headLength = 12;
+    const a0 = (-160 * Math.PI) / 180;
+    const a1 = (-20 * Math.PI) / 180;
+    const cw = info.sense > 0;
+    const point = (a) => [px + radius * Math.cos(a), py + radius * Math.sin(a)];
+    // Der Bogen endet, wo die Spitze beginnt; die Spitze folgt der Sehne über ihre eigene Länge
+    const back = headLength / radius;
+    const [sx, sy] = point(cw ? a0 : a1);
+    const [bx, by] = point(cw ? a1 - back : a0 + back);
+    const [tx, ty] = point(cw ? a1 : a0);
+    // in Bildschirmkoordinaten ist sweep 1 der Uhrzeigersinn
+    parts.push(`<path class="lv-arc" d="M${r1(sx)},${r1(sy)} A${radius},${radius} 0 0 ${cw ? 1 : 0} ${r1(bx)},${r1(by)}"/>`);
+    parts.push(head(tx, ty, Math.atan2(ty - by, tx - bx), headLength));
+  };
+  if (senseArc) arc();
+  // bei gewählter Last zusätzlich das Moment daneben
   if (info.showMoment) {
     if (!(info.lever > 1e-9) || !Number.isFinite(info.moment) || Math.abs(info.moment) < 1e-9) {
       parts.push(placePill('Hebelarm 0: geht durch den Drehpunkt, kein Moment', [{ x: px, y: py - 24 }, { x: px, y: py - 46 }, { x: px, y: py + 40 }]));
     } else {
-      const radius = 26;
-      const headLength = 12;
-      const a0 = (-160 * Math.PI) / 180;
-      const a1 = (-20 * Math.PI) / 180;
+      arc();
       const cw = info.sense > 0;
-      const point = (a) => [px + radius * Math.cos(a), py + radius * Math.sin(a)];
-      // Der Bogen endet, wo die Spitze beginnt; die Spitze folgt der Sehne über ihre eigene Länge
-      const back = headLength / radius;
-      const [sx, sy] = point(cw ? a0 : a1);
-      const [bx, by] = point(cw ? a1 - back : a0 + back);
-      const [tx, ty] = point(cw ? a1 : a0);
-      // in Bildschirmkoordinaten ist sweep 1 der Uhrzeigersinn
-      parts.push(`<path class="lv-arc" d="M${r1(sx)},${r1(sy)} A${radius},${radius} 0 0 ${cw ? 1 : 0} ${r1(bx)},${r1(by)}"/>`);
-      parts.push(head(tx, ty, Math.atan2(ty - by, tx - bx), headLength));
       const f = (value) => fixed(value, state.decimals);
       const content = `M = ${f(info.force)} · ${length(info.lever, state.decimals)} = ${f(Math.abs(info.moment))} kNm ${cw ? '↷' : '↶'}`;
       parts.push(placePill(content, momentAt));
@@ -2073,7 +2081,7 @@ function showTerm(element, event) {
   element.classList.add('term-active');
   if (info.ref) setHover(info.ref, 'solution');
   // ohne Hebelarm (ΣV, ΣH) auch keinen Hebelarm einer gewählten Last zeigen, sonst wirkt es wie ΣM
-  if (info.lever !== undefined) drawLever(info);
+  if (info.lever !== undefined) drawLever({ ...info, showArc: true });
   else removeLever();
   const tip = $('termTip');
   tip.textContent = info.text;

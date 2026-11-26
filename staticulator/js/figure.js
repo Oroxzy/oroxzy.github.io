@@ -520,14 +520,17 @@ export function renderFigure(result, resolved, options = {}) {
     const dirSign = hanging ? -1 : 1;
     const groundY = y + dirSign * (s.type === 'rolle' ? 28 : 22);
     const parts = [];
-    parts.push(`<path d="M${r(x)},${r(y)} L${r(x - 13)},${r(y + dirSign * 22)} L${r(x + 13)},${r(y + dirSign * 22)} Z" fill="#ffffff" stroke="${COLORS.axis}" stroke-width="1.3" stroke-linejoin="round"/>`);
+    // Nur die beiden Seiten des Dreiecks: Die Grundseite liegt immer auf einer waagrechten Linie (Boden bzw.
+    // Rollenlinie), und die wird pixelgenau (crispEdges) gezeichnet, sonst verschmiert sie über zwei Pixelreihen.
+    const baseY = y + dirSign * 22;
+    parts.push(`<path d="M${r(x - 13)},${r(baseY)} L${r(x)},${r(y)} L${r(x + 13)},${r(baseY)}" fill="#ffffff" stroke="${COLORS.axis}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`);
     if (s.type === 'rolle') {
-      parts.push(`<line x1="${r(x - 15)}" y1="${r(y + dirSign * 22)}" x2="${r(x + 15)}" y2="${r(y + dirSign * 22)}" stroke="${COLORS.axis}" stroke-width="1.2"/>`);
+      parts.push(`<line x1="${r(x - 15)}" y1="${r(baseY)}" x2="${r(x + 15)}" y2="${r(baseY)}" stroke="${COLORS.axis}" stroke-width="1.5" shape-rendering="crispEdges"/>`);
     }
-    parts.push(`<line x1="${r(x - 19)}" y1="${r(groundY)}" x2="${r(x + 19)}" y2="${r(groundY)}" stroke="${COLORS.axis}" stroke-width="1.3"/>`);
+    parts.push(`<line x1="${r(x - 19)}" y1="${r(groundY)}" x2="${r(x + 19)}" y2="${r(groundY)}" stroke="${COLORS.axis}" stroke-width="1.5" shape-rendering="crispEdges"/>`);
     for (let k = -3; k <= 2; k++) {
       const hx = x + k * 6.5;
-      parts.push(`<line x1="${r(hx)}" y1="${r(groundY)}" x2="${r(hx + 6)}" y2="${r(groundY + dirSign * 6)}" stroke="${COLORS.member}" stroke-width="0.8"/>`);
+      parts.push(`<line x1="${r(hx)}" y1="${r(groundY)}" x2="${r(hx + 6)}" y2="${r(groundY + dirSign * 6)}" stroke="${COLORS.member}" stroke-width="1.1"/>`);
     }
     if (pivotName === s.name) parts.push(`<circle cx="${r(x)}" cy="${r(y)}" r="5" fill="#ffffff" stroke="${COLORS.pivot}" stroke-width="2"/>`);
     parts.push(`<rect x="${r(x - 20)}" y="${r(Math.min(y, groundY + dirSign * 6))}" width="40" height="${r(Math.abs(groundY + dirSign * 6 - y))}" fill="transparent"/>`);

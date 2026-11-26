@@ -289,7 +289,7 @@ function columnForm(d) {
     const dims = c.shape === 'round'
       ? inputField('column.d', 'Durchmesser d', c.d, { unit: 'mm', placeholder: 'automatisch' })
       : inputField('column.b', 'Breite b', c.b, { unit: 'mm', placeholder: 'automatisch' }) + inputField('column.h', 'Höhe h', c.h, { unit: 'mm', placeholder: 'automatisch' });
-    rows.push(`<div class="d-row"><span class="d-label">Querschnitt</span>${segmented('column.shape', [['rect', 'Rechteck'], ['round', 'Rundholz']], c.shape)}${dims}${selectField('column.step', 'aufrunden', stepOptions, c.step)}<span class="d-hint">leer = kleinster passender Querschnitt${c.shape === 'round' ? '' : ' (beide leer: quadratisch)'}</span></div>`);
+    rows.push(`<div class="d-row"><span class="d-label">Querschnitt</span>${segmented('column.shape', [['rect', 'Rechteck'], ['round', 'Rundholz']], c.shape)}${dims}${selectField('column.step', 'aufrunden', stepOptions, c.step)}<span class="d-hint">leer = kleinster passender Querschnitt${c.shape === 'round' ? '' : c.zOwn ? ' (beide leer: Rechteck mit der kleinsten Fläche)' : ' (beide leer: quadratisch)'}</span></div>`);
   }
   return rows.join('');
 }
@@ -871,18 +871,21 @@ function sizeRows(lo, hi, stepMm, current, fitsAt, rowAt) {
 // Liste für Holzstütze und Holz-Zugstab: was variiert, hängt davon ab, welche Masse eingegeben sind
 function timberMemberList(c, stepMm, chosen, fits, cellsOf, head) {
   const round = c.shape === 'round';
-  const square = !round && ((!(c.b > 0) && !(c.h > 0)) || (c.b > 0 && c.h > 0 && Math.abs(c.b - c.h) < 1e-9));
-  const mode = round ? 'd' : square ? 'square' : !(c.b > 0) ? 'b' : 'h';
+  // beide Masse automatisch, aber ein Rechteck gefunden (um z anders gehalten): Höhen bei dieser Breite zeigen
+  const autoRect = !round && !(c.b > 0) && !(c.h > 0) && Math.abs(chosen.bw - chosen.hw) > 1e-9;
+  const square = !round && !autoRect && ((!(c.b > 0) && !(c.h > 0)) || (c.b > 0 && c.h > 0 && Math.abs(c.b - c.h) < 1e-9));
+  const mode = round ? 'd' : square ? 'square' : autoRect ? 'h' : !(c.b > 0) ? 'b' : 'h';
   const size = (v) => (mode === 'd' ? [0, 0, v] : mode === 'square' ? [v, v, 0] : mode === 'h' ? [chosen.bw, v, 0] : [v, chosen.hw, 0]);
   const current = mode === 'd' ? chosen.dw : mode === 'h' ? chosen.hw : chosen.bw;
-  const lo = mode === 'h' ? roundUp(Math.max(chosen.bw, stepMm), stepMm) : roundUp(60, stepMm);
-  const hi = mode === 'b' ? chosen.hw : mode === 'h' ? 8 * chosen.bw : 2000;
+  const lo = autoRect ? roundUp(Math.max(60, chosen.bw / 4), stepMm) : mode === 'h' ? roundUp(Math.max(chosen.bw, stepMm), stepMm) : roundUp(60, stepMm);
+  const hi = autoRect ? 4 * chosen.bw : mode === 'b' ? chosen.hw : mode === 'h' ? 8 * chosen.bw : 2000;
   const rows = sizeRows(lo, hi, stepMm, current, (v) => fits(...size(v)), (v) => {
     const [bb, hh, dd] = size(v);
     return { value: v, label: mode === 'd' ? `Ø ${f(v, 0)}` : `${f(bb, 0)}/${f(hh, 0)}`, good: fits(bb, hh, dd), cells: cellsOf(bb, hh, dd) };
   });
   const summary = { d: 'Durchmesser', square: 'Quadratische Querschnitte', h: `Höhen bei b = ${f(chosen.bw, 0)} mm`, b: `Breiten bei h = ${f(chosen.hw, 0)} mm` }[mode];
-  const pick = { d: 'column.d', square: 'column.square', h: 'column.h', b: 'column.b' }[mode];
+  // Rechteck aus der Suche: eine Zeile übernimmt die Höhe und die gefundene Breite zusammen
+  const pick = autoRect ? `column.rect:${chosen.bw}` : { d: 'column.d', square: 'column.square', h: 'column.h', b: 'column.b' }[mode];
   return sizeTable(summary, head.replace('{label}', mode === 'd' ? 'd [mm]' : 'b/h [mm]'), rows, current, pick);
 }
 
@@ -1338,6 +1341,26 @@ function searchTimberSection(c, stepMm, fits) {
     while (a < 2000 && !fits(a, a)) a += stepMm;
     bw = a;
     hw = a;
+    // Um z anders gehalten (andere Knicklänge): Ein Rechteck kann weniger Holz brauchen als das Quadrat.
+    // Kleinste Fläche suchen, Seitenverhältnis höchstens 1:4; bei gleicher Fläche bleibt das gedrungenere.
+    if (c.zOwn && fits(a, a)) {
+      const lo = roundUp(60, stepMm);
+      let best = { b: a, h: a, area: a * a };
+      for (let bb = lo; bb <= 4 * a; bb += stepMm) {
+        for (let hh = Math.max(lo, roundUp(bb / 4, stepMm)); hh <= 4 * bb && bb * hh <= best.area + 1e-9; hh += stepMm) {
+          if (fits(bb, hh)) {
+            const area = bb * hh;
+            if (area < best.area - 1e-9 || Math.abs(bb - hh) < Math.abs(best.b - best.h)) best = { b: bb, h: hh, area };
+            break;
+          }
+        }
+      }
+      if (best.b !== a || best.h !== a) {
+        auto = 'Rechteck, automatisch (kleinste Fläche)';
+        bw = best.b;
+        hw = best.h;
+      }
+    }
   } else if (!(hw > 0)) {
     auto = 'Höhe automatisch';
     hw = roundUp(Math.max(bw, stepMm), stepMm);
@@ -1396,7 +1419,7 @@ function timberColumnResult(d, last, decimals) {
   const section = round
     ? eq(`A = \\frac{\\pi \\cdot d^2}{4} = \\frac{\\pi \\cdot ${f(dw, 0)}^2}{4} = ${f(r.section.A, 0)}${unit('mm^2')},\\qquad i = \\frac{d}{4} = ${f(r.y.i, 1)}${unit('mm')}`)
     : eq(`A = b \\cdot h = ${f(bw, 0)} \\cdot ${f(hw, 0)} = ${f(r.section.A, 0)}${unit('mm^2')}`)
-      + eq(`i_y = 0.289 \\cdot h = ${f(r.y.i, 1)}${unit('mm')},\\qquad i_z = 0.289 \\cdot b = ${f(r.z.i, 1)}${unit('mm')}`);
+      + eq(`i_y = \\frac{h}{\\sqrt{12}} = \\frac{${f(hw, 0)}}{\\sqrt{12}} = ${f(r.y.i, 1)}${unit('mm')},\\qquad i_z = \\frac{b}{\\sqrt{12}} = \\frac{${f(bw, 0)}}{\\sqrt{12}} = ${f(r.z.i, 1)}${unit('mm')}`);
   const timberSketch = timberSectionSvg({ shape: c.shape, b: bw, h: hw, d: dw }, { buckling: sameAxes ? null : r.governing.axis });
   html += step(n++, 'Querschnittswerte', name, withSketch(timberSketch, sameAxes ? `${name} · ${round ? 'in jede Richtung gleich' : 'beide Achsen gleich'}.` : bucklingCaption(r.governing.axis, r.z.i <= r.y.i ? 'z' : 'y'),
     section + (round ? '' : note('i = h/√12 = 0.289 · h; für Knicken um z zählt die Breite b.'))));
@@ -1652,6 +1675,9 @@ export function initDesign(context) {
       const value = Number(pickRow.dataset.value);
       if (pickRow.dataset.pick === 'column.square') {
         setPath('column.b', value);
+        setPath('column.h', value);
+      } else if (pickRow.dataset.pick.startsWith('column.rect:')) {
+        setPath('column.b', Number(pickRow.dataset.pick.slice('column.rect:'.length)));
         setPath('column.h', value);
       } else {
         setPath(pickRow.dataset.pick, value);
