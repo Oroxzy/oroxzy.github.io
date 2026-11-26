@@ -312,16 +312,32 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
   const forces = last.forces;
   const supportsX = last.result.reactions.map((r) => r.x);
   const parts = deflectionParts(model, last, EI).map((p) => ({ ...p, w: lineAt(p.points, x) * 1000 }));
-  const shown = parts.filter((p) => Math.abs(p.w) >= 0.005);
   const total = parts.reduce((s, p) => s + p.w, 0);
+  // kleine Durchbiegungen mit einer Stelle mehr, damit die Summe auch gerundet aufgeht
+  const wd = Math.max(Math.abs(total), ...parts.map((p) => Math.abs(p.w))) < 1 ? 3 : 2;
+  const shown = parts.filter((p) => Math.abs(p.w) >= 0.5 * 10 ** -wd);
   const biggest = Math.max(1e-9, ...shown.map((p) => Math.abs(p.w)));
   const len = (v) => length(v, decimals);
+  const mm = (v) => fixed(v, wd);
   let html = '';
   if (!shown.length) {
     html += line(`w = 0${unit('mm')}`);
     html += `<p class="dp-note">${supportsX.some((s) => Math.abs(s - x) < 1e-6) ? 'Am Lager ist w = 0.' : 'Hier biegt sich der Träger (gerundet) nicht durch.'}</p>`;
     return html;
   }
+  // Feld zwischen den Lagern: Lasten auf der anderen Seite eines Lagers biegen den Träger nach oben
+  const [s1, s2] = [...supportsX].sort((u, v) => u - v);
+  const inSpan = (v) => v >= s1 - 1e-9 && v <= s2 + 1e-9;
+  const outside = (p) => (p.kind === 'q' ? p.item.x2 <= s1 + 1e-9 || p.item.x1 >= s2 - 1e-9 : !inSpan(p.item.x));
+  const inside = (p) => (p.kind === 'q' ? p.item.x1 >= s1 - 1e-9 && p.item.x2 <= s2 + 1e-9 : inSpan(p.item.x));
+  const why = (p) => {
+    if (p.w >= 0) return '';
+    if (p.item.dir === 'up') return 'Last nach oben';
+    if (inSpan(x) && outside(p)) return 'Last auf dem Kragarm hebt das Feld an';
+    if (!inSpan(x) && inside(p)) return 'Last im Feld hebt den Kragarm an';
+    return '';
+  };
+  const anyNumeric = { value: false };
   const rows = shown.map((p) => {
     const item = p.item;
     const what = p.kind === 'q'
@@ -331,17 +347,24 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
     const formula = tableDeflection(p, x, forces, supportsX, EI, decimals);
     // Formel nur zeigen, wenn sie die numerische Rechnung bestätigt (Sicherheitsnetz)
     const fits = formula && Math.abs(formula.value * 1000 - p.w) <= Math.max(0.01, Math.abs(p.w) * 0.005);
+    if (!fits) anyNumeric.value = true;
     const formulaHtml = fits
       ? `<tr class="dp-formula"><td></td><td colspan="3">${tex(`= ${formula.symbolic} = ${formula.numbers} \\cdot 1000`)}</td></tr>`
       : '';
-    return `<tr><td>${tex(`w_{${texName(p.label)}}`)}</td><td class="dp-shape">${what}${fits ? ` · nach Tabellenformel${formula.where ? ` (${formula.where})` : ''}` : ''}</td>`
-      + `<td><span class="dp-bar ${p.w >= 0 ? 'down' : 'up'}"><i style="width:${Math.max(3, share)}%"></i></span></td>`
-      + `<td class="dp-num">${tex(`${fixed(p.w, 2)}${unit('mm')}`)}</td></tr>${formulaHtml}`;
+    const reason = why(p);
+    const down = p.w >= 0;
+    return `<tr><td>${tex(`w_{${texName(p.label)}}`)}</td><td class="dp-shape">${what}${fits ? ` · nach Tabellenformel${formula.where ? ` (${formula.where})` : ''}` : ''}${reason ? `<span class="dp-why">${reason}</span>` : ''}</td>`
+      + `<td><span class="dp-bar ${down ? 'down' : 'up'}"><i style="width:${Math.max(3, share)}%"></i></span></td>`
+      + `<td class="dp-num"><span class="dp-arrow ${down ? 'down' : 'up'}" title="${down ? 'nach unten' : 'nach oben'}">${down ? '↓' : '↑'}</span> ${tex(`${mm(Math.abs(p.w))}${unit('mm')}`)}</td></tr>${formulaHtml}`;
   });
   html += `<table class="dp-table dp-wtable"><tbody>${rows.join('')}</tbody></table>`;
-  const terms = shown.map((p) => ({ sign: Math.sign(p.w), body: `w_{${texName(p.label)}}`, v: p.w }));
-  const numbers = joinSigned(terms.map((t) => ({ sign: t.sign, body: fixed(Math.abs(t.v), 2) })));
-  html += line(`w = ${joinSigned(terms)}${terms.length > 1 ? ` = ${numbers}` : ''} = ${fixed(total, 2)}${unit('mm')}`);
-  html += '<p class="dp-note">Jede Last wird für sich mit ihren eigenen Lagerkräften gerechnet; zusammengezählt ergibt das die Biegelinie. Lasten wie oben eingegeben (ohne zusätzlichen Lastbeiwert), w nach unten positiv, x ab dem linken Lager. Wo keine Tabellenformel passt (Kragarm, Streckenlast nur über einen Teil), rechnet die App numerisch aus EI · w″ = −M.</p>';
+  // Summe immer mit „+“, negative Anteile in Klammern: w = w_q1 + w_F1 = 0.364 + (−0.137)
+  const names = shown.map((p) => `w_{${texName(p.label)}}`).join(' + ');
+  const numbers = shown.map((p, i) => (i > 0 && p.w < 0 ? `(${mm(p.w)})` : mm(p.w))).join(' + ');
+  // Ergebnis aus den angezeigten (gerundeten) Anteilen, damit die Rechnung auf dem Papier aufgeht;
+  // das weicht höchstens um eine halbe Einheit der letzten Stelle je Anteil vom genauen Wert ab
+  const shownTotal = shown.reduce((s, p) => s + Number(fixed(p.w, wd)), 0);
+  html += line(`w = ${names}${shown.length > 1 ? ` = ${numbers}` : ''} = ${mm(shown.length > 1 ? shownTotal : total)}${unit('mm')}`);
+  html += `<p class="dp-note">Jede Last biegt den Träger für sich (mit ihren eigenen Auflagerkräften); die Anteile werden zusammengezählt. <span class="dp-arrow down">↓</span> blau = nach unten, <span class="dp-arrow up">↑</span> orange = nach oben. Gerechnet mit den Lasten ohne Lastbeiwert${anyNumeric.value ? '; Anteile ohne Tabellenformel numerisch aus EI · w″ = −M' : ''}.</p>`;
   return html;
 }

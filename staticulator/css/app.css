@@ -873,6 +873,14 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
 .dp-bar { display: inline-block; width: 90px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; vertical-align: middle; }
 .dp-bar i { display: block; height: 100%; border-radius: 4px; background: #0284c7; }
 .dp-bar.up i { background: #ea580c; }
+.dp-arrow { font-weight: 700; }
+.dp-arrow.down { color: #0284c7; }
+.dp-arrow.up { color: #ea580c; }
+.dp-why { display: block; color: #c2410c; font-size: 11px; font-style: italic; }
+@media screen {
+  html[data-theme="dark"] .dp-arrow.down { color: #38bdf8; }
+  html[data-theme="dark"] .dp-arrow.up, html[data-theme="dark"] .dp-why { color: #fb923c; }
+}
 .dp-formula td { padding-bottom: 4px; font-size: 12px; }
 .dp-formula .dp-shape { display: block; }
 /* zu wenig Platz: Hinweise, Kontrolle und Tabellenformeln weglassen, Skizze kleiner */
