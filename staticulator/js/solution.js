@@ -142,7 +142,7 @@ function explainForces(forces, zeros, decimals, supportsX = []) {
   const cantilever = supportsX.length > 0 && (forces.xmin < Math.min(...supportsX) - 1e-9 || forces.xmax > Math.max(...supportsX) + 1e-9);
   const couples = forces.couples && forces.couples.length > 0;
   return why('Wie liest man V und M?', [
-    'V springt bei Einzellasten und Lagerkräften um deren Betrag. Unter einer Streckenlast steigt oder fällt V gleichmässig (Steigung = −q).',
+    'V springt bei Einzellasten und Lagerkräften um deren Betrag. Unter einer Streckenlast steigt oder fällt V gleichmässig (Steigung = −q); unter einer Trapez- oder Dreieckslast ist V eine Parabel und M eine Kurve 3. Grades.',
     zeros.length
       ? `Wo V das Vorzeichen wechselt – hier bei x = ${zeros.map((z) => measure(z.x)).join(' m und ')} m –, hat M ein Extremum, denn die Steigung von M ist V (dM/dx = V).`
       : 'V wechselt innerhalb eines Feldes nicht das Vorzeichen; das grösste Moment liegt dann an einer Last oder einem Lager.',
@@ -224,7 +224,7 @@ export function renderSolution(result, forces, decimals = 2, options = {}) {
     const unknownRow = `<tr class="unknown" data-term="mu"><td>${htmlName(m.unknown)} (gesucht)</td><td class="num">?</td><td class="num">${length(m.unknownLever, decimals)} m</td><td class="c">${m.unknownSense > 0 ? '<span class="cw">↷</span>' : '<span class="ccw">↶</span>'}</td><td class="num">${m.unknownSense > 0 ? '+' : '−'}${length(m.unknownLever, decimals)} · ${htmlName(m.unknown)}</td></tr>`;
     body += `<details class="sol-details"><summary>Glieder der Momentensumme (Kraft · Hebelarm)</summary><table class="sol-table"><thead><tr><th>Kraft</th><th class="num">Betrag</th><th class="num">Hebelarm</th><th class="c">Drehsinn</th><th class="num">Moment [kNm]</th></tr></thead><tbody>${unknownRow}${rows.join('')}<tr class="sum"><td colspan="4">Summe der bekannten Glieder</td><td class="num">${fixed(m.known, decimals)}</td></tr></tbody></table></details>`;
     if (zeroLever.length) {
-      body += `<p class="sol-note">Hebelarm 0 (Wirkungslinie durch den Drehpunkt): ${zeroLever.map((t) => htmlName(t.label)).join(', ')}.</p>`;
+      body += `<p class="sol-note">Hebelarm 0 (Wirkungslinie durch den Drehpunkt): ${zeroLever.map((t) => qLabel(t)).join(', ')}.</p>`;
     }
     if (explain) body += explainM(result, decimals);
     blocks.push(step(2, `Σ M = 0 (DP: ${escapeHtml(m.pivot)})`, '<span class="cw">↷</span> im Uhrzeigersinn positiv · <span class="ccw">↶</span> gegen den Uhrzeigersinn negativ', body));

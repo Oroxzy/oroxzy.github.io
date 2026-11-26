@@ -108,7 +108,12 @@ export function shearAreas(forces, x, minArea = 1e-9) {
 const line = (source) => `<div class="dp-line">${tex(source)}</div>`;
 // Streckenlast links vom Schnitt: gleichmässig q, beim Trapez der Mittelwert (q links + q rechts) / 2
 const qName = (i) => (i.trapez ? `\\overline{${texName(i.name)}}` : texName(i.name));
-const qNumber = (i, decimals) => (i.trapez ? `\\tfrac{${fixed(Math.abs(i.q), decimals)} + ${fixed(Math.abs(i.qb), decimals)}}{2}` : fixed(Math.abs(i.q), decimals));
+// Dreieck (ein Ende 0): ½ · q statt (0 + q) / 2
+const qNumber = (i, decimals) => {
+  if (!i.trapez) return fixed(Math.abs(i.q), decimals);
+  if (Math.abs(i.q) < EPS || Math.abs(i.qb) < EPS) return `\\tfrac{1}{2} \\cdot ${fixed(Math.max(Math.abs(i.q), Math.abs(i.qb)), decimals)}`;
+  return `\\tfrac{${fixed(Math.abs(i.q), decimals)} + ${fixed(Math.abs(i.qb), decimals)}}{2}`;
+};
 // Einzelmoment aus einer Kraft neben der Achse: ΔM mit dem Namen der Kraft
 const coupleName = (c) => `\\Delta M_{${texName(c.label)}}`;
 
@@ -146,7 +151,7 @@ export function shearDerivation(result, forces, x, side, decimals) {
   if (side === 'both' && Math.abs(x - forces.xmax) < 1e-9) {
     html += '<p class="dp-note">Am Trägerende muss die Querkraft auf 0 zurückgehen: Das ist die Kontrolle ΣV = 0.</p>';
   }
-  html += '<p class="dp-note">Alle senkrechten Kräfte links vom Schnitt, nach oben positiv; von einer Streckenlast nur das Stück links vom Schnitt (q · Länge).</p>';
+  html += '<p class="dp-note">Alle senkrechten Kräfte links vom Schnitt, nach oben positiv; von einer Streckenlast nur das Stück links vom Schnitt (q · Länge, bei Trapez- und Dreieckslasten der Mittelwert q̄ · Länge).</p>';
   return html;
 }
 
@@ -320,7 +325,7 @@ export function deflectionDerivation(model, last, x, EI, decimals) {
   const rows = shown.map((p) => {
     const item = p.item;
     const what = p.kind === 'q'
-      ? `Streckenlast ${fixed(item.value, decimals)} kN/m, ${len(item.x1)}–${len(item.x2)} m`
+      ? `Streckenlast ${item.trapez ? `${fixed(item.value, decimals)} … ${fixed(item.value2, decimals)}` : fixed(item.value, decimals)} kN/m, ${len(item.x1)}–${len(item.x2)} m`
       : `${item.horizontal ? 'Horizontallast' : 'Einzellast'} ${fixed(item.value, decimals)} kN bei x = ${len(item.x)} m`;
     const share = Math.round((Math.abs(p.w) / biggest) * 100);
     const formula = tableDeflection(p, x, forces, supportsX, EI, decimals);

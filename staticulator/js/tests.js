@@ -90,6 +90,48 @@ export function tableDeflectionChecks() {
   return checks;
 }
 
+// Trapez- und Dreieckslasten: Stichproben mit Sollwerten aus einer unabhängigen numerischen Integration
+// (Prüfrunde), darunter fallend, nach oben, „von > bis“, Kragarm, zwei Nullstellen und V-Extremum im Abschnitt
+export function trapezChecks() {
+  const beam = (L) => [{ x: 0, z: 0 }, { x: L, z: 0 }];
+  const sup = (a, b) => [{ name: 'A', type: 'fest', x: a }, { name: 'B', type: 'rolle', x: b }];
+  const Q = (dir, value, value2, x1, x2) => ({ kind: 'q', dir, value, ...(value2 === undefined ? {} : { value2 }), x1, x2, name: '' });
+  const F = (dir, value, x) => ({ kind: 'F', dir, value, x, z: null, name: '' });
+  const cases = [
+    { title: 'Dreieck fallend 30 → 0, L = 6', m: { axis: beam(6), supports: sup(0, 6), loads: [Q('down', 30, 0, 0, 6)] }, A: 60, B: 30, mMax: [69.282, 2.5359] },
+    { title: 'Trapez 10 → 25, L = 5', m: { axis: beam(5), supports: sup(0, 5), loads: [Q('down', 10, 25, 0, 5)] }, A: 37.5, B: 50, mMax: [54.964, 2.6759] },
+    { title: 'Trapez nach oben 10 → 30 auf 1–5', m: { axis: beam(6), supports: sup(0, 6), loads: [Q('up', 10, 30, 1, 5)] }, A: -35.556, B: -44.444, mMin: [-80.755, 3.2687] },
+    { title: '„von“ > „bis“: von 5, bis 1, 10 → 30', m: { axis: beam(6), supports: sup(0, 6), loads: [Q('down', 10, 30, 5, 1)] }, A: 44.444, B: 35.556, mMax: [80.755, 2.7313] },
+    { title: 'Dreieck von 6 bis 2 plus Kragarm 16 → 0', m: { axis: beam(9), supports: sup(0, 6), loads: [Q('down', 0, 24, 6, 2), Q('down', 16, 0, 6, 9)] }, A: 17.333, B: 54.667, mMax: [41.365, 2.8028], mMin: [-24, 6] },
+    { title: 'Dreieck nach unten plus Gleichlast nach oben', m: { axis: beam(6), supports: sup(0, 6), loads: [Q('down', 0, 30, 0, 6), Q('up', 10, undefined, 0, 6)] }, A: 0, B: 30, mMax: [26.667, 4], vMax: [10, 2] },
+    { title: 'zwei Nullstellen von V in einem Abschnitt', m: { axis: beam(6), supports: sup(0, 6), loads: [Q('down', 40, 0, 0, 6), Q('up', 0, 46, 0, 6), F('down', 1, 6)] }, zeros: [1.046, 4.5353], mMax: [16.416], mMin: [-34.328], vMin: [-21.81, 2.79] },
+    { title: 'Kragarm mit Gegenlasten: V-Extremum mitten im Abschnitt', m: { axis: beam(11), supports: sup(5, 11), loads: [Q('up', 30, 0, 0, 5), Q('down', 0, 30, 0, 5)] }, vMax: [37.5, 2.5] },
+  ];
+  const near = (a, b, tol) => Math.abs(a - b) <= tol;
+  return cases.map((c) => {
+    const result = solve({ ...c.m, pivot: 'B' });
+    const forces = internalForces(result);
+    const bad = [];
+    const got = [];
+    const reaction = (name) => result.reactions.find((r) => r.name === name).Rz;
+    if (c.A !== undefined) { got.push(`A ${reaction('A').toFixed(3)}`); if (!near(reaction('A'), c.A, 0.002)) bad.push('A'); }
+    if (c.B !== undefined) { got.push(`B ${reaction('B').toFixed(3)}`); if (!near(reaction('B'), c.B, 0.002)) bad.push('B'); }
+    for (const [key, value] of [['mMax', 'm'], ['mMin', 'm'], ['vMax', 'v'], ['vMin', 'v']]) {
+      if (!c[key]) continue;
+      const [want, at] = c[key];
+      const have = forces[key];
+      got.push(`${key} ${have[value].toFixed(3)} bei ${have.x.toFixed(4)}`);
+      if (!near(have[value], want, key.startsWith('v') ? 0.006 : 0.002) || (at !== undefined && !near(have.x, at, 0.006))) bad.push(key);
+    }
+    if (c.zeros) {
+      const xs = forces.zeroCrossings.filter((z) => z.inSegment).map((z) => z.x);
+      got.push(`V = 0 bei ${xs.map((x) => x.toFixed(4)).join(', ')}`);
+      if (xs.length !== c.zeros.length || c.zeros.some((x, i) => !near(xs[i], x, 0.0005))) bad.push('Nullstellen');
+    }
+    return { ok: result.ok && forces.ok && !bad.length, text: `Trapezlast – ${c.title}: ${got.join(', ')}${bad.length ? ` (falsch: ${bad.join(', ')})` : ''}` };
+  });
+}
+
 function deriveCheck(result, forces) {
   let worst = 0;
   const n = 60;
@@ -123,6 +165,7 @@ export function renderTests(target) {
   const results = runTests();
   for (const group of runDesignTests()) results.push({ example: { title: `Bemessung: ${group.title}`, source: group.source }, checks: group.checks });
   results.push({ example: { title: 'Herleitung am Cursor: Tabellenformeln der Biegelinie', source: 'Einfeldträger, Bautabellen' }, checks: tableDeflectionChecks() });
+  results.push({ example: { title: 'Trapez- und Dreieckslasten (Stichproben)', source: 'Sollwerte aus unabhängiger numerischer Integration' }, checks: trapezChecks() });
   let passed = 0;
   let failed = 0;
   const rows = [];

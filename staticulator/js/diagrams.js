@@ -252,6 +252,12 @@ function diagram(forces, layout, kind, decimals, supportsByX, band = 0) {
       place(X(e.x) + 4, valueY(right), label(right, decimals), 'start', right);
     }
   }
+  // Extremwert von V mitten im Abschnitt (wo q = 0 wird, z. B. Trapezlast gegen eine Gegenlast)
+  if (kind === 'V') {
+    for (const c of forces.vInner || []) {
+      if (Math.abs(c.v) > 0.5 * Math.pow(10, -decimals)) place(X(c.x), valueY(c.v), label(c.v, decimals), 'middle', c.v);
+    }
+  }
 
   // „V = 0 bei x = …“: zuerst über der Achse auf der Seite, auf der die Linie unten verläuft,
   // dann unter der Achse auf der anderen Seite, dann weiter aussen.

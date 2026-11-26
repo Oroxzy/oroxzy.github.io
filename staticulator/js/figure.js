@@ -274,8 +274,24 @@ export function renderFigure(result, resolved, options = {}) {
   // Höhe nach dem Betrag (mindestens Q_MIN); Trapezlast: Höhe an jedem Ende, 0 bleibt 0 (Dreieck)
   const qMax = Math.max(0, ...resolved.qloads.map((q) => Math.max(Math.abs(q.value) || 0, Math.abs(q.value2 ?? q.value) || 0)));
   const qEndHeight = (v) => (qMax > 0 ? (Math.abs(v) < 1e-12 ? 0 : Math.min(Q_MAX, Math.max(Q_MIN, (Q_MAX * Math.abs(v)) / qMax))) : Q_MAX);
-  const qEnds = (q) => (q.trapez ? [qEndHeight(q.value), qEndHeight(q.value2)] : [qEndHeight(q.value || 1e-9) || Q_MIN, qEndHeight(q.value || 1e-9) || Q_MIN]);
+  // Trapez: nur das grössere Ende auf die Mindesthöhe begrenzen, das kleinere im richtigen Verhältnis
+  // (sonst sähe ein flaches Trapez neben einer grossen Gleichlast wie ein Rechteck aus)
+  const qEnds = (q) => {
+    if (!q.trapez) {
+      const h = qEndHeight(q.value || 1e-9) || Q_MIN;
+      return [h, h];
+    }
+    const big = Math.max(q.value, q.value2);
+    const hBig = qEndHeight(big);
+    return [(hBig * q.value) / big, (hBig * q.value2) / big];
+  };
   const qHeight = (q) => Math.max(...qEnds(q));
+  // Höhe einer Streckenlast an der Stelle x (Trapez: zwischen den Enden)
+  const qHeightAt = (q, x) => {
+    const [h1, h2] = qEnds(q);
+    const t = q.x2 - q.x1 > 1e-12 ? Math.min(1, Math.max(0, (x - q.x1) / (q.x2 - q.x1))) : 0;
+    return h1 + (h2 - h1) * t;
+  };
   const reactionsReady = !!(result && result.ok);
   // Zeichnen im Massstab (Haken „Massstab“): Pfeillängen nach dem Kräftemassstab, Masse in cm auf dem Blatt
   const paper = options.paper && options.paper.length > 0 && options.paper.force > 0 ? options.paper : null;
@@ -296,7 +312,8 @@ export function renderFigure(result, resolved, options = {}) {
     let bottom = 0;
     resolved.qloads.forEach((q, i) => {
       const qSide = q.dir === 'up' ? 'up' : 'down';
-      if (qSide === side && x >= q.x1 - tolerance && x <= q.x2 + tolerance) bottom = Math.max(bottom, Q_GAP + qLevels[i] * Q_STEP + qHeight(q));
+      // bei der Trapezlast die Höhe an dieser Stelle (eine Einzellast über dem flachen Ende schwebt sonst)
+      if (qSide === side && x >= q.x1 - tolerance && x <= q.x2 + tolerance) bottom = Math.max(bottom, Q_GAP + qLevels[i] * Q_STEP + qHeightAt(q, x));
     });
     if (side === 'up') for (const slot of slots) if (x >= slot.x1 && x <= slot.x2) bottom = Math.max(bottom, slot.bottom);
     return bottom;

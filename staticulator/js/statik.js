@@ -452,6 +452,7 @@ export function internalForces(result) {
 
   const segments = [];
   const zeroCrossings = [];
+  const vInner = []; // Extremwerte von V innerhalb eines Abschnitts (nur bei veränderlichem q)
   for (let i = 1; i < events.length; i++) {
     const a = events[i - 1];
     const b = events[i];
@@ -475,9 +476,13 @@ export function internalForces(result) {
         zeroCrossings.push({ x: a.x + t, m: mAt(t), inSegment: true });
       }
     } else {
-      // V(t) = v0 + q·t + k·t²/2 = 0: bis zu zwei Nullstellen im Abschnitt
+      // Extremwert von V im Abschnitt, wo q = 0 wird (Trapezlast gegen eine entgegengerichtete Last)
+      const tq = -q / k;
+      if (tq > 1e-9 && tq < span - 1e-9) vInner.push({ x: a.x + tq, v: seg.v0 + q * tq + (k * tq * tq) / 2 });
+      // V(t) = v0 + q·t + k·t²/2 = 0: bis zu zwei Nullstellen im Abschnitt (eine doppelte Nullstelle berührt
+      // die Achse nur, dort hat M kein Extremum)
       const disc = q * q - 2 * k * seg.v0;
-      if (disc >= 0) {
+      if (disc > 1e-12) {
         const root = Math.sqrt(disc);
         const ts = [(-q - root) / k, (-q + root) / k].sort((u, w) => u - w);
         for (const t of ts) {
@@ -516,6 +521,10 @@ export function internalForces(result) {
       if (v < vMin.v) vMin = { x: e.x, v };
     }
   }
+  for (const c of vInner) {
+    if (c.v > vMax.v) vMax = c;
+    if (c.v < vMin.v) vMin = c;
+  }
 
   const valueAt = (x) => {
     const seg = segments.find((s) => x >= s.a - 1e-9 && x <= s.b + 1e-9);
@@ -537,6 +546,7 @@ export function internalForces(result) {
     mMin,
     vMax,
     vMin,
+    vInner,
     couples,
     valueAt,
   };

@@ -110,12 +110,13 @@ table.grid td.dir { width: 58px; }
 table.grid td.dir select { text-align: center; font-size: 15px; padding: 3px 2px; }
 table.grid td.type { width: 136px; }
 label.cell { display: flex; align-items: center; gap: 4px; }
-label.cell span { color: var(--muted); font-size: 11.5px; min-width: 14px; white-space: nowrap; }
+label.cell span, .cell.q-values span { color: var(--muted); font-size: 11.5px; min-width: 14px; white-space: nowrap; }
 label.cell input { width: 100%; min-width: 46px; text-align: right; }
 /* Streckenlast: Wert am Anfang → Wert am Ende (leer = gleichmässig) */
-label.cell.q-values input { min-width: 38px; }
-label.cell.q-values .q-to { color: var(--muted); font-size: 12px; }
-label.cell.q-values input[data-field="value2"]::placeholder { color: var(--muted); font-style: italic; }
+.cell.q-values { display: flex; align-items: center; gap: 3px; }
+.cell.q-values input { width: 100%; min-width: 34px; text-align: right; }
+.cell.q-values .q-to { color: var(--muted); font-size: 12px; }
+.cell.q-values input[data-field="value2"]::placeholder { color: var(--muted); }
 #loadTable tr + tr td { border-top: 1px solid var(--soft); }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .options { display: flex; flex-wrap: wrap; gap: 14px; }
@@ -794,7 +795,11 @@ button:disabled, button:disabled:hover { cursor: default; opacity: 0.45; border-
   table.grid button.icon { min-width: 32px; padding: 2px 4px; }
   label.cell { gap: 3px; }
   label.cell input { min-width: 30px; padding-left: 3px; padding-right: 3px; }
-  label.cell span { flex: 0 0 auto; font-size: 11px; min-width: 0; }
+  label.cell span, .cell.q-values span { flex: 0 0 auto; font-size: 11px; min-width: 0; }
+  /* Streckenlast mit zwei Werten: Einheit weglassen (steht im Hinweis), Felder schmaler */
+  .cell.q-values { gap: 2px; }
+  .cell.q-values > span:first-child { display: none; }
+  .cell.q-values input { min-width: 28px; padding-left: 2px; padding-right: 2px; }
   .name-input[type="text"] { width: 42px; }
 }
 /* Menü „Ansicht“ auf schmalen Bildschirmen: an der Werkzeugleiste ausgerichtet, nicht am Knopf (sonst ragt es rechts hinaus) */

@@ -46,10 +46,14 @@ function clone(value) {
 // damit Tabelle, Skizze und Lösungsweg dasselbe zeigen (↓ −50 wird ↑ 50)
 const OPPOSITE_DIR = { down: 'up', up: 'down', left: 'right', right: 'left' };
 function positiveLoad(load) {
-  if (typeof load.value === 'number' && Number.isFinite(load.value) && load.value < 0) {
+  // massgebend ist der erste Wert ungleich 0 (wie im Rechenkern): Dreieckslast 0 → −30 zeigt dann ↑ 0 → 30
+  const end = typeof load.value2 === 'number' && Number.isFinite(load.value2) ? load.value2 : null;
+  const lead = typeof load.value === 'number' && Number.isFinite(load.value) && load.value !== 0 ? load.value : end;
+  if (typeof lead === 'number' && lead < 0) {
     // Trapezlast: der Wert am Ende kehrt mit um
-    const flipped = { ...load, dir: OPPOSITE_DIR[load.dir] || load.dir, value: -load.value };
-    if (typeof load.value2 === 'number' && Number.isFinite(load.value2)) flipped.value2 = -load.value2;
+    const flipped = { ...load, dir: OPPOSITE_DIR[load.dir] || load.dir };
+    if (typeof load.value === 'number' && Number.isFinite(load.value)) flipped.value = load.value === 0 ? 0 : -load.value;
+    if (end !== null) flipped.value2 = end === 0 ? 0 : -end;
     return flipped;
   }
   return load;
@@ -245,7 +249,7 @@ function renderLoadTable() {
       <td class="label strong"><input type="text" class="name-input" data-field="name" value="${escapeHtml(l.name || '')}" placeholder="${escapeHtml(auto[i])}" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name der Last ${escapeHtml(auto[i])}" title="Name wie in der Aufgabe, z. B. F_A, G oder Q_1 (Unterstrich = Index). Leer: ${escapeHtml(auto[i])}"></td>
       <td class="dir"><select data-field="dir" title="Richtung" aria-label="Richtung ${escapeHtml(labels[i])}">${options}</select></td>
       ${isQ
-    ? `<td><label class="cell q-values" title="Wert am Anfang („von“) und am Ende („bis“). Ende leer = gleichmässig, anderer Wert = Trapezlast, 0 = Dreieckslast"><span>kN/m</span>${input('value', l.value, `aria-label="Wert am Anfang von ${escapeHtml(labels[i])}"`)}<span class="q-to" aria-hidden="true">→</span>${input('value2', l.value2, `placeholder="gleich" aria-label="Wert am Ende von ${escapeHtml(labels[i])} (leer = gleichmässig)"`)}</label></td>`
+    ? `<td><div class="cell q-values" title="Wert am Anfang („von“) und am Ende („bis“). Ende leer = gleichmässig, anderer Wert = Trapezlast, 0 = Dreieckslast"><span>kN/m</span>${input('value', l.value, `aria-label="Wert am Anfang von ${escapeHtml(labels[i])}"`)}<span class="q-to" aria-hidden="true">→</span>${input('value2', l.value2, `placeholder="=" aria-label="Wert am Ende von ${escapeHtml(labels[i])} (leer = gleichmässig)"`)}</div></td>`
     : `<td><label class="cell"><span>kN</span>${input('value', l.value)}</label></td>`}
       ${position}
       <td class="tools"><button type="button" class="icon" data-action="remove-load" title="Last entfernen" aria-label="Last ${escapeHtml(labels[i])} entfernen">✕</button></td>
@@ -473,6 +477,7 @@ function checkInputs(model) {
     // Trapez-/Dreieckslast: Wert am Ende (leer = gleichmässig); 0 am Anfang ist dann eine Dreieckslast
     const hasEnd = l.kind === 'q' && l.value2 !== null && l.value2 !== undefined;
     if (hasEnd && !num(l.value2)) add('error', 'load', i, 'value2', `${name}: Wert am Ende ist keine Zahl (leer lassen = gleichmässig).`);
+    else if (hasEnd && num(l.value) && l.value * l.value2 < 0) add('warn', 'load', i, 'value2', `${name}: Anfang und Ende zeigen in verschiedene Richtungen; gerechnet wird mit den Beträgen. Für eine Last, die das Vorzeichen wechselt, zwei Streckenlasten eingeben.`);
     if (!num(l.value)) add('error', 'load', i, 'value', `${name}: Wert ${missing(l.value)}.`);
     else if (l.value === 0 && !(hasEnd && num(l.value2) && l.value2 !== 0)) add('warn', 'load', i, 'value', `${name}: Der Wert ist 0, die Last wirkt nicht.`);
     if (l.kind === 'q') {
@@ -906,6 +911,11 @@ function startDrag(event, key) {
   // Streckenlast mit „von > bis“: erst ordnen, sonst passen die Griffe (links = von) nicht zum Modell
   if (item.kind === 'q' && Number.isFinite(item.x1) && Number.isFinite(item.x2) && item.x1 > item.x2) {
     [item.x1, item.x2] = [item.x2, item.x1];
+    // Trapezlast: die Werte gehören zu ihren Enden und wandern mit (sonst wäre die Last gespiegelt)
+    if (Number.isFinite(item.value2)) {
+      [item.value, item.value2] = [item.value2, item.value];
+      Object.assign(item, positiveLoad(item));
+    }
   }
   const ghostRefs = state.selection.length ? state.selection : [];
   drag = {
@@ -2473,12 +2483,17 @@ function shearAreaMarks(forces, x, X, base, Yv, r1, svg) {
   for (const p of shearAreas(forces, x, 0.5 / 10 ** state.decimals)) {
     const xa = X(p.a);
     const xb = X(p.b);
-    parts.push(`<polygon class="dc-area ${p.area > 0 ? 'pos' : 'neg'}" points="${r1(xa)},${r1(base)} ${r1(xa)},${r1(Yv(p.va))} ${r1(xb)},${r1(Yv(p.vb))} ${r1(xb)},${r1(base)}"/>`);
+    // Kante der Fläche: gerade (q gleichmässig) oder Parabel durch Anfang, Mitte und Ende (Trapezlast)
+    const vq = (s) => p.va * (1 - s) * (1 - 2 * s) + 4 * p.vm * s * (1 - s) + p.vb * s * (2 * s - 1);
+    const edge = p.shape === 'para'
+      ? Array.from({ length: 13 }, (_, j) => `${r1(xa + ((xb - xa) * j) / 12)},${r1(Yv(vq(j / 12)))}`).join(' ')
+      : `${r1(xa)},${r1(Yv(p.va))} ${r1(xb)},${r1(Yv(p.vb))}`;
+    parts.push(`<polygon class="dc-area ${p.area > 0 ? 'pos' : 'neg'}" points="${r1(xa)},${r1(base)} ${edge} ${r1(xb)},${r1(base)}"/>`);
     const width = xb - xa;
     if (width < 5) continue;
     // Nummer mitten in der Fläche; ist sie zu flach oder zu schmal, kleiner und ausserhalb (über der Kurve
     // oder jenseits der Nulllinie) – nie auf einer Beschriftung oder einer anderen Nummer
-    const far = Yv((p.va + p.vb) / 2);
+    const far = Yv(p.shape === 'para' ? p.vm : (p.va + p.vb) / 2);
     const out = far > base ? 1 : -1; // Richtung der Fläche von der Nulllinie aus
     const cx = (xa + xb) / 2;
     const big = width >= 18;
@@ -2883,17 +2898,19 @@ function init() {
       state.exampleId = '';
       $('exampleSelect').value = '';
       scheduleUpdate();
-    } else if (target.matches('#loadTable input[data-field="value"]')) {
-      // Minus beim Verlassen des Feldes in die Pfeilrichtung übernehmen (↓ −50 wird ↑ 50)
+    } else if (target.matches('#loadTable input[data-field="value"], #loadTable input[data-field="value2"]')) {
+      // Minus beim Verlassen des Feldes in die Pfeilrichtung übernehmen (↓ −50 wird ↑ 50; bei Trapezlasten
+      // zählt der erste Wert ungleich 0)
       const row = target.closest('tr[data-index]');
       const index = row ? Number(row.dataset.index) : -1;
       const load = state.model.loads[index];
-      if (load && typeof load.value === 'number' && load.value < 0) {
-        state.model.loads[index] = positiveLoad(load);
+      const flipped = load ? positiveLoad(load) : load;
+      if (load && flipped !== load) {
+        state.model.loads[index] = flipped;
         const active = document.activeElement;
         const activeRow = active && active.closest && active.closest('#loadTable tr[data-index]');
         const keep = activeRow ? { index: activeRow.dataset.index, field: active.dataset.field } : null;
-        historyKey = `loadTable:${index}:value`;
+        historyKey = `loadTable:${index}:${target.dataset.field}`;
         renderLoadTable();
         if (keep && keep.field) {
           const again = document.querySelector(`#loadTable tr[data-index="${keep.index}"] [data-field="${keep.field}"]`);
